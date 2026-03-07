@@ -8,7 +8,8 @@
     "esModuleInterop": true,
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "types": ["node"]
   },
   "include": ["src/**/*", "index.ts", "drizzle.config.ts"],
   "exclude": ["node_modules", "dist"]
