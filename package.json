@@ -1,0 +1,5 @@
+{
+  "name": "pocketguide",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"]
+}
