@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export function Nav() {
   return (
     <nav>
@@ -13,7 +15,12 @@ export function Nav() {
       </ul>
       <div className="nav-right">
         <a href="#" className="nav-login">Giriş Yap</a>
-        <a href="#cta" className="nav-cta">Ücretsiz Başla →</a>
+        <Link to="/map" className="nav-outline">
+          <span className="nav-outline-icon">🗺</span> Haritayı Keşfet
+        </Link>
+        <a href="#cta" className="nav-cta">
+          Ücretsiz Başla →
+        </a>
       </div>
     </nav>
   );

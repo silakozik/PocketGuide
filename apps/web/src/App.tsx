@@ -1,25 +1,15 @@
-import { Nav } from "./components/Nav";
-import { Hero } from "./components/Hero";
-import { DashboardPreview } from "./components/DashboardPreview";
-import { Ticker } from "./components/Ticker";
-import { Features } from "./components/Features";
-import { Transit } from "./components/Transit";
-import { How } from "./components/How";
-import { CTA } from "./components/CTA";
-import { Footer } from "./components/Footer";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+
+import LandingPage from "./pages/LandingPage";
+import MapPage from "./pages/MapPage";
 
 export default function App() {
   return (
-    <>
-      <Nav />
-      <Hero />
-      <DashboardPreview />
-      <Ticker />
-      <Features />
-      <Transit />
-      <How />
-      <CTA />
-      <Footer />
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/map" element={<MapPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
