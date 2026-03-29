@@ -1,0 +1,97 @@
+.layerPanel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  width: 180px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.title {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f1f3d;
+}
+
+.layerList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.layerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.layerInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.layerDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.layerLabel {
+  font-size: 13px;
+  color: #4A5568;
+  font-weight: 500;
+}
+
+/* Toggle Switch CSS */
+.toggleSwitch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.toggleSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e0;
+  transition: .3s;
+  border-radius: 18px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+input:checked + .slider {
+  background-color: #0f1f3d;
+}
+
+input:checked + .slider:before {
+  transform: translateX(14px);
+}

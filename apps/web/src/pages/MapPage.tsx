@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-import { PocketGuideMap } from "../components/PocketGuideMap";
+import { PocketGuideMap } from "../components/map/PocketGuideMap";
 
 export default function MapPage() {
   return (
