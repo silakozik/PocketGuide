@@ -7,6 +7,8 @@
 //Bunları artık hem backend’de hem frontend’de 
 //import { UserDTO, TripDTO, ... } from "@pocketguide/types"; şeklinde kullanabilirsin.
 
+export * from './poi';
+
 export type LanguageCode = "en" | "tr";
 export type Theme = "light" | "dark";
 
