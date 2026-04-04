@@ -256,3 +256,5 @@ export const postComments = pgTable("postComments", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
+
+export * from "./poi.schema";
