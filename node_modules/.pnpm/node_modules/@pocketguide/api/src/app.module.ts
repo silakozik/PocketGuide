@@ -1,13 +1,34 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PlacesModule } from './places/places.module';
+import { RoutesModule } from './routes/routes.module';
+import { AIModule } from './ai/ai.module';
+import { RedisCacheModule } from './config/redis.module';
+import { createDb } from '@pocketguide/database';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // Tüm proje genelinde process.env okunabilmesi için
+      isGlobal: true,
     }),
+    RedisCacheModule,
     PlacesModule,
+    RoutesModule,
+    AIModule,
   ],
+  providers: [
+    {
+      provide: 'DB_CONNECTION',
+      useFactory: (configService: ConfigService) => {
+        const connectionString = configService.get<string>(
+          'DATABASE_URL',
+          'postgresql://postgres:postgres@localhost:5432/pocketguide',
+        );
+        return createDb(connectionString);
+      },
+      inject: [ConfigService],
+    },
+  ],
+  exports: ['DB_CONNECTION'],
 })
 export class AppModule {}

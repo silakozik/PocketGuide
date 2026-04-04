@@ -1,4 +1,5 @@
 import { pgTable, text, timestamp, uuid, integer, doublePrecision, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pois } from "./poi.schema";
 
 //şehirler
 export const cities = pgTable("cities", {
@@ -35,20 +36,6 @@ export const trips = pgTable("trips", {
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-//şehirdeki tüm keşfedilecek yerler, mekanlar
-export const places = pgTable("places", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  city: text("city").notNull(),
-  cityId: uuid("cityId").references(() => cities.id, { onDelete: "cascade" }),
-  category: text("category").notNull(), // müze, restoran, kafe, vs
-  rating: integer("rating"), // 1–5 arası puan veya ileride scale değişebilir
-  description: text("description"),
-  address: text("address"),
-  latitude: doublePrecision("latitude"),
-  longitude: doublePrecision("longitude"),
-  priceLevel: integer("priceLevel"), // 1–5 arası fiyat seviyesi
-});
 
 //bir gezi (trip) içindeki rota (günlük plan vb.)
 export const routes = pgTable("routes", {
@@ -71,7 +58,7 @@ export const routePlaces = pgTable("routePlaces", {
     .references(() => routes.id, { onDelete: "cascade" })
     .notNull(),
   placeId: uuid("placeId")
-    .references(() => places.id, { onDelete: "cascade" })
+    .references(() => pois.id, { onDelete: "cascade" })
     .notNull(),
   orderIndex: integer("orderIndex"), // rotadaki sırası: 1,2,3...
   stayMinutes: integer("stayMinutes"), // burada kaç dakika geçirecek
@@ -130,7 +117,7 @@ export const reviews = pgTable("reviews", {
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
   placeId: uuid("placeId")
-    .references(() => places.id, { onDelete: "cascade" })
+    .references(() => pois.id, { onDelete: "cascade" })
     .notNull(),
   rating: integer("rating").notNull(),
   comment: text("comment"),
@@ -145,7 +132,7 @@ export const favorites = pgTable("favorites", {
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
   placeId: uuid("placeId")
-    .references(() => places.id, { onDelete: "cascade" })
+    .references(() => pois.id, { onDelete: "cascade" })
     .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -212,7 +199,7 @@ export const posts = pgTable("posts", {
   caption: text("caption"),
   mediaType: text("mediaType").notNull(), // image | video
   mediaUrl: text("mediaUrl").notNull(),
-  placeId: uuid("placeId").references(() => places.id, { onDelete: "set null" }),
+  placeId: uuid("placeId").references(() => pois.id, { onDelete: "set null" }),
   routeId: uuid("routeId").references(() => routes.id, { onDelete: "set null" }),
   visibility: text("visibility").default("public"), // public | followers | private
   createdAt: timestamp("createdAt").defaultNow().notNull(),
