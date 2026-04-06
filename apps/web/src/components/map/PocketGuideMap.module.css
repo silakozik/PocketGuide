@@ -8,3 +8,51 @@
   width: 100%;
   height: 100%;
 }
+
+.customMapControls {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mapCtrlBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: white;
+  border: 1px solid #dde3f0;
+  color: #0f1f3d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+
+.mapCtrlBtn:hover {
+  background: #f2f5fb;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+
+.zoomGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #dde3f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.zoomGroup .mapCtrlBtn {
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+

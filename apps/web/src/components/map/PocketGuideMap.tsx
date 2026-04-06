@@ -29,7 +29,12 @@ function MapController({
   return null;
 }
 
-export function PocketGuideMap() {
+interface PocketGuideMapProps {
+  categoryFilter?: string;
+  searchQuery?: string;
+}
+
+export function PocketGuideMap({ categoryFilter = "all", searchQuery = "" }: PocketGuideMapProps) {
   const [map, setMap] = useState<LeafletMap | null>(null);
   const [bounds, setBounds] = useState<LatLngBounds | null>(null);
   const [zoom, setZoom] = useState(13);
@@ -43,7 +48,23 @@ export function PocketGuideMap() {
     heatmap: false
   });
 
-  const { clusters, getLeaves } = useCluster(layers.pins ? MOCK_POIS : [], bounds, zoom);
+  // Filtreleme mantığı
+  const filteredPOIs = MOCK_POIS.filter(poi => {
+    if (categoryFilter !== "all" && poi.category !== categoryFilter) return false;
+    if (searchQuery.trim().length > 0) {
+      if (!poi.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  const { clusters, getLeaves } = useCluster(layers.pins ? filteredPOIs : [], bounds, zoom);
+
+  const handleZoomIn = () => map?.zoomIn();
+  const handleZoomOut = () => map?.zoomOut();
+  const handleLocateInfo = () => {
+    // Burada aslında tarayıcı lokasyonu alınır, mock olarak merkeze dönüyoruz
+    map?.flyTo([38.6748, 39.2225], 13);
+  };
 
   const handleLayerChange = (key: keyof LayerState, value: boolean) => {
     setLayers(prev => ({ ...prev, [key]: value }));
@@ -124,6 +145,28 @@ export function PocketGuideMap() {
         }} 
         onSelectPOI={handlePoiClick}
       />
+
+      {/* Özel Harita Kontrolleri */}
+      <div className={styles.customMapControls}>
+        <button type="button" className={styles.mapCtrlBtn} onClick={handleLocateInfo} title="Konumuma Git">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+        </button>
+        <div className={styles.zoomGroup}>
+          <button type="button" className={styles.mapCtrlBtn} onClick={handleZoomIn} title="Yakınlaştır">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12M6 12h12" />
+            </svg>
+          </button>
+          <button type="button" className={styles.mapCtrlBtn} onClick={handleZoomOut} title="Uzaklaştır">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12h12" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
