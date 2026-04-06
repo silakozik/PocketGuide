@@ -1,3 +1,4 @@
+import { Button } from "@pocketguide/ui";
 import { useScrollReveal } from "../hooks/useScrollReveal";
 
 export function Hero() {
@@ -25,12 +26,12 @@ export function Hero() {
           />
           <div className="search-divider" />
           <div className="search-date">📅 Tarih ekle</div>
-          <button type="button" className="search-btn">
+          <Button type="button" className="search-btn">
             Rotanı Oluştur
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
-          </button>
+          </Button>
         </div>
         <div className="hero-hint">
           <span><div className="hero-hint-dot" /> Ücretsiz başla</span>

@@ -1,3 +1,4 @@
+import { Button } from "@pocketguide/ui";
 import { useScrollReveal } from "../hooks/useScrollReveal";
 
 export function CTA() {
@@ -11,8 +12,8 @@ export function CTA() {
         </h2>
         <p className="cta-sub">İlk şehrin tamamen ücretsiz. Kredi kartı gerekmez.</p>
         <div className="cta-btns">
-          <a href="#" className="btn-gold">🚀 Ücretsiz Başla</a>
-          <a href="#features" className="btn-outline">Daha Fazla Keşfet →</a>
+          <Button href="#" variant="gold">🚀 Ücretsiz Başla</Button>
+          <Button href="#features" variant="outline">Daha Fazla Keşfet →</Button>
         </div>
       </div>
     </div>
