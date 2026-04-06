@@ -11,7 +11,7 @@ export function Footer() {
         <li><a href="#">Blog</a></li>
         <li><a href="#">İletişim</a></li>
       </ul>
-      <div className="footer-copy">© 2025 PocketGuide</div>
+      <div className="footer-copy">© 2026 PocketGuide</div>
     </footer>
   );
 }
