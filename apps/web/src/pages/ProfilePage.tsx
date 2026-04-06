@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { INTERESTS } from "./OnboardingPage";
 import { Link } from "react-router-dom";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
@@ -16,7 +17,28 @@ const SAVED_PLACES = [
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("trips");
+  const [userInterests, setUserInterests] = useState<string[]>([]);
+  const [isEditingInterests, setIsEditingInterests] = useState(false);
 
+  useEffect(() => {
+    const saved = localStorage.getItem("pg_user_interests");
+    if (saved) {
+      try {
+        setUserInterests(JSON.parse(saved));
+      } catch (e) {}
+    }
+  }, []);
+
+  const toggleInterest = (id: string) => {
+    setUserInterests(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const saveInterests = () => {
+    localStorage.setItem("pg_user_interests", JSON.stringify(userInterests));
+    setIsEditingInterests(false);
+  };
   return (
     <>
       <Nav />
@@ -52,6 +74,12 @@ export default function ProfilePage() {
               onClick={() => setActiveTab("saved")}
             >
               <span className="p-nav-icon">🔖</span> Kaydedilenler
+            </button>
+            <button 
+              className={`p-nav-btn ${activeTab === "interests" ? "active" : ""}`}
+              onClick={() => setActiveTab("interests")}
+            >
+              <span className="p-nav-icon">🎯</span> İlgi Alanları
             </button>
             <button 
               className={`p-nav-btn ${activeTab === "stats" ? "active" : ""}`}
@@ -134,6 +162,65 @@ export default function ProfilePage() {
                   <div className="stat-value">18</div>
                   <div className="stat-label">Oluşturulan Rota</div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "interests" && (
+            <div className="p-tab-fade-in">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <h2 className="p-section-title" style={{ margin: 0 }}>İlgi Alanlarım</h2>
+                <button 
+                  className="profile-btn-primary" 
+                  style={{ padding: "0.5rem 1rem", fontSize: "0.9rem", border: "none", cursor: "pointer", borderRadius: "8px", background: "var(--ink)", color: "var(--gold)" }}
+                  onClick={() => {
+                    if (isEditingInterests) {
+                      saveInterests();
+                    } else {
+                      setIsEditingInterests(true);
+                    }
+                  }}
+                >
+                  {isEditingInterests ? "Kaydet" : "Düzenle"}
+                </button>
+              </div>
+              
+              <div className="interests-grid" style={{ 
+                display: "grid", 
+                gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+                gap: "1rem"
+              }}>
+                {INTERESTS.map(interest => {
+                  const isSelected = userInterests.includes(interest.id);
+                  if (!isEditingInterests && !isSelected) return null; // Hide non-selected if not editing
+                  
+                  return (
+                    <div 
+                      key={interest.id}
+                      className={`interest-card ${isSelected ? "selected" : ""}`}
+                      onClick={() => isEditingInterests && toggleInterest(interest.id)}
+                      style={{ 
+                        cursor: isEditingInterests ? "pointer" : "default",
+                        opacity: !isEditingInterests && !isSelected ? 0.5 : 1,
+                        background: isSelected ? "var(--ink)" : "var(--white)",
+                        color: isSelected ? "var(--gold)" : "var(--ink)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "16px",
+                        padding: "1.5rem 1rem",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "0.5rem"
+                      }}
+                    >
+                      <span className="interest-icon" style={{ fontSize: "2rem" }}>{interest.icon}</span>
+                      <span className="interest-label" style={{ fontWeight: 500 }}>{interest.label}</span>
+                    </div>
+                  );
+                })}
+                {!isEditingInterests && userInterests.length === 0 && (
+                  <p style={{ color: "var(--muted)", gridColumn: "1 / -1" }}>Henüz ilgi alanı seçilmemiş.</p>
+                )}
               </div>
             </div>
           )}

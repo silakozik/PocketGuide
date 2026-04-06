@@ -1,0 +1,106 @@
+/* Onboarding Styles */
+.onboarding-viewport {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg, #f7f4ee);
+  padding: 2rem;
+}
+
+.onboarding-container {
+  background: var(--surface, #f2f5fb);
+  border: 1px solid var(--border, #dde3f0);
+  border-radius: 24px;
+  padding: 3rem;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.onboarding-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--ink, #0f1f3d);
+}
+
+.onboarding-subtitle {
+  color: var(--muted, #6b7a99);
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+}
+
+.interests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 1rem;
+  margin-bottom: 3rem;
+  text-align: left;
+}
+
+.interest-card {
+  background: var(--bg, #f7f4ee);
+  border: 1px solid var(--border, #dde3f0);
+  border-radius: 16px;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text, #0f1f3d);
+}
+
+.interest-card:hover {
+  border-color: var(--ink, #0f1f3d);
+  transform: translateY(-2px);
+  background: rgba(15, 31, 61, 0.05); /* using ink color */
+}
+
+.interest-card.selected {
+  background: var(--ink, #0f1f3d);
+  border-color: var(--ink, #0f1f3d);
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(15, 31, 61, 0.3);
+}
+
+.interest-card.selected .interest-label {
+  color: var(--gold, #e8c547);
+}
+
+.interest-icon {
+  font-size: 2rem;
+}
+
+.interest-label {
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: color 0.3s;
+}
+
+.onboarding-submit-btn {
+  background: var(--ink, #0f1f3d);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 1rem 3rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.onboarding-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.onboarding-submit-btn:not(:disabled):hover {
+  background: var(--ink2, #1a3560);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(15, 31, 61, 0.4);
+}
