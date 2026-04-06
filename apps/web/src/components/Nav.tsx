@@ -29,13 +29,16 @@ export function Nav() {
         <li><a href="#pricing" onClick={() => setMenuOpen(false)}>Fiyatlar</a></li>
       </ul>
       <div className={`nav-right ${menuOpen ? "show" : ""}`}>
-        <a href="#" className="nav-login">Giriş Yap</a>
-        <Link to="/map" className="nav-outline" onClick={() => setMenuOpen(false)}>
-          <span className="nav-outline-icon">🗺</span> Haritayı Keşfet
-        </Link>
-        <a href="#cta" className="nav-cta" onClick={() => setMenuOpen(false)}>
-          Ücretsiz Başla →
+        <a href="#auth" className="nav-login" onClick={() => setMenuOpen(false)}>
+          Giriş Yap / Kayıt Ol
         </a>
+        <div style={{ width: "1px", height: "30px", background: "var(--border)", margin: "0 8px" }} className="nav-divider" />
+        <Link to="/map" className="nav-outline" onClick={() => setMenuOpen(false)}>
+          🗺 Harita
+        </Link>
+        <Link to="/profile" className="map-profile-btn" style={{ marginLeft: '8px' }} onClick={() => setMenuOpen(false)}>
+          <div className="profile-avatar">S</div>
+        </Link>
       </div>
 
       {/* Overlay */}
