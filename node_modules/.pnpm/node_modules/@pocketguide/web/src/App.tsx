@@ -5,12 +5,18 @@ import LandingPage from "./pages/LandingPage";
 import MapPage from "./pages/MapPage";
 import ProfilePage from "./pages/ProfilePage";
 import OnboardingPage from "./pages/OnboardingPage";
+import AdminLoginPage from "./pages/admin/AdminLoginPage";
+import AdminCitiesPage from "./pages/admin/AdminCitiesPage";
+import AdminGuard from "./components/admin/AdminGuard";
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
+    // Skip onboarding check for admin routes
+    if (location.pathname.startsWith("/admin")) return;
+
     const hasOnboarded = localStorage.getItem("pg_has_onboarded");
     if (!hasOnboarded && location.pathname !== "/onboarding") {
       navigate("/onboarding");
@@ -29,6 +35,17 @@ export default function App() {
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+
+          {/* Admin routes */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route
+            path="/admin/cities"
+            element={
+              <AdminGuard>
+                <AdminCitiesPage />
+              </AdminGuard>
+            }
+          />
         </Routes>
       </OnboardingGuard>
     </BrowserRouter>

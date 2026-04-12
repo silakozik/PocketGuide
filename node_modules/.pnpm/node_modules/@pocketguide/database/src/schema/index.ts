@@ -8,6 +8,8 @@ export const cities = pgTable("cities", {
   nameEn: text("nameEn").notNull(),
   nameTr: text("nameTr").notNull(),
   countryCode: text("countryCode").notNull(),
+  status: text("status").notNull().default("active"), // active | passive
+  lastSyncedAt: timestamp("lastSyncedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });

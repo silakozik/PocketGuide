@@ -1,9 +1,12 @@
 {
   "name": "@pocketguide/database",
   "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
   "dependencies": {
     "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
+    "pg": "^8.16.0",
     "postgres": "^3.4.8"
   },
   "devDependencies": {

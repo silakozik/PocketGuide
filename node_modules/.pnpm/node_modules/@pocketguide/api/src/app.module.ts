@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PlacesModule } from './places/places.module';
 import { RoutesModule } from './routes/routes.module';
 import { AIModule } from './ai/ai.module';
+import { AdminModule } from './admin/admin.module';
 import { RedisCacheModule } from './config/redis.module';
 import { createDb } from '@pocketguide/database';
 
@@ -15,6 +16,7 @@ import { createDb } from '@pocketguide/database';
     PlacesModule,
     RoutesModule,
     AIModule,
+    AdminModule,
   ],
   providers: [
     {
