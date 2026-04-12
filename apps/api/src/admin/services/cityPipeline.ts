@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { OverpassImporter, OverpassPOI } from './overpassImporter';
-import { cities, pois } from '@pocketguide/database';
-import { eq, and } from 'drizzle-orm';
+import { cities, adaptationPoints } from '@pocketguide/database';
+import { eq } from 'drizzle-orm';
 import { calculateDistance } from '../../places/normalization/utils/geo.util';
 
 @Injectable()
@@ -34,7 +34,7 @@ export class CityPipeline {
         slug: citySlug,
         nameEn: cityName,
         nameTr: cityName,
-        countryCode: 'XX', // Default or fetch if available
+        countryCode: 'XX',
       }).returning();
       onProgress?.({ step: 'city', status: 'done', message: `Şehir oluşturuldu: ${cityName}` });
     } else {
@@ -43,8 +43,8 @@ export class CityPipeline {
 
     const cityId = city.id;
 
-    // 2. Fetch existing POIs for this city to help with deduplication
-    const existingPois = await this.db.select().from(pois).where(eq(pois.cityId, cityId));
+    // 2. Fetch existing points for this city to help with deduplication
+    const existingPoints = await this.db.select().from(adaptationPoints).where(eq(adaptationPoints.cityId, cityId));
 
     // 3. Sequential fetch and process
     for (const category of categories) {
@@ -54,22 +54,23 @@ export class CityPipeline {
       this.logger.log(`Fetched ${rawPoints.length} points for ${category}`);
 
       // Deduplicate by 100m radius
-      const uniquePoints = this.deduplicatePoints(rawPoints, existingPois);
+      const uniquePoints = this.deduplicatePoints(rawPoints, existingPoints);
       this.logger.log(`Unique points for ${category}: ${uniquePoints.length}`);
 
       // Upsert to DB
       if (uniquePoints.length > 0) {
         const values = uniquePoints.map(p => ({
-          sourceId: p.sourceId,
-          provider: 'osm',
-          name: p.name,
           cityId: cityId,
           category: this.mapToInternalCategory(category),
+          name: p.name,
           address: p.address,
-          location: { lng: p.longitude, lat: p.latitude },
+          latitude: p.latitude,
+          longitude: p.longitude,
+          source: 'openstreetmap',
+          openingHours: p.opening_hours,
         }));
 
-        await this.db.insert(pois).values(values).onConflictDoNothing();
+        await this.db.insert(adaptationPoints).values(values).onConflictDoNothing();
       }
 
       results[category] = uniquePoints.length;
@@ -92,7 +93,7 @@ export class CityPipeline {
     return results;
   }
 
-  private deduplicatePoints(newPoints: OverpassPOI[], existingPois: any[]): OverpassPOI[] {
+  private deduplicatePoints(newPoints: OverpassPOI[], existingPoints: any[]): OverpassPOI[] {
     const uniqueBatch: OverpassPOI[] = [];
     const RADIUS_THRESHOLD = 100; // 100 meters
 
@@ -100,12 +101,12 @@ export class CityPipeline {
       let isDuplicate = false;
 
       // Check against existing points in DB
-      for (const existing of existingPois) {
+      for (const existing of existingPoints) {
         const dist = calculateDistance(
           newPoint.latitude, 
           newPoint.longitude, 
-          existing.location.lat, 
-          existing.location.lng
+          existing.latitude, 
+          existing.longitude
         );
         if (dist < RADIUS_THRESHOLD) {
           isDuplicate = true;
@@ -139,8 +140,8 @@ export class CityPipeline {
 
   private mapToInternalCategory(cat: string): string {
     const map: Record<string, string> = {
-      sim: 'sim_card',
-      transport: 'transport_tickets',
+      sim: 'sim',
+      transport: 'transport_card',
       exchange: 'exchange',
     };
     return map[cat] || cat;

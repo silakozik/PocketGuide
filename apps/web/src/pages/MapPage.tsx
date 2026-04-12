@@ -27,6 +27,11 @@ export default function MapPage() {
           Geri
         </Link>
         
+        <Link to="/istanbul/first-day" className="first-day-guide-badge">
+          <span className="icon">💡</span>
+          <span className="text">İlk Gün Rehberi</span>
+        </Link>
+        
         {/* Orta: Arama ve Filtreler */}
         <div className="map-search-container">
           <div className="map-search-bar">

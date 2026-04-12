@@ -1,4 +1,4 @@
-import { Controller, Get, Query, ParseFloatPipe, DefaultValuePipe, ParseIntPipe, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Query, Param, ParseFloatPipe, DefaultValuePipe, ParseIntPipe, UseInterceptors } from '@nestjs/common';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { GeospatialService, PoiWithDistance } from '../services/geospatial.service';
 
@@ -108,6 +108,20 @@ export class PoisController {
     const data = await this.geospatialService.getClusteredPois(
       minLat, minLng, maxLat, maxLng, gridSize,
     );
+    return { data };
+  }
+
+  /**
+   * GET /pois/city/:slug?category=...
+   * 
+   * Fetch all POIs for a specific city by slug.
+   */
+  @Get('city/:slug')
+  async getByCity(
+    @Param('slug') slug: string,
+    @Query('category') category?: string,
+  ): Promise<{ data: PoiWithDistance[] }> {
+    const data = await this.geospatialService.findByCitySlug(slug, category);
     return { data };
   }
 }

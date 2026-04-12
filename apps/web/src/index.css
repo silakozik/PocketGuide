@@ -152,6 +152,37 @@ nav {
   transform: translateY(-2px);
 }
 
+.first-day-guide-badge {
+  position: absolute;
+  top: 16px;
+  left: 120px;
+  z-index: 2000;
+  background: var(--ink);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 100px;
+  box-shadow: 0 4px 12px rgba(15, 31, 61, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.first-day-guide-badge:hover {
+  background: var(--ink2);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 31, 61, 0.25);
+}
+
+.first-day-guide-badge .icon {
+  font-size: 14px;
+}
+
 /* â”€â”€â”€ HERO â”€â”€â”€ */
 .hero {
   padding-top: 64px;

@@ -286,4 +286,46 @@ export class GeospatialService {
 
     return result.rows;
   }
+
+  /**
+   * Find all POIs for a specific city by its slug, optionally filtered by category.
+   */
+  async findByCitySlug(citySlug: string, category?: string): Promise<PoiWithDistance[]> {
+    const cacheKey = `pois:city:${citySlug}:${category || 'all'}`;
+    
+    const cached = await this.cacheManager.get<PoiWithDistance[]>(cacheKey);
+    if (cached) return cached;
+
+    const whereConditions = [
+      sql`c.slug = ${citySlug}`
+    ];
+
+    if (category) {
+      whereConditions.push(sql`p.category = ${category}`);
+    }
+
+    const whereClause = sql.join(whereConditions, sql` AND `);
+
+    const result = await this.db.execute(sql`
+      SELECT
+        p.id,
+        p.name,
+        p.category,
+        p.address,
+        p.description,
+        p.rating,
+        p."priceLevel",
+        ST_Y(p.location::geometry) AS lat,
+        ST_X(p.location::geometry) AS lng,
+        0 AS "distanceMeters"
+      FROM pois p
+      JOIN cities c ON p."cityId" = c.id
+      WHERE ${whereClause}
+      ORDER BY p.name ASC
+    `);
+
+    const rows = result.rows as PoiWithDistance[];
+    await this.cacheManager.set(cacheKey, rows, 60);
+    return rows;
+  }
 }

@@ -14,8 +14,8 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { AdminGuard } from './admin.guard';
-import { cities, pois } from '@pocketguide/database';
-import { eq, count } from 'drizzle-orm';
+import { cities, pois, adaptationPoints } from '@pocketguide/database';
+import { eq, count, or } from 'drizzle-orm';
 import { CityPipeline } from './services/cityPipeline';
 
 @Controller('api/admin')
@@ -37,26 +37,30 @@ export class AdminCityController {
     // Get all cities
     const allCities = await this.db.select().from(cities).orderBy(cities.createdAt);
 
-    // Get POI counts grouped by city and category
-    const poiCounts = await this.db
+    // Get counts from adaptation_points for the dashboard chips
+    const adaptCounts = await this.db
       .select({
-        cityId: pois.cityId,
-        category: pois.category,
+        cityId: adaptationPoints.cityId,
+        category: adaptationPoints.category,
         count: count(),
       })
-      .from(pois)
-      .groupBy(pois.cityId, pois.category);
+      .from(adaptationPoints)
+      .groupBy(adaptationPoints.cityId, adaptationPoints.category);
 
     // Build a map for fast lookup
     const countMap: Record<string, Record<string, number>> = {};
-    for (const row of poiCounts) {
+    for (const row of adaptCounts) {
       if (!row.cityId) continue;
       if (!countMap[row.cityId]) countMap[row.cityId] = {};
-      countMap[row.cityId][row.category] = Number(row.count);
+      // Map to keys expected by frontend
+      const uiKey = row.category === 'transport_card' ? 'transport_stop' : 
+                    row.category === 'sim' ? 'sim_card' : row.category;
+      countMap[row.cityId][uiKey] = Number(row.count);
     }
 
     return allCities.map((city: any) => ({
       ...city,
+      status: city.isActive ? 'active' : 'passive', // map isActive to status for frontend compatibility
       poiCounts: countMap[city.id] || {},
     }));
   }
@@ -127,38 +131,33 @@ export class AdminCityController {
   }
 
   /**
-   * PATCH /api/admin/cities/[slug]
+   * PATCH /api/admin/cities/:id/status
    * Toggle city status (active/passive)
    */
-  @Patch('cities/:slug')
-  async toggleStatus(@Param('slug') slug: string, @Body() body: { status: string }) {
+  @Patch('cities/:id/status')
+  async toggleStatus(@Param('id') id: string, @Body() body: { status: string }) {
     const [updated] = await this.db
       .update(cities)
-      .set({ status: body.status, updatedAt: new Date() })
-      .where(eq(cities.slug, slug))
+      .set({ isActive: body.status === 'active', updatedAt: new Date() })
+      .where(eq(cities.id, id))
       .returning();
 
     return updated;
   }
 
   /**
-   * DELETE /api/admin/cities/[slug]
-   * Delete a city and all its POIs via slug
+   * DELETE /api/admin/cities/:id
+   * Delete a city and all its POIs
    */
-  @Delete('cities/:slug')
+  @Delete('cities/:id')
   @HttpCode(200)
-  async deleteCity(@Param('slug') slug: string) {
-    // Find city first to get ID for POI deletion if needed (though FK should handle it)
-    const [city] = await this.db.select().from(cities).where(eq(cities.slug, slug)).limit(1);
-    
-    if (!city) {
-      return { success: false, message: 'Şehir bulunamadı.' };
-    }
-
-    // Delete POIs
-    await this.db.delete(pois).where(eq(pois.cityId, city.id));
+  async deleteCity(@Param('id') id: string) {
+    // Delete Adaptation Points
+    await this.db.delete(adaptationPoints).where(eq(adaptationPoints.cityId, id));
+    // Delete regular POIs
+    await this.db.delete(pois).where(eq(pois.cityId, id));
     // Delete the city
-    await this.db.delete(cities).where(eq(cities.id, city.id));
+    await this.db.delete(cities).where(eq(cities.id, id));
     
     return { success: true, message: 'Şehir ve ilgili veriler silindi.' };
   }

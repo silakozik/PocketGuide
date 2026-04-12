@@ -8,10 +8,24 @@ export const cities = pgTable("cities", {
   nameEn: text("nameEn").notNull(),
   nameTr: text("nameTr").notNull(),
   countryCode: text("countryCode").notNull(),
-  status: text("status").notNull().default("active"), // active | passive
-  lastSyncedAt: timestamp("lastSyncedAt"),
+  isActive: boolean("is_active").default(true),
+  lastSyncedAt: timestamp("last_synced_at"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export const adaptationPoints = pgTable("adaptation_points", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cityId: uuid("city_id").references(() => cities.id, { onDelete: "cascade" }),
+  category: text("category").notNull(), // sim, transport_card, exchange
+  name: text("name").notNull(),
+  address: text("address"),
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
+  openingHours: text("opening_hours"),
+  source: text("source").default("openstreetmap"),
+  isActive: boolean("is_active").default(true),
+  lastSyncedAt: timestamp("last_synced_at").defaultNow(),
 });
 
 //kullanıcı bilgileri
