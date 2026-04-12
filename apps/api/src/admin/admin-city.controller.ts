@@ -15,20 +15,24 @@ import {
 import { Response } from 'express';
 import { AdminGuard } from './admin.guard';
 import { cities, pois } from '@pocketguide/database';
-import { eq, sql, and, count } from 'drizzle-orm';
+import { eq, count } from 'drizzle-orm';
+import { CityPipeline } from './services/cityPipeline';
 
-@Controller('api/admin/cities')
+@Controller('api/admin')
 @UseGuards(AdminGuard)
 export class AdminCityController {
   private readonly logger = new Logger(AdminCityController.name);
 
-  constructor(@Inject('DB_CONNECTION') private readonly db: any) {}
+  constructor(
+    @Inject('DB_CONNECTION') private readonly db: any,
+    private readonly cityPipeline: CityPipeline,
+  ) {}
 
   /**
    * GET /api/admin/cities
    * Returns all cities with POI counts per category
    */
-  @Get()
+  @Get('cities')
   async listCities() {
     // Get all cities
     const allCities = await this.db.select().from(cities).orderBy(cities.createdAt);
@@ -61,7 +65,7 @@ export class AdminCityController {
    * POST /api/admin/cities
    * Create a new city
    */
-  @Post()
+  @Post('cities')
   async createCity(
     @Body() body: { cityName: string; citySlug: string; countryCode: string },
   ) {
@@ -84,12 +88,12 @@ export class AdminCityController {
    * POST /api/admin/import-city
    * Import POIs from OSM for a given city using SSE
    */
-  @Post('import')
+  @Post('import-city')
   async importCity(
-    @Body() body: { citySlug: string; cityName: string; countryCode?: string },
+    @Body() body: { citySlug: string; cityName: string },
     @Res() res: Response,
   ) {
-    const { citySlug, cityName, countryCode } = body;
+    const { citySlug, cityName } = body;
 
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
@@ -102,70 +106,17 @@ export class AdminCityController {
     };
 
     try {
-      // Step 1: Ensure city exists
-      sendEvent({ step: 'city', status: 'loading', message: 'Şehir kontrol ediliyor...' });
-      
-      let [city] = await this.db
-        .select()
-        .from(cities)
-        .where(eq(cities.slug, citySlug))
-        .limit(1);
-
-      if (!city) {
-        [city] = await this.db
-          .insert(cities)
-          .values({
-            slug: citySlug,
-            nameEn: cityName,
-            nameTr: cityName,
-            countryCode: (countryCode || 'XX').toUpperCase(),
-          })
-          .returning();
-        sendEvent({ step: 'city', status: 'done', message: `Şehir oluşturuldu: ${cityName}` });
-      } else {
-        sendEvent({ step: 'city', status: 'done', message: `Şehir bulundu: ${city.nameEn}` });
-      }
-
-      const cityId = city.id;
-      let totalImported = 0;
-
-      // Step 2: Fetch SIM card shops (shop=mobile_phone)
-      sendEvent({ step: 'sim', status: 'loading', message: 'SIM satış noktaları aranıyor...' });
-      const simPois = await this.fetchOSMByTag(cityName, 'shop', 'mobile_phone');
-      const simInserted = await this.insertPois(simPois, cityId, 'sim_card');
-      totalImported += simInserted;
-      sendEvent({ step: 'sim', status: 'done', message: `SIM noktaları`, count: simInserted });
-
-      // Step 3: Fetch Transport (railway=station, highway=bus_stop)
-      sendEvent({ step: 'transport', status: 'loading', message: 'Ulaşım noktaları aranıyor...' });
-      const transportPois = await this.fetchOSMByTag(cityName, 'public_transport', 'station');
-      const transportInserted = await this.insertPois(transportPois, cityId, 'transport_stop');
-      totalImported += transportInserted;
-      sendEvent({ step: 'transport', status: 'done', message: `Ulaşım noktaları`, count: transportInserted });
-
-      // Step 4: Fetch Exchange offices (amenity=bureau_de_change)
-      sendEvent({ step: 'exchange', status: 'loading', message: 'Döviz büroları aranıyor...' });
-      const exchangePois = await this.fetchOSMByTag(cityName, 'amenity', 'bureau_de_change');
-      const exchangeInserted = await this.insertPois(exchangePois, cityId, 'exchange');
-      totalImported += exchangeInserted;
-      sendEvent({ step: 'exchange', status: 'done', message: `Döviz büroları`, count: exchangeInserted });
-
-      // Step 5: Update lastSyncedAt
-      await this.db
-        .update(cities)
-        .set({ lastSyncedAt: new Date(), updatedAt: new Date() })
-        .where(eq(cities.id, cityId));
+      const results = await this.cityPipeline.importCityData(
+        citySlug,
+        cityName,
+        sendEvent,
+      );
 
       sendEvent({
         step: 'complete',
         status: 'done',
-        message: 'Import tamamlandı!',
-        total: totalImported,
-        breakdown: {
-          sim: simInserted,
-          transport: transportInserted,
-          exchange: exchangeInserted,
-        },
+        message: 'Import başarıyla tamamlandı!',
+        results,
       });
     } catch (error: any) {
       this.logger.error('Import error:', error);
@@ -176,87 +127,39 @@ export class AdminCityController {
   }
 
   /**
-   * PATCH /api/admin/cities/:id/status
+   * PATCH /api/admin/cities/[slug]
    * Toggle city status (active/passive)
    */
-  @Patch(':id/status')
-  async toggleStatus(@Param('id') id: string, @Body() body: { status: string }) {
+  @Patch('cities/:slug')
+  async toggleStatus(@Param('slug') slug: string, @Body() body: { status: string }) {
     const [updated] = await this.db
       .update(cities)
       .set({ status: body.status, updatedAt: new Date() })
-      .where(eq(cities.id, id))
+      .where(eq(cities.slug, slug))
       .returning();
 
     return updated;
   }
 
   /**
-   * DELETE /api/admin/cities/:id
-   * Delete a city and all its POIs (cascade via FK)
+   * DELETE /api/admin/cities/[slug]
+   * Delete a city and all its POIs via slug
    */
-  @Delete(':id')
+  @Delete('cities/:slug')
   @HttpCode(200)
-  async deleteCity(@Param('id') id: string) {
-    // Delete POIs first (in case cascade isn't working)
-    await this.db.delete(pois).where(eq(pois.cityId, id));
+  async deleteCity(@Param('slug') slug: string) {
+    // Find city first to get ID for POI deletion if needed (though FK should handle it)
+    const [city] = await this.db.select().from(cities).where(eq(cities.slug, slug)).limit(1);
+    
+    if (!city) {
+      return { success: false, message: 'Şehir bulunamadı.' };
+    }
+
+    // Delete POIs
+    await this.db.delete(pois).where(eq(pois.cityId, city.id));
     // Delete the city
-    await this.db.delete(cities).where(eq(cities.id, id));
+    await this.db.delete(cities).where(eq(cities.id, city.id));
+    
     return { success: true, message: 'Şehir ve ilgili veriler silindi.' };
-  }
-
-  // ── Helpers ──
-
-  private async fetchOSMByTag(
-    cityName: string,
-    key: string,
-    value: string,
-  ): Promise<Array<{ name: string; lat: number; lng: number }>> {
-    const query = `
-      [out:json][timeout:25];
-      area[name="${cityName}"]->.searchArea;
-      node["${key}"="${value}"](area.searchArea);
-      out body;
-    `;
-
-    try {
-      const res = await fetch(
-        `https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`,
-      );
-      const text = await res.text();
-      const data = JSON.parse(text);
-      return (data.elements || []).map((el: any) => ({
-        name: el.tags?.name || `${value} (${el.id})`,
-        lat: el.lat,
-        lng: el.lon,
-      }));
-    } catch (err: any) {
-      this.logger.warn(`OSM fetch failed for ${key}=${value}: ${err.message}`);
-      return [];
-    }
-  }
-
-  private async insertPois(
-    rawPois: Array<{ name: string; lat: number; lng: number }>,
-    cityId: string,
-    category: string,
-  ): Promise<number> {
-    if (rawPois.length === 0) return 0;
-
-    const values = rawPois.map((p) => ({
-      name: p.name,
-      cityId,
-      category,
-      provider: 'osm' as const,
-      sourceId: `osm_${category}_${p.lat}_${p.lng}`,
-      location: { lng: p.lng, lat: p.lat },
-    }));
-
-    try {
-      await this.db.insert(pois).values(values).onConflictDoNothing();
-      return values.length;
-    } catch (err: any) {
-      this.logger.error(`Insert error: ${err.message}`);
-      return 0;
-    }
   }
 }
