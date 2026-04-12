@@ -24,7 +24,8 @@ export function Nav() {
       {/* Links — desktop visible, mobile toggle */}
       <ul className={`nav-links ${menuOpen ? "show" : ""}`}>
         <li><a href="#features" onClick={() => setMenuOpen(false)}>Özellikler</a></li>
-        <li><a href="#transit" onClick={() => setMenuOpen(false)}>Ulaşım</a></li>
+        <li><Link to="/transfer" onClick={() => setMenuOpen(false)}>Ulaşım</Link></li>
+
         <li><a href="#how" onClick={() => setMenuOpen(false)}>Nasıl Çalışır</a></li>
         <li><a href="#pricing" onClick={() => setMenuOpen(false)}>Fiyatlar</a></li>
       </ul>

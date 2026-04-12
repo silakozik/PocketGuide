@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, doublePrecision, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, integer, doublePrecision, jsonb, boolean, decimal, char } from "drizzle-orm/pg-core";
 import { pois } from "./poi.schema";
 
 //şehirler
@@ -258,6 +258,41 @@ export const postComments = pgTable("postComments", {
   text: text("text").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export const transferRoutes = pgTable("transfer_routes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cityId: uuid("city_id").references(() => cities.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // 'airport', 'intercity', 'intracity'
+  mode: text("mode").notNull(), // 'metro', 'bus', 'rail', 'ferry', 'taxi', 'tram', 'cable_car', 'walk'
+  name: text("name").notNull(),
+  fromPoint: text("from_point").notNull(),
+  toPoint: text("to_point").notNull(),
+  durationMin: integer("duration_min"),
+  durationMax: integer("duration_max"),
+  costAmount: decimal("cost_amount"),
+  costCurrency: char("cost_currency", { length: 3 }),
+  frequency: text("frequency"),
+  operatingHours: text("operating_hours"),
+  transportCard: text("transport_card"),
+  steps: jsonb("steps"),
+  tags: jsonb("tags"),
+  source: text("source").default("manual"),
+  isActive: boolean("is_active").default(true),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+});
+
+export const transportCards = pgTable("transport_cards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cityId: uuid("city_id").references(() => cities.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  purchaseLocations: jsonb("purchase_locations"),
+  topupLocations: jsonb("topup_locations"),
+  initialCost: decimal("initial_cost"),
+  currency: char("currency", { length: 3 }),
+  depositRequired: boolean("deposit_required").default(false),
+  depositAmount: decimal("deposit_amount"),
+  usableOn: jsonb("usable_on"),
 });
 
 export * from "./poi.schema";

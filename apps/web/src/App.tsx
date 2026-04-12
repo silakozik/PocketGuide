@@ -9,6 +9,8 @@ import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminCitiesPage from "./pages/admin/AdminCitiesPage";
 import AdminGuard from "./components/admin/AdminGuard";
 import FirstDayPage from "./pages/FirstDayPage";
+import TransfersPage from "./pages/TransfersPage";
+
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -37,6 +39,8 @@ export default function App() {
           <Route path="/map" element={<MapPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/:citySlug/first-day" element={<FirstDayPage />} />
+          <Route path="/transfer" element={<TransfersPage />} />
+
 
           {/* Admin routes */}
           <Route path="/admin/login" element={<AdminLoginPage />} />

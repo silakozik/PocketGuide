@@ -5,6 +5,7 @@ import { RoutesModule } from './routes/routes.module';
 import { AIModule } from './ai/ai.module';
 import { AdminModule } from './admin/admin.module';
 import { RedisCacheModule } from './config/redis.module';
+import { TransfersModule } from './transfers/transfers.module';
 import { createDb } from '@pocketguide/database';
 
 @Module({
@@ -17,6 +18,7 @@ import { createDb } from '@pocketguide/database';
     RoutesModule,
     AIModule,
     AdminModule,
+    TransfersModule,
   ],
   providers: [
     {

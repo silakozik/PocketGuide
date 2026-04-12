@@ -194,3 +194,44 @@ export interface FollowDTO {
   followingId: string;
   createdAt: string;
 }
+
+// Transfer Rehberi Tipleri
+export type TransferType = 'airport' | 'intercity' | 'intracity';
+export type TransportMode = 'metro' | 'bus' | 'rail' | 'ferry' | 'taxi' | 'tram' | 'cable_car' | 'walk';
+
+export interface TransferRouteDTO {
+  id: string;
+  cityId: string;
+  citySlug?: string;
+  type: TransferType;
+  mode: TransportMode;
+  name: string;
+  fromPoint: string;
+  toPoint: string;
+  durationMin?: number | null;
+  durationMax?: number | null;
+  costAmount?: string | number | null;
+  costCurrency?: string | null;
+  frequency?: string | null;
+  operatingHours?: string | null;
+  transportCard?: string | null;
+  steps?: string[] | null;
+  tags?: string[] | null;
+  source: 'osm' | 'manual';
+  isActive: boolean;
+  lastUpdated: string;
+}
+
+export interface TransportCardDTO {
+  id: string;
+  cityId: string;
+  citySlug?: string;
+  name: string;
+  purchaseLocations?: string[] | null;
+  topupLocations?: string[] | null;
+  initialCost?: string | number | null;
+  currency?: string | null;
+  depositRequired: boolean;
+  depositAmount?: string | number | null;
+  usableOn?: TransportMode[] | null;
+}
