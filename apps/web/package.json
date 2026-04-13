@@ -9,6 +9,10 @@
   },
   "dependencies": {
     "@pocketguide/ui": "workspace:*",
+    "@pocketguide/i18n": "workspace:*",
+    "i18next": "^23.11.5",
+    "react-i18next": "^14.1.2",
+    "i18next-browser-languagedetector": "^7.2.1",
     "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

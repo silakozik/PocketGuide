@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "home": "Home",
+    "map": "Map",
+    "profile": "Profile",
+    "settings": "Settings",
+    "transfer": "Transfer Guide"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "search": "Search"
+  }
+}

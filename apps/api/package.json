@@ -15,6 +15,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@pocketguide/database": "workspace:*",
     "@pocketguide/types": "workspace:*",
+    "nestjs-i18n": "^10.4.5",
     "axios": "^1.14.0",
     "cache-manager": "^5.4.0",
     "cache-manager-ioredis": "^2.1.0",

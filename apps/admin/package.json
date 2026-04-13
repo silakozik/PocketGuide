@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "next": "15.0.3",
-    "react": "19.0.0-rc-66854b9a-20241106",
-    "react-dom": "19.0.0-rc-66854b9a-20241106",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
     "lucide-react": "^0.456.0",
     "@pocketguide/types": "workspace:*",
     "@pocketguide/ui": "workspace:*"

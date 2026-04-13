@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "home": "Ana Sayfa",
+    "map": "Harita",
+    "profile": "Profil",
+    "settings": "Ayarlar",
+    "transfer": "Transfer Rehberi"
+  },
+  "common": {
+    "loading": "Yükleniyor...",
+    "error": "Bir hata oluştu",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "search": "Ara"
+  }
+}
