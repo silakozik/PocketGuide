@@ -17,9 +17,9 @@ export class TransfersService {
     let query = this.db.select().from(transferRoutes);
     
     const conditions = [];
-    if (filters.cityId) conditions.push(eq(transferRoutes.cityId, filters.cityId));
-    if (filters.type) conditions.push(eq(transferRoutes.type, filters.type));
-    if (filters.mode) conditions.push(eq(transferRoutes.mode, filters.mode));
+    if (filters.cityId) conditions.push(eq(transferRoutes.cityId as any, filters.cityId));
+    if (filters.type) conditions.push(eq(transferRoutes.type as any, filters.type));
+    if (filters.mode) conditions.push(eq(transferRoutes.mode as any, filters.mode));
 
     if (conditions.length > 0) {
       query = query.where(and(...conditions));
@@ -37,24 +37,24 @@ export class TransfersService {
 
   async updateRoute(id: string, data: Partial<TransferRouteDTO>) {
     return this.db.update(transferRoutes)
-      .set({ ...data, lastUpdated: new Date() })
-      .where(eq(transferRoutes.id, id))
+      .set({ ...data, lastUpdated: new Date() } as any)
+      .where(eq(transferRoutes.id as any, id))
       .returning();
   }
 
   async deleteRoute(id: string) {
-    return this.db.delete(transferRoutes).where(eq(transferRoutes.id, id)).returning();
+    return this.db.delete(transferRoutes).where(eq(transferRoutes.id as any, id)).returning();
   }
 
   async findAllCards(cityId?: string) {
     if (cityId) {
-      return this.db.select().from(transportCards).where(eq(transportCards.cityId, cityId));
+      return this.db.select().from(transportCards).where(eq(transportCards.cityId as any, cityId));
     }
     return this.db.select().from(transportCards);
   }
 
   async importFromOSM(cityId: string, onProgress?: (progress: any) => void) {
-    const [city] = await this.db.select().from(cities).where(eq(cities.id, cityId)).limit(1);
+    const [city] = await this.db.select().from(cities).where(eq(cities.id as any, cityId)).limit(1);
     if (!city) throw new Error('City not found');
 
     onProgress?.({ message: `${city.nameEn} için OSM verileri çekiliyor...`, status: 'loading' });
@@ -74,10 +74,10 @@ export class TransfersService {
       const [existing] = await this.db.select()
         .from(transferRoutes)
         .where(and(
-          eq(transferRoutes.cityId, cityId),
-          eq(transferRoutes.name, route.name),
-          eq(transferRoutes.fromPoint, route.from),
-          eq(transferRoutes.toPoint, route.to)
+          eq(transferRoutes.cityId as any, cityId),
+          eq(transferRoutes.name as any, route.name),
+          eq(transferRoutes.fromPoint as any, route.from),
+          eq(transferRoutes.toPoint as any, route.to)
         ))
         .limit(1);
 
@@ -97,8 +97,8 @@ export class TransfersService {
 
       if (existing) {
         await this.db.update(transferRoutes)
-          .set(routeData)
-          .where(eq(transferRoutes.id, existing.id));
+          .set(routeData as any)
+          .where(eq(transferRoutes.id as any, existing.id));
         updated++;
       } else {
         await this.db.insert(transferRoutes).values(routeData);

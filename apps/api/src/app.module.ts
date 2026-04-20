@@ -12,6 +12,7 @@ import { RoutesModule } from './routes/routes.module';
 import { AIModule } from './ai/ai.module';
 import { AdminModule } from './admin/admin.module';
 import { RedisCacheModule } from './config/redis.module';
+import { DatabaseModule } from './config/database.module';
 import { TransfersModule } from './transfers/transfers.module';
 import { createDb } from '@pocketguide/database';
 
@@ -33,25 +34,12 @@ import { createDb } from '@pocketguide/database';
       ],
     }),
     RedisCacheModule,
+    DatabaseModule,
     PlacesModule,
     RoutesModule,
     AIModule,
     AdminModule,
     TransfersModule,
   ],
-  providers: [
-    {
-      provide: 'DB_CONNECTION',
-      useFactory: (configService: ConfigService) => {
-        const connectionString = configService.get<string>(
-          'DATABASE_URL',
-          'postgresql://postgres:postgres@localhost:5432/pocketguide',
-        );
-        return createDb(connectionString);
-      },
-      inject: [ConfigService],
-    },
-  ],
-  exports: ['DB_CONNECTION'],
 })
 export class AppModule {}

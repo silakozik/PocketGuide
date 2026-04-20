@@ -15,7 +15,7 @@ export class CitiesController {
     const [city] = await this.db
       .select()
       .from(cities)
-      .where(eq(cities.slug, slug))
+      .where(eq(cities.slug as any, slug))
       .limit(1);
 
     if (!city) {

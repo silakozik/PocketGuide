@@ -93,28 +93,28 @@ export class GeospatialService {
 
     // Build WHERE conditions
     const conditions = [
-      sql`ST_DWithin(${pois.location}, ${userPoint}, ${radiusMeters})`,
+      sql`ST_DWithin(${(pois.location as any)}, ${userPoint}, ${radiusMeters})`,
     ];
 
     if (category) {
-      conditions.push(sql`${pois.category} = ${category}`);
+      conditions.push(sql`${(pois.category as any)} = ${category}`);
     }
 
     const whereClause = sql.join(conditions, sql` AND `);
 
     const result = await this.db.execute(sql`
       SELECT
-        ${pois.id} AS id,
-        ${pois.name} AS name,
-        ${pois.category} AS category,
-        ${pois.address} AS address,
-        ${pois.description} AS description,
-        ${pois.rating} AS rating,
-        ${pois.priceLevel} AS "priceLevel",
-        ST_Y(${pois.location}::geometry) AS lat,
-        ST_X(${pois.location}::geometry) AS lng,
-        ST_Distance(${pois.location}, ${userPoint}) AS "distanceMeters"
-      FROM ${pois}
+        ${(pois.id as any)} AS id,
+        ${(pois.name as any)} AS name,
+        ${(pois.category as any)} AS category,
+        ${(pois.address as any)} AS address,
+        ${(pois.description as any)} AS description,
+        ${(pois.rating as any)} AS rating,
+        ${(pois.priceLevel as any)} AS "priceLevel",
+        ST_Y(${(pois.location as any)}::geometry) AS lat,
+        ST_X(${(pois.location as any)}::geometry) AS lng,
+        ST_Distance(${(pois.location as any)}, ${userPoint}) AS "distanceMeters"
+      FROM ${(pois as any)}
       WHERE ${whereClause}
       ORDER BY "distanceMeters" ASC
       LIMIT ${limit}
@@ -161,28 +161,28 @@ export class GeospatialService {
     const centerPoint = sql`ST_SetSRID(ST_MakePoint(${centerLng}, ${centerLat}), 4326)::geography`;
 
     const conditions = [
-      sql`ST_Intersects(${pois.location}, ${envelope})`,
+      sql`ST_Intersects(${(pois.location as any)}, ${envelope})`,
     ];
 
     if (category) {
-      conditions.push(sql`${pois.category} = ${category}`);
+      conditions.push(sql`${(pois.category as any)} = ${category}`);
     }
 
-    const whereClause = sql.join(conditions, sql` AND `);
+    const whereClause = sql.join(conditions, sql` AND `) as any;
 
     const result = await this.db.execute(sql`
       SELECT
-        ${pois.id} AS id,
-        ${pois.name} AS name,
-        ${pois.category} AS category,
-        ${pois.address} AS address,
-        ${pois.description} AS description,
-        ${pois.rating} AS rating,
-        ${pois.priceLevel} AS "priceLevel",
-        ST_Y(${pois.location}::geometry) AS lat,
-        ST_X(${pois.location}::geometry) AS lng,
-        ST_Distance(${pois.location}, ${centerPoint}) AS "distanceMeters"
-      FROM ${pois}
+        ${(pois.id as any)} AS id,
+        ${(pois.name as any)} AS name,
+        ${(pois.category as any)} AS category,
+        ${(pois.address as any)} AS address,
+        ${(pois.description as any)} AS description,
+        ${(pois.rating as any)} AS rating,
+        ${(pois.priceLevel as any)} AS "priceLevel",
+        ST_Y(${(pois.location as any)}::geometry) AS lat,
+        ST_X(${(pois.location as any)}::geometry) AS lng,
+        ST_Distance(${(pois.location as any)}, ${centerPoint}) AS "distanceMeters"
+      FROM ${(pois as any)}
       WHERE ${whereClause}
       ORDER BY "distanceMeters" ASC
       LIMIT ${limit}
@@ -239,18 +239,18 @@ export class GeospatialService {
 
     const result = await this.db.execute(sql`
       SELECT
-        ${pois.id} AS id,
-        ${pois.name} AS name,
-        ${pois.category} AS category,
-        ${pois.address} AS address,
-        ${pois.description} AS description,
-        ${pois.rating} AS rating,
-        ${pois.priceLevel} AS "priceLevel",
-        ST_Y(${pois.location}::geometry) AS lat,
-        ST_X(${pois.location}::geometry) AS lng,
-        ST_Distance(${pois.location}, ${userPoint}) AS "distanceMeters"
-      FROM ${pois}
-      ORDER BY ${pois.location} <-> ${userPoint}
+        ${(pois.id as any)} AS id,
+        ${(pois.name as any)} AS name,
+        ${(pois.category as any)} AS category,
+        ${(pois.address as any)} AS address,
+        ${(pois.description as any)} AS description,
+        ${(pois.rating as any)} AS rating,
+        ${(pois.priceLevel as any)} AS "priceLevel",
+        ST_Y(${(pois.location as any)}::geometry) AS lat,
+        ST_X(${(pois.location as any)}::geometry) AS lng,
+        ST_Distance(${(pois.location as any)}, ${userPoint}) AS "distanceMeters"
+      FROM ${(pois as any)}
+      ORDER BY ${(pois.location as any)} <-> ${userPoint}
       LIMIT ${k}
     `);
 
@@ -275,9 +275,9 @@ export class GeospatialService {
         AVG(ST_X(location::geometry)) AS "clusterLng",
         FLOOR(ST_Y(location::geometry) / ${gridSizeDegrees}) AS "gridY",
         FLOOR(ST_X(location::geometry) / ${gridSizeDegrees}) AS "gridX"
-      FROM ${pois}
+      FROM ${(pois as any)}
       WHERE ST_Intersects(
-        ${pois.location},
+        ${(pois.location as any)},
         ST_MakeEnvelope(${minLng}, ${minLat}, ${maxLng}, ${maxLat}, 4326)::geography
       )
       GROUP BY "gridY", "gridX"

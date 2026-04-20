@@ -40,12 +40,12 @@ export class AdminCityController {
     // Get counts from adaptation_points for the dashboard chips
     const adaptCounts = await this.db
       .select({
-        cityId: adaptationPoints.cityId,
-        category: adaptationPoints.category,
+        cityId: adaptationPoints.cityId as any,
+        category: adaptationPoints.category as any,
         count: count(),
       })
       .from(adaptationPoints)
-      .groupBy(adaptationPoints.cityId, adaptationPoints.category);
+      .groupBy(adaptationPoints.cityId as any, adaptationPoints.category as any);
 
     // Build a map for fast lookup
     const countMap: Record<string, Record<string, number>> = {};
@@ -138,8 +138,8 @@ export class AdminCityController {
   async toggleStatus(@Param('id') id: string, @Body() body: { status: string }) {
     const [updated] = await this.db
       .update(cities)
-      .set({ isActive: body.status === 'active', updatedAt: new Date() })
-      .where(eq(cities.id, id))
+      .set({ isActive: body.status === 'active', updatedAt: new Date() } as any)
+      .where(eq(cities.id as any, id))
       .returning();
 
     return updated;
@@ -153,11 +153,11 @@ export class AdminCityController {
   @HttpCode(200)
   async deleteCity(@Param('id') id: string) {
     // Delete Adaptation Points
-    await this.db.delete(adaptationPoints).where(eq(adaptationPoints.cityId, id));
+    await this.db.delete(adaptationPoints).where(eq(adaptationPoints.cityId as any, id));
     // Delete regular POIs
-    await this.db.delete(pois).where(eq(pois.cityId, id));
+    await this.db.delete(pois).where(eq(pois.cityId as any, id));
     // Delete the city
-    await this.db.delete(cities).where(eq(cities.id, id));
+    await this.db.delete(cities).where(eq(cities.id as any, id));
     
     return { success: true, message: 'Şehir ve ilgili veriler silindi.' };
   }

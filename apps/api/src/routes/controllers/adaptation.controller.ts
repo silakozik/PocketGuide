@@ -21,7 +21,7 @@ export class AdaptationController {
     const [city] = await this.db
       .select()
       .from(cities)
-      .where(eq(cities.slug, citySlug))
+      .where(eq(cities.slug as any, citySlug))
       .limit(1);
 
     if (!city) {
@@ -29,9 +29,9 @@ export class AdaptationController {
     }
 
     // 2. Build query for points
-    const conditions = [eq(adaptationPoints.cityId, city.id), eq(adaptationPoints.isActive, true)];
+    const conditions = [eq(adaptationPoints.cityId as any, city.id), eq(adaptationPoints.isActive as any, true)];
     if (category) {
-      conditions.push(eq(adaptationPoints.category, category));
+      conditions.push(eq(adaptationPoints.category as any, category));
     }
 
     const points = await this.db

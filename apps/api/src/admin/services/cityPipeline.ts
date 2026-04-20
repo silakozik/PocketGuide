@@ -26,7 +26,7 @@ export class CityPipeline {
 
     // 1. Ensure city exists and get ID
     onProgress?.({ step: 'city', status: 'loading', message: 'Şehir aranıyor...' });
-    let [city] = await this.db.select().from(cities).where(eq(cities.slug, citySlug)).limit(1);
+    let [city] = await this.db.select().from(cities).where(eq(cities.slug as any, citySlug)).limit(1);
 
     if (!city) {
       this.logger.log(`City not found for slug ${citySlug}, creating...`);
@@ -44,7 +44,7 @@ export class CityPipeline {
     const cityId = city.id;
 
     // 2. Fetch existing points for this city to help with deduplication
-    const existingPoints = await this.db.select().from(adaptationPoints).where(eq(adaptationPoints.cityId, cityId));
+    const existingPoints = await this.db.select().from(adaptationPoints).where(eq(adaptationPoints.cityId as any, cityId));
 
     // 3. Sequential fetch and process
     for (const category of categories) {
@@ -88,7 +88,7 @@ export class CityPipeline {
         lastSyncedAt: new Date(),
         updatedAt: new Date()
       })
-      .where(eq(cities.id, cityId));
+      .where(eq(cities.id as any, cityId));
 
     return results;
   }
