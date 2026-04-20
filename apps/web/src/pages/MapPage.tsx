@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PocketGuideMap } from "../components/map/PocketGuideMap";
+import { AIAssistant } from "../components/AIAssistant";
 
 const CATEGORIES = [
   { id: "all", label: "Tümü", icon: "✨" },
@@ -67,6 +68,9 @@ export default function MapPage() {
       <div className="map-container-wrapper">
         <PocketGuideMap categoryFilter={activeCategory} searchQuery={searchQuery} />
       </div>
+
+      {/* AI Asistan Paneli */}
+      <AIAssistant />
     </div>
   );
 }

@@ -14,6 +14,9 @@ async function bootstrap() {
     credentials: true,
   });
   
+  // API prefix ekliyoruz (Frontend'in beklediği yapı)
+  app.setGlobalPrefix('api');
+  
   await app.listen(3000);
   console.log(`Application is running on: ${await app.getUrl()}`);
   console.log('=== ENV KONTROL ===');
