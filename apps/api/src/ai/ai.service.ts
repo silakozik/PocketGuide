@@ -60,7 +60,7 @@ export class AIService {
     const poisSection = nearbyPois.map((poi, i) => {
       return [
         `ID: ${poi.id} | Name: ${poi.name} | Category: ${poi.category}`,
-        `   📍 ${Math.round(poi.distanceMeters)}m | ⭐ ${poi.rating ?? 'N/A'} | 💰 ${poi.priceLevel ?? 'N/A'}`,
+        `   📍 ${Math.round(poi.distanceMeters)}m | ⭐ ${poi.rating ?? 'N/A'} (${poi.reviewCount} reviews) | ❤️ ${poi.favoriteCount} faves`,
         `   🕒 Opening Hours: ${poi.openingHours || 'MISSING'}`,
         `   📝 ${poi.description || 'No description'}`,
       ].join('\n');
@@ -75,15 +75,24 @@ export class AIService {
       '4. Sort places using nearest-neighbor logic to form an efficient walking route. MINIMIZE total walking distance and avoid zigzagging.',
       '5. Apply categorical diversity: do not repeat the same category more than twice.',
       '',
+      '# SCORING & BADGING RULES',
+      'Assign exactly one "badge" string to each recommendation based on these priorities:',
+      '- "Senin İçin İdeal": Highest priority if the place category strongly matches userInterests.',
+      '- "Çok Popüler": High rating (>4.5) and significant review count (>10).',
+      '- "Gezginlerin Favorisi": High favorite count (>5).',
+      '- "Gizli Cevher": Good rating (>4.2) but low review count (<5).',
+      '- "Fiyat/Performans": Price level 1 or 2 with good rating.',
+      '- "Yeni Keşif": Default badge if no other criteria met.',
+      '',
       '# LOGISTICAL REASONING GUIDELINES',
       '- Spatial Awareness: Group nearby places (<800m) sequentially.',
       '- Temporal Logic: Account for visit durations: cafe/restaurant (30-45m), park (20-40m), museum (60-90m), others (30m).',
       '- Contextual Logic: If it is meal time (Lunch: 12:00-14:00, Dinner: 19:00-21:00), prioritize a food anchor.',
-      '- Fatigue Management: Do not suggest more than 2 high-intensity activities (e.g. large museums or uphill climbs) in a row.',
+      '- Fatigue Management: Do not suggest more than 2 high-intensity activities in a row.',
       '',
       '# OUTPUT FORMAT (STRICT)',
       'Return ONLY a valid JSON array of objects with these fields and NO other text:',
-      '[{ "placeId": string, "name": string, "category": string, "reason": string, "estimatedVisitMinutes": number, "walkingDistanceMeters": number }]',
+      '[{ "placeId": string, "name": string, "category": string, "badge": string, "reason": string, "estimatedVisitMinutes": number, "walkingDistanceMeters": number }]',
     ].join('\n');
 
     return `${header}\n# Candidate Places\n${poisSection}\n${instructions}`;

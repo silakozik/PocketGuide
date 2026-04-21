@@ -42,6 +42,8 @@ export interface PoiWithDistance {
   rating: number | null;
   priceLevel: number | null;
   openingHours: string | null;
+  reviewCount: number;
+  favoriteCount: number;
   lat: number;
   lng: number;
   distanceMeters: number;
@@ -105,18 +107,20 @@ export class GeospatialService {
 
     const result = await this.db.execute(sql`
       SELECT
-        ${(pois.id as any)} AS id,
-        ${(pois.name as any)} AS name,
-        ${(pois.category as any)} AS category,
-        ${(pois.address as any)} AS address,
-        ${(pois.description as any)} AS description,
-        ${(pois.rating as any)} AS rating,
-        ${(pois.priceLevel as any)} AS "priceLevel",
-        ${(pois.openingHours as any)} AS "openingHours",
-        ST_Y(${(pois.location as any)}::geometry) AS lat,
-        ST_X(${(pois.location as any)}::geometry) AS lng,
-        ST_Distance(${(pois.location as any)}, ${userPoint}) AS "distanceMeters"
-      FROM ${(pois as any)}
+        p.id,
+        p.name,
+        p.category,
+        p.address,
+        p.description,
+        p.rating,
+        p."priceLevel",
+        p.opening_hours AS "openingHours",
+        ST_Y(p.location::geometry) AS lat,
+        ST_X(p.location::geometry) AS lng,
+        ST_Distance(p.location, ${userPoint}) AS "distanceMeters",
+        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = p.id) AS "reviewCount",
+        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = p.id) AS "favoriteCount"
+      FROM pois p
       WHERE ${whereClause}
       ORDER BY "distanceMeters" ASC
       LIMIT ${limit}
@@ -242,19 +246,21 @@ export class GeospatialService {
 
     const result = await this.db.execute(sql`
       SELECT
-        ${(pois.id as any)} AS id,
-        ${(pois.name as any)} AS name,
-        ${(pois.category as any)} AS category,
-        ${(pois.address as any)} AS address,
-        ${(pois.description as any)} AS description,
-        ${(pois.rating as any)} AS rating,
-        ${(pois.priceLevel as any)} AS "priceLevel",
-        ${(pois.openingHours as any)} AS "openingHours",
-        ST_Y(${(pois.location as any)}::geometry) AS lat,
-        ST_X(${(pois.location as any)}::geometry) AS lng,
-        ST_Distance(${(pois.location as any)}, ${userPoint}) AS "distanceMeters"
-      FROM ${(pois as any)}
-      ORDER BY ${(pois.location as any)} <-> ${userPoint}
+        p.id,
+        p.name,
+        p.category,
+        p.address,
+        p.description,
+        p.rating,
+        p."priceLevel",
+        p.opening_hours AS "openingHours",
+        ST_Y(p.location::geometry) AS lat,
+        ST_X(p.location::geometry) AS lng,
+        ST_Distance(p.location, ${userPoint}) AS "distanceMeters",
+        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = p.id) AS "reviewCount",
+        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = p.id) AS "favoriteCount"
+      FROM pois p
+      ORDER BY p.location <-> ${userPoint}
       LIMIT ${k}
     `);
 
@@ -322,7 +328,9 @@ export class GeospatialService {
         p.opening_hours AS "openingHours",
         ST_Y(p.location::geometry) AS lat,
         ST_X(p.location::geometry) AS lng,
-        0 AS "distanceMeters"
+        0 AS "distanceMeters",
+        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = p.id) AS "reviewCount",
+        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = p.id) AS "favoriteCount"
       FROM pois p
       JOIN cities c ON p."cityId" = c.id
       WHERE ${whereClause}

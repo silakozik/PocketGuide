@@ -63,7 +63,10 @@ export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng
                 <div key={index} className="ai-rec-card">
                   <div className="ai-rec-header">
                     <span className="ai-rec-name">{rec.name}</span>
-                    <span className="ai-rec-category">{rec.category}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                      <span className="ai-rec-category">{rec.category}</span>
+                      <span className="ai-rec-badge">{rec.badge}</span>
+                    </div>
                   </div>
                   <p className="ai-rec-reason">{rec.reason}</p>
                   <div className="ai-rec-meta">
