@@ -32,6 +32,7 @@ export const pois = pgTable("pois", {
   description: text("description"),
   rating: doublePrecision("rating"),
   priceLevel: integer("priceLevel"),
+  openingHours: text("opening_hours"),
   location: geography("location").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

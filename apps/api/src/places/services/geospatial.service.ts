@@ -41,6 +41,7 @@ export interface PoiWithDistance {
   description: string | null;
   rating: number | null;
   priceLevel: number | null;
+  openingHours: string | null;
   lat: number;
   lng: number;
   distanceMeters: number;
@@ -111,6 +112,7 @@ export class GeospatialService {
         ${(pois.description as any)} AS description,
         ${(pois.rating as any)} AS rating,
         ${(pois.priceLevel as any)} AS "priceLevel",
+        ${(pois.openingHours as any)} AS "openingHours",
         ST_Y(${(pois.location as any)}::geometry) AS lat,
         ST_X(${(pois.location as any)}::geometry) AS lng,
         ST_Distance(${(pois.location as any)}, ${userPoint}) AS "distanceMeters"
@@ -179,6 +181,7 @@ export class GeospatialService {
         ${(pois.description as any)} AS description,
         ${(pois.rating as any)} AS rating,
         ${(pois.priceLevel as any)} AS "priceLevel",
+        ${(pois.openingHours as any)} AS "openingHours",
         ST_Y(${(pois.location as any)}::geometry) AS lat,
         ST_X(${(pois.location as any)}::geometry) AS lng,
         ST_Distance(${(pois.location as any)}, ${centerPoint}) AS "distanceMeters"
@@ -246,6 +249,7 @@ export class GeospatialService {
         ${(pois.description as any)} AS description,
         ${(pois.rating as any)} AS rating,
         ${(pois.priceLevel as any)} AS "priceLevel",
+        ${(pois.openingHours as any)} AS "openingHours",
         ST_Y(${(pois.location as any)}::geometry) AS lat,
         ST_X(${(pois.location as any)}::geometry) AS lng,
         ST_Distance(${(pois.location as any)}, ${userPoint}) AS "distanceMeters"
@@ -315,6 +319,7 @@ export class GeospatialService {
         p.description,
         p.rating,
         p."priceLevel",
+        p.opening_hours AS "openingHours",
         ST_Y(p.location::geometry) AS lat,
         ST_X(p.location::geometry) AS lng,
         0 AS "distanceMeters"

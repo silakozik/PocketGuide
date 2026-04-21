@@ -57,31 +57,25 @@ export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng
               <div className="ai-spinner"></div>
               <p>Gemini senin için planlıyor...</p>
             </div>
-          ) : recommendations?.recommendations ? (
+          ) : Array.isArray(recommendations) ? (
             <div className="ai-recs-list">
-              {recommendations.recommendations.map((rec: any, index: number) => (
+              {recommendations.map((rec: any, index: number) => (
                 <div key={index} className="ai-rec-card">
                   <div className="ai-rec-header">
-                    <span className="ai-rec-name">{rec.name || rec.placeName}</span>
+                    <span className="ai-rec-name">{rec.name}</span>
+                    <span className="ai-rec-category">{rec.category}</span>
                   </div>
-                  <p className="ai-rec-reason">{rec.reason || rec.description}</p>
-                  <div className="ai-rec-action">Rotaya Ekle →</div>
+                  <p className="ai-rec-reason">{rec.reason}</p>
+                  <div className="ai-rec-meta">
+                    <span className="ai-meta-item">📍 {rec.walkingDistanceMeters}m</span>
+                    <span className="ai-meta-item">🕒 {rec.estimatedVisitMinutes} dk</span>
+                  </div>
+                  <div className="ai-rec-action">Rotayı Başlat →</div>
                 </div>
               ))}
 
-              {recommendations.tips && recommendations.tips.length > 0 && (
-                <div className="ai-tips">
-                  <h4>💡 Akıllı İpuçları</h4>
-                  <ul>
-                    {recommendations.tips.map((tip: string, i: number) => (
-                      <li key={i}>{tip}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
               <button className="ai-btn-primary" style={{ marginTop: '16px', width: '100%' }} onClick={fetchRecommendations}>
-                Önerileri Güncelle
+                Önerileri Yenile
               </button>
             </div>
           ) : (

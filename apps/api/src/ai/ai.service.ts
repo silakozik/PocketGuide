@@ -46,39 +46,47 @@ export class AIService {
   buildRecommendationPrompt(context: AIRecommendationContext): string {
     const { userLocation, timeOfDay, nearbyPois, userInterests, budget } = context;
 
+    const currentTime = new Date().toLocaleString('tr-TR', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+
     const header = [
       `# Traveler Context`,
-      `Location: (${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)})`,
-      `Time: ${timeOfDay}`,
+      `User Location: (${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)})`,
+      `Current Time: ${currentTime}`,
       userInterests?.length ? `Interests: ${userInterests.join(', ')}` : null,
       budget ? `Budget: ${budget}` : null,
       '',
     ].filter(Boolean).join('\n');
 
     const poisSection = nearbyPois.map((poi, i) => {
-      const desc = poi.description
-        ? poi.description.slice(0, 80) + (poi.description.length > 80 ? '…' : '')
-        : 'No description';
-      
       return [
-        `${i + 1}. **${poi.name}** [${poi.category}]`,
-        `   📍 ${Math.round(poi.distanceMeters)}m away | ⭐ ${poi.rating ?? 'N/A'} | 💰 ${poi.priceLevel ?? 'N/A'}`,
-        `   ${desc}`,
+        `ID: ${poi.id} | Name: ${poi.name} | Category: ${poi.category}`,
+        `   📍 ${Math.round(poi.distanceMeters)}m | ⭐ ${poi.rating ?? 'N/A'} | 💰 ${poi.priceLevel ?? 'N/A'}`,
+        `   🕒 Opening Hours: ${poi.openingHours || 'MISSING'}`,
+        `   📝 ${poi.description || 'No description'}`,
       ].join('\n');
     }).join('\n');
 
     const instructions = [
       '',
-      '# Instructions',
-      'Based on the traveler context and nearby places above:',
-      '1. Recommend the top 3-5 places to visit right now, considering time of day and distance.',
-      '2. For each recommendation, explain WHY it fits the current context.',
-      '3. Suggest an optimal visiting order to minimize walking.',
-      '4. If it\'s a meal time, prioritize food options.',
-      '5. Return response as structured JSON with fields: recommendations[], suggestedOrder[], tips[].',
+      '# LOGISTICAL ENGINE RULES (STRICT)',
+      '1. Start from userLocation. Recommend MAX 5 places within 1km walking distance.',
+      '2. EXCLUDE any place where openingHours is MISSING or invalid.',
+      '3. EXCLUDE any place that is closed during the estimated visit window (Current Time + Travel Time).',
+      '4. Sort places using nearest-neighbor logic to form an efficient walking route. MINIMIZE total walking distance and avoid zigzagging.',
+      '5. Apply categorical diversity: do not repeat the same category more than twice.',
+      '',
+      '# LOGISTICAL REASONING GUIDELINES',
+      '- Spatial Awareness: Group nearby places (<800m) sequentially.',
+      '- Temporal Logic: Account for visit durations: cafe/restaurant (30-45m), park (20-40m), museum (60-90m), others (30m).',
+      '- Contextual Logic: If it is meal time (Lunch: 12:00-14:00, Dinner: 19:00-21:00), prioritize a food anchor.',
+      '- Fatigue Management: Do not suggest more than 2 high-intensity activities (e.g. large museums or uphill climbs) in a row.',
+      '',
+      '# OUTPUT FORMAT (STRICT)',
+      'Return ONLY a valid JSON array of objects with these fields and NO other text:',
+      '[{ "placeId": string, "name": string, "category": string, "reason": string, "estimatedVisitMinutes": number, "walkingDistanceMeters": number }]',
     ].join('\n');
 
-    return `${header}\n# Nearby Places (${nearbyPois.length} found)\n${poisSection}\n${instructions}`;
+    return `${header}\n# Candidate Places\n${poisSection}\n${instructions}`;
   }
 
   /**
