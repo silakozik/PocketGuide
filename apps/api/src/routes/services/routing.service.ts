@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
 import { GeospatialService, PoiWithDistance, DistanceMatrixEntry } from '../../places/services/geospatial.service';
 
 /**
@@ -36,6 +38,27 @@ export interface SmartRouteResult {
   totalWalkingMinutes: number;
 }
 
+export interface OptimizedPoi {
+  poi_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+export interface RouteLeg {
+  from: string;
+  to: string;
+  duration_min: number;
+  distance_km: number;
+}
+
+export interface OptimizedRouteResponse {
+  ordered_pois: OptimizedPoi[];
+  total_duration_min: number;
+  total_distance_km: number;
+  legs: RouteLeg[];
+}
+
 // Estimated stay durations by category (minutes)
 const DEFAULT_STAY_MINUTES: Record<string, number> = {
   restaurant: 60,
@@ -53,8 +76,186 @@ const WALKING_SPEED_MPM = 80;
 @Injectable()
 export class RoutingService {
   private readonly logger = new Logger(RoutingService.name);
+  private readonly orsApiKey: string;
 
-  constructor(private readonly geospatialService: GeospatialService) {}
+  constructor(
+    private readonly geospatialService: GeospatialService,
+    private readonly configService: ConfigService,
+  ) {
+    this.orsApiKey = this.configService.get<string>('ORS_API_KEY');
+  }
+
+  /**
+   * Optimizes a list of POIs to find the shortest duration route.
+   * Algorithm: 
+   * - Brute-force permutation for <= 8 points.
+   * - Nearest Neighbor heuristic for > 8 points.
+   */
+  async optimizeRoute(pois: OptimizedPoi[]): Promise<OptimizedRouteResponse> {
+    if (!pois || pois.length < 2) {
+      throw new Error('At least 2 POIs are required for optimization.');
+    }
+
+    this.logger.log(`Optimizing route for ${pois.length} POIs`);
+
+    // Step 1: Get Distance Matrix from OpenRouteService
+    const matrix = await this.getORSDistanceMatrix(pois);
+
+    // Step 2: Solve TSP
+    // We assume the first POI is the starting point (index 0)
+    let bestOrder: number[];
+    if (pois.length <= 8) {
+      bestOrder = this.solveTSPBruteForce(matrix);
+    } else {
+      bestOrder = this.solveTSPNearestNeighbor(matrix);
+    }
+
+    // Step 3: Construct Response
+    const orderedPois = bestOrder.map(idx => pois[idx]);
+    const legs: RouteLeg[] = [];
+    let totalDuration = 0;
+    let totalDistance = 0;
+
+    for (let i = 0; i < bestOrder.length - 1; i++) {
+      const fromIdx = bestOrder[i];
+      const toIdx = bestOrder[i + 1];
+      const duration = matrix.durations[fromIdx][toIdx] / 60; // seconds to minutes
+      const distance = matrix.distances[fromIdx][toIdx] / 1000; // meters to km
+
+      legs.push({
+        from: pois[fromIdx].name,
+        to: pois[toIdx].name,
+        duration_min: Math.round(duration * 10) / 10,
+        distance_km: Math.round(distance * 10) / 10,
+      });
+
+      totalDuration += duration;
+      totalDistance += distance;
+    }
+
+    return {
+      ordered_pois: orderedPois,
+      total_duration_min: Math.round(totalDuration),
+      total_distance_km: Math.round(totalDistance * 10) / 10,
+      legs: legs,
+    };
+  }
+
+  /**
+   * Fetches distance and duration matrix from OpenRouteService.
+   */
+  private async getORSDistanceMatrix(pois: OptimizedPoi[]): Promise<{ distances: number[][], durations: number[][] }> {
+    const url = 'https://api.openrouteservice.org/v2/matrix/foot-walking';
+    const locations = pois.map(p => [p.lng, p.lat]); // ORS uses [lng, lat]
+
+    try {
+      const response = await axios.post(
+        url,
+        {
+          locations,
+          metrics: ['distance', 'duration'],
+          units: 'm',
+        },
+        {
+          headers: {
+            'Authorization': this.orsApiKey,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      return {
+        distances: response.data.distances,
+        durations: response.data.durations,
+      };
+    } catch (error) {
+      this.logger.error('Error fetching matrix from OpenRouteService', error.response?.data || error.message);
+      throw new Error('Failed to fetch distance matrix from OpenRouteService.');
+    }
+  }
+
+  /**
+   * Solves TSP using Brute-force permutations.
+   * Fixed starting point at index 0.
+   */
+  private solveTSPBruteForce(matrix: { durations: number[][] }): number[] {
+    const n = matrix.durations.length;
+    const indices = Array.from({ length: n - 1 }, (_, i) => i + 1);
+    let minDuration = Infinity;
+    let bestPath: number[] = [];
+
+    const permutations = this.getPermutations(indices);
+
+    for (const p of permutations) {
+      const path = [0, ...p];
+      let currentDuration = 0;
+      for (let i = 0; i < path.length - 1; i++) {
+        currentDuration += matrix.durations[path[i]][path[i + 1]];
+      }
+
+      if (currentDuration < minDuration) {
+        minDuration = currentDuration;
+        bestPath = path;
+      }
+    }
+
+    return bestPath;
+  }
+
+  /**
+   * Solves TSP using Nearest Neighbor heuristic.
+   * Fixed starting point at index 0.
+   */
+  private solveTSPNearestNeighbor(matrix: { durations: number[][] }): number[] {
+    const n = matrix.durations.length;
+    const visited = new Set<number>([0]);
+    const path = [0];
+    let current = 0;
+
+    while (visited.size < n) {
+      let next = -1;
+      let minDist = Infinity;
+
+      for (let i = 0; i < n; i++) {
+        if (!visited.has(i)) {
+          const d = matrix.durations[current][i];
+          if (d < minDist) {
+            minDist = d;
+            next = i;
+          }
+        }
+      }
+
+      if (next === -1) break;
+      visited.add(next);
+      path.push(next);
+      current = next;
+    }
+
+    return path;
+  }
+
+  /**
+   * Helper to generate all permutations of an array.
+   */
+  private getPermutations(arr: number[]): number[][] {
+    const result: number[][] = [];
+
+    const permute = (m: number[], temp: number[] = []) => {
+      if (m.length === 0) {
+        result.push(temp);
+      } else {
+        for (let i = 0; i < m.length; i++) {
+          const curr = m.slice();
+          const next = curr.splice(i, 1);
+          permute(curr, temp.concat(next));
+        }
+      }
+    };
+
+    permute(arr);
+    return result;
+  }
 
   /**
    * Generate an optimized multi-stop route based on user interests and constraints.
