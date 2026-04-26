@@ -62,7 +62,7 @@ export class GeospatialService {
   constructor(
     @Inject('DB_CONNECTION') private readonly db: any,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   /**
    * Find nearby POIs using PostGIS ST_DWithin for fast radius filtering
@@ -85,7 +85,7 @@ export class GeospatialService {
 
     // Build cache key based on rounded coordinates (to ~11m precision)
     const cacheKey = `nearby:${lat.toFixed(4)}:${lng.toFixed(4)}:${radiusMeters}:${category || 'all'}:${limit}:${offset}`;
-    
+
     const cached = await this.cacheManager.get<PoiWithDistance[]>(cacheKey);
     if (cached) {
       this.logger.debug(`Cache HIT: ${cacheKey}`);
@@ -96,31 +96,31 @@ export class GeospatialService {
 
     // Build WHERE conditions
     const conditions = [
-      sql`ST_DWithin(${(pois.location as any)}, ${userPoint}, ${radiusMeters})`,
+      sql`ST_DWithin(location, ${userPoint}, ${radiusMeters})`,
     ];
 
     if (category) {
-      conditions.push(sql`${(pois.category as any)} = ${category}`);
+      conditions.push(sql`category = ${category}`);
     }
 
     const whereClause = sql.join(conditions, sql` AND `);
 
     const result = await this.db.execute(sql`
       SELECT
-        p.id,
-        p.name,
-        p.category,
-        p.address,
-        p.description,
-        p.rating,
-        p."priceLevel",
-        p.opening_hours AS "openingHours",
-        ST_Y(p.location::geometry) AS lat,
-        ST_X(p.location::geometry) AS lng,
-        ST_Distance(p.location, ${userPoint}) AS "distanceMeters",
-        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = p.id) AS "reviewCount",
-        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = p.id) AS "favoriteCount"
-      FROM pois p
+        id,
+        name,
+        category,
+        address,
+        description,
+        rating,
+        "priceLevel",
+        opening_hours AS "openingHours",
+        ST_Y(location::geometry) AS lat,
+        ST_X(location::geometry) AS lng,
+        ST_Distance(location, ${userPoint}) AS "distanceMeters",
+        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = id) AS "reviewCount",
+        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = id) AS "favoriteCount"
+      FROM pois
       WHERE ${whereClause}
       ORDER BY "distanceMeters" ASC
       LIMIT ${limit}
@@ -167,29 +167,31 @@ export class GeospatialService {
     const centerPoint = sql`ST_SetSRID(ST_MakePoint(${centerLng}, ${centerLat}), 4326)::geography`;
 
     const conditions = [
-      sql`ST_Intersects(${(pois.location as any)}, ${envelope})`,
+      sql`ST_Intersects(location, ${envelope})`,
     ];
 
     if (category) {
-      conditions.push(sql`${(pois.category as any)} = ${category}`);
+      conditions.push(sql`category = ${category}`);
     }
 
     const whereClause = sql.join(conditions, sql` AND `) as any;
 
     const result = await this.db.execute(sql`
       SELECT
-        ${(pois.id as any)} AS id,
-        ${(pois.name as any)} AS name,
-        ${(pois.category as any)} AS category,
-        ${(pois.address as any)} AS address,
-        ${(pois.description as any)} AS description,
-        ${(pois.rating as any)} AS rating,
-        ${(pois.priceLevel as any)} AS "priceLevel",
-        ${(pois.openingHours as any)} AS "openingHours",
-        ST_Y(${(pois.location as any)}::geometry) AS lat,
-        ST_X(${(pois.location as any)}::geometry) AS lng,
-        ST_Distance(${(pois.location as any)}, ${centerPoint}) AS "distanceMeters"
-      FROM ${(pois as any)}
+        id,
+        name,
+        category,
+        address,
+        description,
+        rating,
+        "priceLevel",
+        opening_hours AS "openingHours",
+        ST_Y(location::geometry) AS lat,
+        ST_X(location::geometry) AS lng,
+        ST_Distance(location, ${centerPoint}) AS "distanceMeters",
+        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = id) AS "reviewCount",
+        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = id) AS "favoriteCount"
+      FROM pois
       WHERE ${whereClause}
       ORDER BY "distanceMeters" ASC
       LIMIT ${limit}
@@ -246,21 +248,21 @@ export class GeospatialService {
 
     const result = await this.db.execute(sql`
       SELECT
-        p.id,
-        p.name,
-        p.category,
-        p.address,
-        p.description,
-        p.rating,
-        p."priceLevel",
-        p.opening_hours AS "openingHours",
-        ST_Y(p.location::geometry) AS lat,
-        ST_X(p.location::geometry) AS lng,
-        ST_Distance(p.location, ${userPoint}) AS "distanceMeters",
-        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = p.id) AS "reviewCount",
-        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = p.id) AS "favoriteCount"
-      FROM pois p
-      ORDER BY p.location <-> ${userPoint}
+        id,
+        name,
+        category,
+        address,
+        description,
+        rating,
+        "priceLevel",
+        opening_hours AS "openingHours",
+        ST_Y(location::geometry) AS lat,
+        ST_X(location::geometry) AS lng,
+        ST_Distance(location, ${userPoint}) AS "distanceMeters",
+        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = id) AS "reviewCount",
+        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = id) AS "favoriteCount"
+      FROM pois
+      ORDER BY location <-> ${userPoint}
       LIMIT ${k}
     `);
 
@@ -285,9 +287,9 @@ export class GeospatialService {
         AVG(ST_X(location::geometry)) AS "clusterLng",
         FLOOR(ST_Y(location::geometry) / ${gridSizeDegrees}) AS "gridY",
         FLOOR(ST_X(location::geometry) / ${gridSizeDegrees}) AS "gridX"
-      FROM ${(pois as any)}
+      FROM pois
       WHERE ST_Intersects(
-        ${(pois.location as any)},
+        location,
         ST_MakeEnvelope(${minLng}, ${minLat}, ${maxLng}, ${maxLat}, 4326)::geography
       )
       GROUP BY "gridY", "gridX"
@@ -302,7 +304,7 @@ export class GeospatialService {
    */
   async findByCitySlug(citySlug: string, category?: string): Promise<PoiWithDistance[]> {
     const cacheKey = `pois:city:${citySlug}:${category || 'all'}`;
-    
+
     const cached = await this.cacheManager.get<PoiWithDistance[]>(cacheKey);
     if (cached) return cached;
 
@@ -311,7 +313,7 @@ export class GeospatialService {
     ];
 
     if (category) {
-      whereConditions.push(sql`p.category = ${category}`);
+      whereConditions.push(sql`category = ${category}`);
     }
 
     const whereClause = sql.join(whereConditions, sql` AND `);

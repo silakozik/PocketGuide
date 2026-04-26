@@ -68,10 +68,8 @@ export class GeminiService {
       } catch (parseError) {
         this.logger.error('Failed to parse Gemini response as JSON', parseError);
         this.logger.debug('Raw response:', text);
-        return {
-          error: 'Invalid response format from AI',
-          raw: text
-        };
+        // Return empty array instead of error object to keep frontend stable
+        return [];
       }
     } catch (error) {
       this.logger.error('Error calling Gemini API', error);

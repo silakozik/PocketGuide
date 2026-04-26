@@ -9,20 +9,33 @@ import React, { useState } from 'react';
 export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [recommendations, setRecommendations] = useState<any>(null);
+  const [recommendations, setRecommendations] = useState<any[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchRecommendations = async () => {
     setLoading(true);
+    setError(null);
     try {
       // Default to Elazığ center if not provided
       const latitude = lat || 38.6748;
       const longitude = lng || 39.2225;
 
       const response = await fetch(`/api/ai/recommendations?lat=${latitude}&lng=${longitude}`);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setRecommendations(data);
-    } catch (error) {
+      
+      if (data.error) {
+        throw new Error(data.message || data.error);
+      }
+      
+      setRecommendations(Array.isArray(data) ? data : []);
+    } catch (error: any) {
       console.error('Failed to fetch AI recommendations', error);
+      setError(error.message || 'Öneriler getirilirken bir hata oluştu.');
     } finally {
       setLoading(false);
     }
@@ -57,7 +70,15 @@ export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng
               <div className="ai-spinner"></div>
               <p>Gemini senin için planlıyor...</p>
             </div>
-          ) : Array.isArray(recommendations) ? (
+          ) : error ? (
+            <div className="ai-empty-state">
+              <span className="ai-empty-icon" style={{ filter: 'grayscale(1)' }}>⚠️</span>
+              <p>{error}</p>
+              <button className="ai-btn-primary" onClick={fetchRecommendations}>
+                Tekrar Dene
+              </button>
+            </div>
+          ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
             <div className="ai-recs-list">
               {recommendations.map((rec: any, index: number) => (
                 <div key={index} className="ai-rec-card">
@@ -79,6 +100,14 @@ export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng
 
               <button className="ai-btn-primary" style={{ marginTop: '16px', width: '100%' }} onClick={fetchRecommendations}>
                 Önerileri Yenile
+              </button>
+            </div>
+          ) : recommendations && recommendations.length === 0 ? (
+            <div className="ai-empty-state">
+              <span className="ai-empty-icon">🏜️</span>
+              <p>Yakınlarda uygun öneri bulunamadı. Lütfen haritada farklı bir konuma gidin.</p>
+              <button className="ai-btn-primary" onClick={fetchRecommendations}>
+                Yenile
               </button>
             </div>
           ) : (
