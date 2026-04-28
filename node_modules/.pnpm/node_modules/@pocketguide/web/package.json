@@ -8,20 +8,22 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@pocketguide/ui": "workspace:*",
+    "@mapbox/polyline": "^1.2.1",
     "@pocketguide/i18n": "workspace:*",
+    "@pocketguide/ui": "workspace:*",
     "i18next": "^23.11.5",
-    "react-i18next": "^14.1.2",
     "i18next-browser-languagedetector": "^7.2.1",
     "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-i18next": "^14.1.2",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^7.13.2",
     "supercluster": "^8.0.1"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.12",
+    "@types/mapbox__polyline": "^1.0.5",
     "@types/supercluster": "^7.1.3",
     "@vitejs/plugin-react": "^4.3.3",
     "typescript": "~5.6.2",

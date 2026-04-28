@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
 import { TRANSPORT_CARDS, TRANSFER_ROUTES } from "../data/transfers";
-import { TransferType, TransferMode, TransferRoute } from "../types/transfer";
+import { TransferType, TransferMode } from "../types/transfer";
 import "./transfers.css";
 
 export default function TransfersPage() {

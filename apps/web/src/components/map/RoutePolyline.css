@@ -1,0 +1,16 @@
+/* Custom Route Polyline Animation & Marker Styles */
+.route-polyline-animated {
+  stroke-dasharray: 10, 10;
+  animation: moveDash 1s linear infinite;
+}
+
+@keyframes moveDash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.custom-route-marker {
+  background: transparent;
+  border: none;
+}

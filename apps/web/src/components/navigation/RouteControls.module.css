@@ -1,0 +1,78 @@
+.controlsWrapper {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  width: auto;
+  min-width: 200px;
+}
+
+.startBtn {
+  background: #10B981; /* green-500 */
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 24px;
+  font-weight: 700;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  max-width: 240px;
+}
+
+.startBtn:hover:not(:disabled) {
+  background: #059669; /* green-600 */
+  transform: translateY(-2px);
+}
+
+.startBtn:disabled {
+  background: #9CA3AF;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.activeActions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+}
+
+.shareBtn, .resetBtn {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+
+.shareBtn {
+  background: white;
+  color: #374151;
+}
+
+.shareBtn:hover {
+  background: #F3F4F6;
+  color: #2563EB;
+}
+
+.resetBtn {
+  background: #EF4444; /* red-500 */
+  color: white;
+}
+
+.resetBtn:hover {
+  background: #DC2626;
+}

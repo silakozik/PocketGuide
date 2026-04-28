@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { POI } from '../../types/poi';
 import { PIN_COLORS, PIN_ICONS } from '../../constants/mapConfig';
+import { useRoute } from '../../context/RouteContext';
 import styles from './POICard.module.css';
 
 export interface POICardProps {
@@ -12,6 +13,9 @@ export interface POICardProps {
 
 export function POICard({ poi, clusterPois, onClose, onSelectPOI }: POICardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const { draftPOIs, addToRouteDraft, removeFromRouteDraft } = useRoute();
+  
+  const isInDraft = poi ? draftPOIs.some(p => p.id === poi.id) : false;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -89,9 +93,21 @@ export function POICard({ poi, clusterPois, onClose, onSelectPOI }: POICardProps
         {poi.description && <p className={styles.description}>{poi.description}</p>}
         
         <div className={styles.actions}>
-          <button className={`${styles.actionBtn} ${styles.primaryBtn}`}>
-            Rota Al
-          </button>
+          {isInDraft ? (
+            <button 
+              className={`${styles.actionBtn} ${styles.secondaryBtn}`}
+              onClick={() => removeFromRouteDraft(poi.id)}
+            >
+              Rotadan Çıkar
+            </button>
+          ) : (
+            <button 
+              className={`${styles.actionBtn} ${styles.primaryBtn}`}
+              onClick={() => addToRouteDraft(poi)}
+            >
+              Rotaya Ekle ({draftPOIs.length} Seçili)
+            </button>
+          )}
           <button className={`${styles.actionBtn} ${styles.secondaryBtn}`}>
             Kaydet
           </button>

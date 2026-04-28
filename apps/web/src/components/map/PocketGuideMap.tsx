@@ -8,6 +8,7 @@ import { CustomMarker } from './CustomMarker';
 import { ClusterMarker } from './ClusterMarker';
 import { POICard } from './POICard';
 import { LayerToggle, LayerState } from './LayerToggle';
+import { RoutePolyline } from './RoutePolyline';
 import styles from './PocketGuideMap.module.css';
 
 function MapController({ 
@@ -132,6 +133,7 @@ export function PocketGuideMap({ categoryFilter = "all", searchQuery = "" }: Poc
             />
           );
         })}
+        {layers.route && <RoutePolyline />}
       </MapContainer>
 
       <LayerToggle layers={layers} onChange={handleLayerChange} />
