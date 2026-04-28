@@ -133,7 +133,7 @@ export function PocketGuideMap({ categoryFilter = "all", searchQuery = "" }: Poc
             />
           );
         })}
-        {layers.route && <RoutePolyline />}
+        <RoutePolyline />
       </MapContainer>
 
       <LayerToggle layers={layers} onChange={handleLayerChange} />
