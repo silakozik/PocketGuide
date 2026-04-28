@@ -1,5 +1,6 @@
 import { Controller, Get, Query, Param, ParseFloatPipe, DefaultValuePipe, ParseIntPipe, UseInterceptors } from '@nestjs/common';
-import { CacheInterceptor } from '@nestjs/cache-manager';
+import { UseRedisCache } from '../../common/decorators/redis-cache.decorator';
+import { RedisCacheInterceptor } from '../../common/interceptors/redis-cache.interceptor';
 import { GeospatialService, PoiWithDistance } from '../services/geospatial.service';
 
 /**
@@ -9,7 +10,8 @@ import { GeospatialService, PoiWithDistance } from '../services/geospatial.servi
  * All endpoints return data optimized for map rendering and frontend consumption.
  */
 @Controller('pois')
-@UseInterceptors(CacheInterceptor)
+@UseInterceptors(RedisCacheInterceptor)
+@UseRedisCache({ ttl: 3600, keyPrefix: 'pois' })
 export class PoisController {
   constructor(private readonly geospatialService: GeospatialService) {}
 

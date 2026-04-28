@@ -1,4 +1,6 @@
-import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, UseInterceptors } from '@nestjs/common';
+import { UseRedisCache } from '../../common/decorators/redis-cache.decorator';
+import { RedisCacheInterceptor } from '../../common/interceptors/redis-cache.interceptor';
 import { RoutingService, OptimizedPoi, OptimizedRouteResponse } from '../services/routing.service';
 
 /**
@@ -17,6 +19,8 @@ export class RouteController {
    * Input: [{ lat, lng, poi_id, name }, ...]
    */
   @Post('optimize')
+  @UseInterceptors(RedisCacheInterceptor)
+  @UseRedisCache({ ttl: 86400, keyPrefix: 'route' })
   async optimizeRoute(@Body() pois: OptimizedPoi[]): Promise<OptimizedRouteResponse> {
     try {
       return await this.routingService.optimizeRoute(pois);

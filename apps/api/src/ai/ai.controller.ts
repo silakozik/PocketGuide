@@ -1,4 +1,6 @@
-import { Controller, Get, Query, Logger, ParseFloatPipe } from '@nestjs/common';
+import { Controller, Get, Query, Logger, ParseFloatPipe, UseInterceptors } from '@nestjs/common';
+import { UseRedisCache } from '../common/decorators/redis-cache.decorator';
+import { RedisCacheInterceptor } from '../common/interceptors/redis-cache.interceptor';
 import { GeminiService } from './gemini.service';
 import { GeospatialService } from '../places/services/geospatial.service';
 
@@ -22,6 +24,8 @@ export class AIController {
    * Provides personalized place recommendations for a given location.
    */
   @Get('recommendations')
+  @UseInterceptors(RedisCacheInterceptor)
+  @UseRedisCache({ ttl: 900, keyPrefix: 'recommendations' })
   async getRecommendations(
     @Query('lat', ParseFloatPipe) lat: number,
     @Query('lng', ParseFloatPipe) lng: number,
