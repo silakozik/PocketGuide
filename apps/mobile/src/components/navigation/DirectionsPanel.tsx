@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import { useRoute } from "@/src/context/RouteContext";
 
@@ -24,6 +25,7 @@ function getStepIcon(type: number) {
 }
 
 export function DirectionsPanel() {
+  const { t } = useTranslation();
   const { isActive, routeData, activeLegIndex, activeStepIndex, nextStep, prevStep } = useRoute();
 
   if (!isActive || !routeData) return null;
@@ -43,7 +45,7 @@ export function DirectionsPanel() {
           {routeData.total_duration_min} dk ({routeData.total_distance_km.toFixed(1)} km)
         </Text>
         <Text style={styles.progress}>
-          Adım {currentStepAbsolute}/{totalSteps}
+          {t("mobile.step")} {currentStepAbsolute}/{totalSteps}
         </Text>
       </View>
 
@@ -52,7 +54,7 @@ export function DirectionsPanel() {
         <View style={{ flex: 1 }}>
           <Text style={styles.stepText}>{activeStep.instruction}</Text>
           <Text style={styles.stepDistance}>
-            Kalan:{" "}
+            {t("mobile.remaining")}:{" "}
             {activeStep.distance < 1000
               ? `${Math.round(activeStep.distance)} m`
               : `${(activeStep.distance / 1000).toFixed(1)} km`}
@@ -66,7 +68,7 @@ export function DirectionsPanel() {
           onPress={prevStep}
           disabled={activeLegIndex === 0 && activeStepIndex === 0}
         >
-          <Text style={styles.secondaryBtnText}>Önceki</Text>
+          <Text style={styles.secondaryBtnText}>{t("mobile.previous")}</Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [styles.primaryBtn, pressed ? { opacity: 0.9 } : null]}
@@ -76,7 +78,7 @@ export function DirectionsPanel() {
             activeStepIndex === routeData.legs[routeData.legs.length - 1].steps.length - 1
           }
         >
-          <Text style={styles.primaryBtnText}>Sonraki</Text>
+          <Text style={styles.primaryBtnText}>{t("mobile.next")}</Text>
         </Pressable>
       </View>
     </View>

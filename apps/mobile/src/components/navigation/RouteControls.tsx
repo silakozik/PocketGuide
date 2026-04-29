@@ -1,13 +1,15 @@
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import { useRoute } from "@/src/context/RouteContext";
 
 export function RouteControls() {
+  const { t } = useTranslation();
   const { isActive, startRoute, resetRoute, isFetching, draftPOIs, error } = useRoute();
 
   const handleStartRoute = async () => {
     if (draftPOIs.length < 2) {
-      Alert.alert("Rota", "Rotayı başlatmak için en az 2 mekan seçmelisin.");
+      Alert.alert(t("nav.map"), t("mobile.startRouteNeedTwo"));
       return;
     }
     await startRoute();
@@ -25,7 +27,7 @@ export function RouteControls() {
             disabled={isFetching}
           >
             <Text style={styles.primaryBtnText}>
-              {isFetching ? "Hesaplanıyor..." : `Rotayı Başlat (${draftPOIs.length} Nokta)`}
+              {isFetching ? t("common.loading") : `${t("mobile.startRoute")} (${draftPOIs.length} Nokta)`}
             </Text>
           </Pressable>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -36,7 +38,7 @@ export function RouteControls() {
             style={({ pressed }) => [styles.secondaryBtn, pressed ? { opacity: 0.85 } : null]}
             onPress={resetRoute}
           >
-            <Text style={styles.secondaryBtnText}>Rotayı Sıfırla</Text>
+            <Text style={styles.secondaryBtnText}>{t("mobile.resetRoute")}</Text>
           </Pressable>
         </View>
       )}

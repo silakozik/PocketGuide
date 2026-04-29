@@ -3,7 +3,9 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
+import { AIAssistant } from "@/src/components/AIAssistant";
 import { PocketGuideMap } from "@/src/components/map/PocketGuideMap";
 import { DirectionsPanel } from "@/src/components/navigation/DirectionsPanel";
 import { RouteControls } from "@/src/components/navigation/RouteControls";
@@ -13,7 +15,7 @@ import type { POI } from "@/src/types/poi";
 type CategoryFilter = "all" | "culture" | "food" | "transit" | "accommodation";
 
 const CATEGORIES: { id: CategoryFilter; label: string; icon: string }[] = [
-  { id: "all", label: "Tümü", icon: "✨" },
+  { id: "all", label: "all", icon: "✨" },
   { id: "culture", label: "Kültür", icon: "🏛" },
   { id: "food", label: "Yeme-İçme", icon: "🍔" },
   { id: "transit", label: "Ulaşım", icon: "🚇" },
@@ -22,6 +24,7 @@ const CATEGORIES: { id: CategoryFilter; label: string; icon: string }[] = [
 
 export default function PocketGuideMapScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [ready, setReady] = useState(false);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,14 +94,14 @@ export default function PocketGuideMapScreen() {
               onPress={() => router.push("/landing" as any)}
               style={({ pressed }) => [styles.backBtn, pressed ? { opacity: 0.85 } : null]}
             >
-              <Text style={styles.backBtnText}>Geri</Text>
+              <Text style={styles.backBtnText}>{t("common.back")}</Text>
             </Pressable>
 
             <Pressable
               onPress={() => router.push("/istanbul/first-day" as any)}
               style={({ pressed }) => [styles.firstDayBtn, pressed ? { opacity: 0.85 } : null]}
             >
-              <Text style={styles.firstDayBtnText}>💡 İlk Gün</Text>
+              <Text style={styles.firstDayBtnText}>💡 {t("mobile.firstDayGuide")}</Text>
             </Pressable>
 
             <Pressable
@@ -114,7 +117,7 @@ export default function PocketGuideMapScreen() {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Mekan, müze, restoran ara..."
+              placeholder={t("mobile.searchMapPlaceholder")}
               style={styles.searchInput}
               placeholderTextColor="#9aa8c2"
             />
@@ -132,19 +135,20 @@ export default function PocketGuideMapScreen() {
                 ]}
               >
                 <Text style={activeCategory === c.id ? styles.chipTextActive : styles.chipText}>
-                  {c.icon} {c.label}
+                  {c.icon} {c.id === "all" ? t("common.all") : c.label}
                 </Text>
               </Pressable>
             ))}
           </ScrollView>
 
           <View style={styles.savedMeta}>
-            <Text style={styles.savedMetaText}>Kaydedilen: {savedCount}</Text>
+            <Text style={styles.savedMetaText}>{t("mobile.savedCount")}: {savedCount}</Text>
           </View>
         </View>
 
         <DirectionsPanel />
         <RouteControls />
+        <AIAssistant />
         <StatusBar hidden />
       </View>
     </RouteProvider>

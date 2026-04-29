@@ -1,10 +1,12 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import { Text } from "@/components/Themed";
 
 export default function LandingScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   return (
     <View style={styles.root}>
@@ -14,18 +16,18 @@ export default function LandingScreen() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Keşfe Başla</Text>
+        <Text style={styles.title}>{t("mobile.landingTitle")}</Text>
         <Text style={styles.subtitle}>
-          Web’deki deneyimin mobil uyarlamasına hoş geldin.
+          {t("mobile.landingSubtitle")}
         </Text>
 
         <View style={styles.actions}>
           <Pressable onPress={() => router.push("/")} style={styles.primaryBtn}>
-            <Text style={styles.primaryBtnText}>Harita</Text>
+            <Text style={styles.primaryBtnText}>{t("mobile.goMap")}</Text>
           </Pressable>
 
           <Pressable onPress={() => router.push("/transfer" as any)} style={styles.secondaryBtn}>
-            <Text style={styles.secondaryBtnText}>Transfer Rehberi</Text>
+            <Text style={styles.secondaryBtnText}>{t("mobile.goTransfer")}</Text>
           </Pressable>
         </View>
 

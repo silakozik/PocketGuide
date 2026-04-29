@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import { Text } from "@/components/Themed";
 
@@ -17,6 +18,7 @@ const INTERESTS = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,9 +58,9 @@ export default function OnboardingScreen() {
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Nelerden Hoşlanırsın?</Text>
+        <Text style={styles.title}>{t("mobile.onboardingTitle")}</Text>
         <Text style={styles.subtitle}>
-          Sana en uygun deneyimleri sunabilmemiz için ilgi alanlarını seç.
+          {t("mobile.onboardingSubtitle")}
         </Text>
 
         <View style={styles.grid}>
@@ -93,7 +95,7 @@ export default function OnboardingScreen() {
           ]}
         >
           <Text style={styles.submitBtnText}>
-            {submitting ? "Yükleniyor..." : "Keşfetmeye Başla"}
+            {submitting ? t("common.loading") : t("mobile.onboardingStart")}
           </Text>
         </Pressable>
       </ScrollView>

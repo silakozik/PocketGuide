@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 
 import type { POI } from "@/src/types/poi";
 import { PIN_COLORS, PIN_ICONS } from "@/src/constants/mapConfig";
@@ -41,6 +42,7 @@ export function POIBottomSheet({
   onToggleDraft,
   onToggleSave,
 }: POIBottomSheetProps) {
+  const { t } = useTranslation();
   const [activePoi, setActivePoi] = useState(poi);
 
   useEffect(() => {
@@ -63,10 +65,10 @@ export function POIBottomSheet({
   const emoji = PIN_ICONS[activePoi.category];
 
   const openBadge = useMemo(() => {
-    if (activePoi.isOpen === undefined) return { label: "Durum Yok", style: styles.badgeUnknown };
-    if (activePoi.isOpen) return { label: "Açık", style: styles.badgeOpen };
-    return { label: "Kapalı", style: styles.badgeClosed };
-  }, [activePoi.isOpen]);
+    if (activePoi.isOpen === undefined) return { label: t("mobile.unknownStatus"), style: styles.badgeUnknown };
+    if (activePoi.isOpen) return { label: t("mobile.open"), style: styles.badgeOpen };
+    return { label: t("mobile.closed"), style: styles.badgeClosed };
+  }, [activePoi.isOpen, t]);
 
   const ratingText = useMemo(() => {
     if (activePoi.rating === undefined) return "—";
@@ -121,7 +123,7 @@ export function POIBottomSheet({
 
         <View style={styles.content}>
           <View style={styles.distanceRow}>
-            <Text style={styles.distanceLabel}>Mesafe:</Text>
+            <Text style={styles.distanceLabel}>{t("mobile.distance")}:</Text>
             <Text style={styles.distanceValue}>
               {activePoi.distance === undefined ? "—" : `${activePoi.distance.toFixed(1)} km`}
             </Text>
@@ -130,15 +132,15 @@ export function POIBottomSheet({
           {activePoi.description ? (
             <Text style={styles.description}>{activePoi.description}</Text>
           ) : (
-            <Text style={styles.descriptionFallback}>Açıklama yok.</Text>
+            <Text style={styles.descriptionFallback}>{t("mobile.noDescription")}</Text>
           )}
 
           <View style={styles.actionsRow}>
             <TouchableOpacity style={styles.actionButton} onPress={() => onToggleDraft?.(activePoi)}>
-              <Text style={styles.actionText}>{inDraft ? "Rotadan Çıkar" : "Rotaya Ekle"}</Text>
+              <Text style={styles.actionText}>{inDraft ? t("mobile.removeFromRoute") : t("mobile.addToRoute")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionButton} onPress={() => onToggleSave?.(activePoi)}>
-              <Text style={styles.actionText}>{saved ? "Kaydedildi" : "Kaydet"}</Text>
+              <Text style={styles.actionText}>{saved ? t("mobile.saved") : t("mobile.savePlace")}</Text>
             </TouchableOpacity>
           </View>
         </View>

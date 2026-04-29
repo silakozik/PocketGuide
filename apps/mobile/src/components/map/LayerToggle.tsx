@@ -1,4 +1,5 @@
 import { StyleSheet, Switch, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 export type LayerToggleProps = {
   layers: {
@@ -37,24 +38,25 @@ function LayerRow({
 }
 
 export function LayerToggle({ layers, onChange }: LayerToggleProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.card}>
       <LayerRow
-        label="Pinler"
+        label={t("nav.map")}
         dotStyle={styles.dotPins}
         trackColorTrue="#1D9E75"
         value={layers.pins}
         onValueChange={(pins) => onChange({ ...layers, pins })}
       />
       <LayerRow
-        label="Rota"
+        label={t("mobile.startRoute")}
         dotStyle={styles.dotRoute}
         trackColorTrue="#185FA5"
         value={layers.route}
         onValueChange={(route) => onChange({ ...layers, route })}
       />
       <LayerRow
-        label="Isı haritası"
+        label="Heatmap"
         dotStyle={styles.dotHeatmap}
         trackColorTrue="#BA7517"
         value={layers.heatmap}
