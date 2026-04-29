@@ -116,7 +116,6 @@ export function PocketGuideMap() {
         onRegionChangeComplete={setRegion}
         showsUserLocation={true}
         showsMyLocationButton={true}
-        clusterColor="#999"
       >
         {showPins &&
           poiFeatures.map((feature: any) => {

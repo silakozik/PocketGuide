@@ -181,6 +181,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
+  metaText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.85)",
+    fontWeight: "800",
+  },
   headerRestaurant: { backgroundColor: PIN_COLORS.restaurant },
   headerMuseum: { backgroundColor: PIN_COLORS.museum },
   headerTransport: { backgroundColor: PIN_COLORS.transport },
