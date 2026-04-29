@@ -9,6 +9,10 @@ export type POIBottomSheetProps = {
   poi: POI;
   onClose: () => void;
   poiList?: POI[];
+  isInDraft?: (poi: POI) => boolean;
+  isSaved?: (poi: POI) => boolean;
+  onToggleDraft?: (poi: POI) => void;
+  onToggleSave?: (poi: POI) => void;
 };
 
 function getHeaderStyle(category: POI["category"]) {
@@ -28,7 +32,15 @@ function getHeaderStyle(category: POI["category"]) {
   }
 }
 
-export function POIBottomSheet({ poi, onClose, poiList }: POIBottomSheetProps) {
+export function POIBottomSheet({
+  poi,
+  onClose,
+  poiList,
+  isInDraft,
+  isSaved,
+  onToggleDraft,
+  onToggleSave,
+}: POIBottomSheetProps) {
   const [activePoi, setActivePoi] = useState(poi);
 
   useEffect(() => {
@@ -62,6 +74,8 @@ export function POIBottomSheet({ poi, onClose, poiList }: POIBottomSheetProps) {
     if (Number.isNaN(r)) return "—";
     return `${r.toFixed(1)}`;
   }, [activePoi.rating]);
+  const inDraft = isInDraft?.(activePoi) ?? false;
+  const saved = isSaved?.(activePoi) ?? false;
 
   return (
     <>
@@ -120,11 +134,11 @@ export function POIBottomSheet({ poi, onClose, poiList }: POIBottomSheetProps) {
           )}
 
           <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.actionButton} onPress={() => {}}>
-              <Text style={styles.actionText}>Rota Al</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={() => onToggleDraft?.(activePoi)}>
+              <Text style={styles.actionText}>{inDraft ? "Rotadan Çıkar" : "Rotaya Ekle"}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => {}}>
-              <Text style={styles.actionText}>Kaydet</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={() => onToggleSave?.(activePoi)}>
+              <Text style={styles.actionText}>{saved ? "Kaydedildi" : "Kaydet"}</Text>
             </TouchableOpacity>
           </View>
         </View>

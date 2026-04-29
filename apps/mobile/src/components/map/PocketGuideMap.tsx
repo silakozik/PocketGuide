@@ -1,19 +1,45 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Marker, Polyline, Region } from "react-native-maps";
 import * as Location from "expo-location";
 import { StyleSheet, View } from "react-native";
 
 import { MOCK_POIS } from "@/src/data/mockPOIs";
 import type { POI } from "@/src/types/poi";
 import { useCluster } from "@/src/hooks/useCluster";
+import { useRoute } from "@/src/context/RouteContext";
 
 import { CustomPin } from "@/src/components/map/CustomPin";
 import { ClusterPin } from "@/src/components/map/ClusterPin";
 import { POIBottomSheet } from "@/src/components/map/POIBottomSheet";
 import { LayerToggle } from "@/src/components/map/LayerToggle";
+import type { POICategory } from "@/src/types/poi";
 
-export function PocketGuideMap() {
+type MapCategoryFilter = "all" | "culture" | "food" | "transit" | "accommodation";
+
+const categoryMap: Record<MapCategoryFilter, POICategory[] | "all"> = {
+  all: "all",
+  culture: ["museum", "event"],
+  food: ["restaurant"],
+  transit: ["transport"],
+  accommodation: ["hotel"],
+};
+
+type PocketGuideMapProps = {
+  categoryFilter?: MapCategoryFilter;
+  searchQuery?: string;
+  savedPoiIds?: Set<string>;
+  onToggleSave?: (poi: POI) => void;
+};
+
+export function PocketGuideMap({
+  categoryFilter = "all",
+  searchQuery = "",
+  savedPoiIds,
+  onToggleSave,
+}: PocketGuideMapProps) {
   const mapRef = useRef<MapView>(null);
+  const { routeData, isActive, activeLegIndex, activeStepIndex, draftPOIs, addToRouteDraft, removeFromRouteDraft } =
+    useRoute();
 
   const initialRegion = useMemo<Region>(
     () => ({
@@ -30,9 +56,17 @@ export function PocketGuideMap() {
   const [poiList, setPoiList] = useState<POI[] | undefined>(undefined);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  const [layers, setLayers] = useState({ pins: true, route: false, heatmap: false });
-
-  const { clusterFeatures, poiFeatures, getLeaves } = useCluster(MOCK_POIS, region);
+  const [layers, setLayers] = useState({ pins: true, route: true, heatmap: false });
+  const filteredPOIs = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const mapped = categoryMap[categoryFilter];
+    return MOCK_POIS.filter((poi) => {
+      if (mapped !== "all" && !mapped.includes(poi.category)) return false;
+      if (q && !poi.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [categoryFilter, searchQuery]);
+  const { clusterFeatures, poiFeatures, getLeaves } = useCluster(filteredPOIs, region);
 
   useEffect(() => {
     let mounted = true;
@@ -70,6 +104,20 @@ export function PocketGuideMap() {
     setIsSheetOpen(false);
   }, []);
 
+  const handleToggleDraft = useCallback(
+    (poi: POI) => {
+      if (draftPOIs.some((p) => p.id === poi.id)) {
+        removeFromRouteDraft(poi.id);
+      } else {
+        addToRouteDraft(poi);
+      }
+    },
+    [addToRouteDraft, draftPOIs, removeFromRouteDraft]
+  );
+
+  const isInDraft = useCallback((poi: POI) => draftPOIs.some((p) => p.id === poi.id), [draftPOIs]);
+  const isSaved = useCallback((poi: POI) => Boolean(savedPoiIds?.has(poi.id)), [savedPoiIds]);
+
   const handleClusterPress = useCallback(
     (clusterId: number, count: number, lat: number, lng: number) => {
       if (count <= 8) {
@@ -105,6 +153,26 @@ export function PocketGuideMap() {
   );
 
   const showPins = layers.pins;
+  const showRoute = layers.route && isActive && routeData;
+
+  useEffect(() => {
+    if (!showRoute || !routeData) return;
+    const activeLeg = routeData.legs[activeLegIndex];
+    const activeStep = activeLeg?.steps[activeStepIndex];
+    if (!activeStep?.way_points?.length) return;
+    const pointIndex = activeStep.way_points[0];
+    const point = routeData.geometry[pointIndex];
+    if (!point) return;
+    mapRef.current?.animateToRegion(
+      {
+        latitude: point[0],
+        longitude: point[1],
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      900
+    );
+  }, [activeLegIndex, activeStepIndex, routeData, showRoute]);
 
   return (
     <View style={styles.container}>
@@ -117,6 +185,27 @@ export function PocketGuideMap() {
         showsUserLocation={true}
         showsMyLocationButton={true}
       >
+        {showRoute && routeData ? (
+          <>
+            <Polyline
+              coordinates={routeData.geometry.map(([latitude, longitude]) => ({ latitude, longitude }))}
+              strokeColor="#3B82F6"
+              strokeWidth={5}
+              lineDashPattern={[10, 10]}
+            />
+            {routeData.ordered_pois.map((poi, index) => (
+              <Marker
+                key={`route-poi-${poi.id}`}
+                coordinate={{
+                  latitude: poi.coordinate.latitude,
+                  longitude: poi.coordinate.longitude,
+                }}
+                title={`${index + 1}. ${poi.name}`}
+              />
+            ))}
+          </>
+        ) : null}
+
         {showPins &&
           poiFeatures.map((feature: any) => {
             const poi = feature.properties as POI;
@@ -164,7 +253,15 @@ export function PocketGuideMap() {
       </View>
 
       {isSheetOpen && selectedPOI && (
-        <POIBottomSheet poi={selectedPOI} poiList={poiList} onClose={closeSheet} />
+        <POIBottomSheet
+          poi={selectedPOI}
+          poiList={poiList}
+          onClose={closeSheet}
+          isInDraft={isInDraft}
+          isSaved={isSaved}
+          onToggleDraft={handleToggleDraft}
+          onToggleSave={onToggleSave}
+        />
       )}
     </View>
   );
