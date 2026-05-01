@@ -232,9 +232,18 @@ importers:
       '@mapbox/polyline':
         specifier: ^1.2.1
         version: 1.2.1
+      '@pocketguide/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@pocketguide/hooks':
+        specifier: workspace:*
+        version: link:../../packages/hooks
       '@pocketguide/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@pocketguide/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@pocketguide/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -311,6 +320,27 @@ importers:
       drizzle-kit:
         specifier: ^0.31.9
         version: 0.31.9
+
+  packages/db:
+    dependencies:
+      '@pocketguide/types':
+        specifier: workspace:*
+        version: link:../types
+      dexie:
+        specifier: ^4.4.2
+        version: 4.4.2
+
+  packages/hooks:
+    dependencies:
+      '@pocketguide/db':
+        specifier: workspace:*
+        version: link:../db
+      '@pocketguide/types':
+        specifier: workspace:*
+        version: link:../types
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
 
   packages/i18n:
     dependencies:
@@ -3866,6 +3896,9 @@ packages:
 
   detect-node-es@1.1.0:
     resolution: {integrity: sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ==}
+
+  dexie@4.4.2:
+    resolution: {integrity: sha512-zMtV8q79EFE5U8FKZvt0Y/77PCU/Hr/RDxv1EDeo228L+m/HTbeN2AjoQm674rhQCX8n3ljK87lajt7UQuZfvw==}
 
   didyoumean@1.2.2:
     resolution: {integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==}
@@ -12063,6 +12096,8 @@ snapshots:
   detect-libc@2.1.2: {}
 
   detect-node-es@1.1.0: {}
+
+  dexie@4.4.2: {}
 
   didyoumean@1.2.2: {}
 

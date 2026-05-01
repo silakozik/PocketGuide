@@ -2,6 +2,8 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 import { RouteState } from '../types/route';
 import { POI } from '../types/poi';
 import { fetchDirections } from '../lib/ors';
+import { useNetworkStatus, useOfflineStorage } from '@pocketguide/hooks';
+import type { OfflineRoute } from '@pocketguide/types';
 
 interface RouteContextProps extends RouteState {
   startRoute: () => Promise<void>;
@@ -14,8 +16,13 @@ interface RouteContextProps extends RouteState {
 }
 
 const RouteContext = createContext<RouteContextProps | undefined>(undefined);
+const DEFAULT_CITY_ID = "elazig";
+
+const buildRouteId = (pois: POI[]): string => pois.map((poi) => poi.id).join("__");
 
 export const RouteProvider = ({ children }: { children: ReactNode }) => {
+  const { isOnline } = useNetworkStatus();
+  const { saveRoute, getRoute } = useOfflineStorage();
   const [state, setState] = useState<RouteState>({
     isActive: false,
     isFetching: false,
@@ -28,9 +35,49 @@ export const RouteProvider = ({ children }: { children: ReactNode }) => {
 
   const startRoute = async () => {
     if (state.draftPOIs.length < 2) return;
+
+    const routeId = buildRouteId(state.draftPOIs);
     setState(prev => ({ ...prev, isFetching: true, error: null }));
+
+    if (!isOnline) {
+      try {
+        const cachedRoute = await getRoute(routeId);
+        if (cachedRoute) {
+          setState(prev => ({
+            ...prev,
+            isActive: true,
+            isFetching: false,
+            routeData: JSON.parse(cachedRoute.routeData) as RouteState["routeData"],
+            activeLegIndex: 0,
+            activeStepIndex: 0,
+            error: null,
+          }));
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to restore route from cache", error);
+      }
+
+      setState(prev => ({
+        ...prev,
+        isFetching: false,
+        error: "Offline modda bu rota cache'de bulunamadi.",
+      }));
+      return;
+    }
+
     try {
       const data = await fetchDirections(state.draftPOIs);
+      const routeRecord: OfflineRoute = {
+        id: routeId,
+        cityId: DEFAULT_CITY_ID,
+        pois: state.draftPOIs.map((poi) => poi.id),
+        routeData: JSON.stringify(data),
+        createdAt: new Date().toISOString(),
+        syncedAt: new Date().toISOString(),
+      };
+      await saveRoute(routeRecord);
+
       setState(prev => ({
         ...prev,
         isActive: true,
@@ -40,11 +87,11 @@ export const RouteProvider = ({ children }: { children: ReactNode }) => {
         activeStepIndex: 0,
         error: null,
       }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState(prev => ({
         ...prev,
         isFetching: false,
-        error: err.message || 'Rota oluşturulamadı.',
+        error: err instanceof Error ? err.message : 'Rota olusturulamadi.',
       }));
     }
   };

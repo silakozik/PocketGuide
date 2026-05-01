@@ -5,6 +5,7 @@ import { AIAssistant } from "../components/AIAssistant";
 import { RouteProvider } from "../context/RouteContext";
 import { DirectionsPanel } from "../components/navigation/DirectionsPanel";
 import { RouteControls } from "../components/navigation/RouteControls";
+import { useNetworkStatus } from "@pocketguide/hooks";
 
 const CATEGORIES = [
   { id: "all", label: "Tümü", icon: "✨" },
@@ -17,12 +18,33 @@ const CATEGORIES = [
 export default function MapPage() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const { isOnline } = useNetworkStatus();
 
   return (
     <RouteProvider>
       <div className="mapPageRoot">
         {/* Harita Üstü Yüzen Arayüz (Floating UI) */}
         <div className="map-floating-header">
+          {!isOnline && (
+            <div
+              style={{
+                position: "absolute",
+                top: "72px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 1200,
+                background: "#f59e0b",
+                color: "#1f2937",
+                fontWeight: 600,
+                padding: "8px 12px",
+                borderRadius: "999px",
+                fontSize: "0.82rem",
+                boxShadow: "0 4px 18px rgba(0,0,0,0.15)",
+              }}
+            >
+              Cevrimdisi moddasiniz — kayitli veriler gosteriliyor
+            </div>
+          )}
           
           {/* Sol: Geri Butonu */}
           <Link to="/" className="mapBackBtn">

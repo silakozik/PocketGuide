@@ -9,7 +9,10 @@
   },
   "dependencies": {
     "@mapbox/polyline": "^1.2.1",
+    "@pocketguide/db": "workspace:*",
+    "@pocketguide/hooks": "workspace:*",
     "@pocketguide/i18n": "workspace:*",
+    "@pocketguide/types": "workspace:*",
     "@pocketguide/ui": "workspace:*",
     "i18next": "^23.11.5",
     "i18next-browser-languagedetector": "^7.2.1",

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, useMapEvents } from 'react-leaflet';
 import type { Map as LeafletMap, LatLngBounds } from 'leaflet';
 import { useCluster } from '../../hooks/useCluster';
@@ -10,6 +10,53 @@ import { POICard } from './POICard';
 import { LayerToggle, LayerState } from './LayerToggle';
 import { RoutePolyline } from './RoutePolyline';
 import styles from './PocketGuideMap.module.css';
+import { useNetworkStatus, useOfflineStorage } from '@pocketguide/hooks';
+import type { OfflinePOI } from '@pocketguide/types';
+
+const DEFAULT_CITY_ID = "elazig";
+
+async function fetchPoisFromApi(cityId: string): Promise<POI[]> {
+  const apiBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  if (!apiBase) {
+    return MOCK_POIS;
+  }
+
+  const response = await fetch(`${apiBase}/cities/${cityId}/pois`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch POIs: ${response.status}`);
+  }
+
+  const payload = (await response.json()) as unknown;
+  if (!Array.isArray(payload)) {
+    throw new Error("POI payload is not an array");
+  }
+
+  return payload as POI[];
+}
+
+function toOfflinePoi(poi: POI, cityId: string): OfflinePOI {
+  return {
+    id: poi.id,
+    name: poi.name,
+    category: poi.category,
+    lat: poi.coordinate.lat,
+    lng: poi.coordinate.lng,
+    cityId,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function toUiPoi(poi: OfflinePOI): POI {
+  return {
+    id: poi.id,
+    name: poi.name,
+    category: poi.category as POI["category"],
+    coordinate: {
+      lat: poi.lat,
+      lng: poi.lng,
+    },
+  };
+}
 
 function MapController({ 
   setBounds, 
@@ -39,9 +86,12 @@ export function PocketGuideMap({ categoryFilter = "all", searchQuery = "" }: Poc
   const [map, setMap] = useState<LeafletMap | null>(null);
   const [bounds, setBounds] = useState<LatLngBounds | null>(null);
   const [zoom, setZoom] = useState(13);
+  const [pois, setPois] = useState<POI[]>([]);
   
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [clusterPois, setClusterPois] = useState<POI[] | null>(null);
+  const { isOnline } = useNetworkStatus();
+  const { savePOIs, getPOIsByCity, saveCity, clearOldData } = useOfflineStorage();
   
   const [layers, setLayers] = useState<LayerState>({
     pins: true,
@@ -49,14 +99,56 @@ export function PocketGuideMap({ categoryFilter = "all", searchQuery = "" }: Poc
     heatmap: false
   });
 
-  // Filtreleme mantığı
-  const filteredPOIs = MOCK_POIS.filter(poi => {
+  useEffect(() => {
+    let isMounted = true;
+
+    const bootstrapPois = async () => {
+      const cached = await getPOIsByCity(DEFAULT_CITY_ID);
+      if (isMounted && cached.length > 0) {
+        setPois(cached.map(toUiPoi));
+      }
+
+      if (!isOnline) {
+        return;
+      }
+
+      try {
+        const apiPois = await fetchPoisFromApi(DEFAULT_CITY_ID);
+        if (!isMounted) {
+          return;
+        }
+
+        setPois(apiPois);
+        await savePOIs(apiPois.map((poi) => toOfflinePoi(poi, DEFAULT_CITY_ID)));
+        await saveCity({
+          id: DEFAULT_CITY_ID,
+          name: "Elazig",
+          country: "TR",
+          lastFetched: new Date().toISOString(),
+        });
+        await clearOldData(7);
+      } catch (error) {
+        console.error("POI refresh failed, using cached values", error);
+        if (isMounted && cached.length === 0) {
+          setPois(MOCK_POIS);
+        }
+      }
+    };
+
+    void bootstrapPois();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOnline, clearOldData, getPOIsByCity, saveCity, savePOIs]);
+
+  const filteredPOIs = useMemo(() => pois.filter(poi => {
     if (categoryFilter !== "all" && poi.category !== categoryFilter) return false;
     if (searchQuery.trim().length > 0) {
       if (!poi.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     }
     return true;
-  });
+  }), [pois, categoryFilter, searchQuery]);
 
   const { clusters, getLeaves } = useCluster(layers.pins ? filteredPOIs : [], bounds, zoom);
 
