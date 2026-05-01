@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text as RNText, View as RNView } from "react-native";
 import { useTranslation } from "react-i18next";
 import { setAppLanguage } from "@/src/i18n";
+import { presets } from "@/src/theme/presets";
+import { theme } from "@/src/theme/tokens";
 
 import { Text, View } from "@/components/Themed";
 
@@ -64,72 +66,74 @@ export default function TabTwoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: theme.spacing.md,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontFamily: theme.typography.fontFamilySerif,
+    fontSize: theme.typography.h2.fontSize,
+    lineHeight: theme.typography.h2.lineHeight,
+    color: theme.colors.textPrimary,
+    fontWeight: '700',
   },
   section: {
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 18,
-    borderRadius: 16,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: "rgba(221, 227, 240, 1)",
-    backgroundColor: "rgba(255,255,255,0.7)",
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    ...theme.shadows.card,
     width: "90%",
   },
   sectionTitle: {
-    fontSize: 18,
+    fontFamily: theme.typography.fontFamilySerif,
+    fontSize: theme.typography.h2.fontSize,
+    lineHeight: theme.typography.h2.lineHeight,
     fontWeight: "800",
-    color: "#0F1F3D",
+    color: theme.colors.textPrimary,
     textAlign: "center",
   },
   sectionSub: {
     marginTop: 6,
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#6B7A99",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.body.fontSize,
+    lineHeight: theme.typography.body.lineHeight,
+    fontWeight: "500",
+    color: theme.colors.textSecondary,
     textAlign: "center",
   },
   primaryBtn: {
+    ...presets.primaryButton,
     marginTop: 18,
     width: "90%",
-    borderRadius: 14,
-    backgroundColor: "#0F1F3D",
-    paddingVertical: 14,
-    alignItems: "center",
   },
   primaryBtnText: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 14,
+    ...presets.primaryButtonText,
   },
   langRow: {
     marginTop: 12,
     flexDirection: "row",
-    gap: 8,
+    gap: theme.spacing.xs,
   },
   langBtn: {
-    borderRadius: 999,
+    ...presets.chip,
+    borderRadius: theme.radius.pill,
     borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
-    backgroundColor: "#fff",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: theme.colors.textPrimary,
   },
   langBtnActive: {
-    backgroundColor: "#0F1F3D",
-    borderColor: "#0F1F3D",
+    ...presets.chipActive,
   },
   langBtnText: {
-    color: "#0F1F3D",
+    color: theme.colors.textPrimary,
     fontWeight: "800",
-    fontSize: 12,
+    fontSize: theme.typography.caption.fontSize,
   },
   langBtnTextActive: {
-    color: "#fff",
+    color: theme.colors.surface,
   },
 });

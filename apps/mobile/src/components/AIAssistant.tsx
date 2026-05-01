@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { presets } from "@/src/theme/presets";
+import { theme } from "@/src/theme/tokens";
 
 type Recommendation = {
   name: string;
@@ -118,7 +120,8 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#e8c547",
+    backgroundColor: theme.colors.accent,
+    ...theme.shadows.card,
   },
   fabText: {
     fontSize: 22,
@@ -130,46 +133,48 @@ const styles = StyleSheet.create({
     bottom: 210,
     maxHeight: 330,
     zIndex: 209,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.98)",
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
+    borderColor: theme.colors.border,
+    ...theme.shadows.card,
     overflow: "hidden",
   },
   header: {
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(221,227,240,1)",
+    borderBottomColor: theme.colors.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#0F1F3D",
+    fontFamily: theme.typography.fontFamilySerif,
+    fontSize: theme.typography.h2.fontSize,
+    lineHeight: theme.typography.h2.lineHeight,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
   },
   close: {
     fontSize: 22,
-    color: "#6B7A99",
+    color: theme.colors.textSecondary,
   },
   body: {
     padding: 12,
-    gap: 8,
+    gap: theme.spacing.xs,
   },
   infoText: {
-    fontSize: 12.5,
-    fontWeight: "600",
-    color: "#6B7A99",
-    lineHeight: 18,
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.body.fontSize,
+    fontWeight: "400",
+    color: theme.colors.textSecondary,
+    lineHeight: theme.typography.body.lineHeight,
   },
   card: {
+    ...presets.card,
     borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
-    borderRadius: 12,
-    padding: 10,
-    backgroundColor: "#fff",
+    borderColor: theme.colors.border,
     gap: 6,
   },
   cardTop: {
@@ -177,43 +182,40 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   cardName: {
-    fontSize: 13,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "800",
-    color: "#0F1F3D",
+    color: theme.colors.textPrimary,
     flex: 1,
     marginRight: 8,
   },
   cardBadge: {
-    fontSize: 10,
+    fontSize: theme.typography.caption.fontSize,
     fontWeight: "800",
-    color: "#0F1F3D",
-    backgroundColor: "#f2f5fb",
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.background,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
   },
   cardReason: {
-    fontSize: 12,
-    color: "#6B7A99",
-    fontWeight: "600",
-    lineHeight: 16,
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textSecondary,
+    fontWeight: "500",
+    lineHeight: theme.typography.caption.lineHeight,
   },
   cardMeta: {
-    fontSize: 11.5,
-    color: "#0F1F3D",
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textPrimary,
     fontWeight: "700",
   },
   primaryBtn: {
+    ...presets.primaryButton,
     marginTop: 4,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: "#0F1F3D",
-    alignItems: "center",
+    paddingVertical: 12,
   },
   primaryBtnText: {
-    color: "#fff",
-    fontSize: 12.5,
-    fontWeight: "800",
+    ...presets.primaryButtonText,
+    fontSize: theme.typography.caption.fontSize,
   },
 });
 

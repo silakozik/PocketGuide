@@ -1,5 +1,6 @@
 import { StyleSheet, Switch, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { theme } from "@/src/theme/tokens";
 
 export type LayerToggleProps = {
   layers: {
@@ -30,8 +31,8 @@ function LayerRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: "rgba(15,31,61,0.15)", true: trackColorTrue }}
-        thumbColor="#fff"
+        trackColor={{ false: "rgba(26,35,64,0.2)", true: trackColorTrue }}
+        thumbColor={theme.colors.surface}
       />
     </View>
   );
@@ -71,24 +72,27 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 12,
     right: 12,
-    borderRadius: 12,
-    padding: 10,
-    backgroundColor: "#fff",
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(221, 227, 240, 1)",
+    borderColor: theme.colors.border,
+    ...theme.shadows.card,
     zIndex: 50,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 10,
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
   },
   rowLabel: {
     flex: 1,
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#0F1F3D",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.caption.fontSize,
+    lineHeight: theme.typography.caption.lineHeight,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
   },
   dot: {
     width: 10,

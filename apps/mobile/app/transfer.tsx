@@ -4,6 +4,8 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native
 import { useTranslation } from "react-i18next";
 
 import { Text } from "@/components/Themed";
+import { presets } from "@/src/theme/presets";
+import { theme } from "@/src/theme/tokens";
 
 type TransferType = "all" | "airport" | "intercity" | "city";
 type TransferMode = "all" | "metro" | "bus" | "train" | "ferry" | "taxi" | "tram";
@@ -96,14 +98,14 @@ export default function TransferScreen() {
             onChangeText={setFromQuery}
             placeholder={t("mobile.transferFromPlaceholder")}
             style={styles.input}
-            placeholderTextColor="#9aa8c2"
+            placeholderTextColor={theme.colors.textMuted}
           />
           <TextInput
             value={toQuery}
             onChangeText={setToQuery}
             placeholder={t("mobile.transferToPlaceholder")}
             style={styles.input}
-            placeholderTextColor="#9aa8c2"
+            placeholderTextColor={theme.colors.textMuted}
           />
         </View>
 
@@ -140,11 +142,11 @@ export default function TransferScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#f7f4ee",
+    backgroundColor: theme.colors.background,
   },
   header: {
-    paddingTop: 14,
-    paddingHorizontal: 16,
+    paddingTop: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -153,116 +155,112 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 60,
     paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.8)",
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(221, 227, 240, 1)",
+    borderColor: theme.colors.textPrimary,
     alignItems: "center",
   },
   backBtnText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#0F1F3D",
+    ...presets.secondaryButtonText,
+    fontSize: theme.typography.caption.fontSize,
   },
   headerTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#0F1F3D",
+    fontFamily: theme.typography.fontFamilySerif,
+    fontSize: theme.typography.h2.fontSize,
+    lineHeight: theme.typography.h2.lineHeight,
+    fontWeight: theme.typography.h2.fontWeight,
+    color: theme.colors.textPrimary,
   },
   content: {
-    padding: 16,
-    gap: 10,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   filterRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: theme.spacing.xs,
   },
   chip: {
-    backgroundColor: "rgba(255,255,255,0.85)",
-    borderColor: "rgba(221,227,240,1)",
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    ...presets.chip,
   },
   chipActive: {
-    backgroundColor: "#0F1F3D",
-    borderColor: "#0F1F3D",
+    ...presets.chipActive,
   },
   chipText: {
-    color: "#0F1F3D",
-    fontSize: 12,
-    fontWeight: "700",
+    ...presets.chipText,
   },
   chipTextActive: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
+    ...presets.chipText,
+    ...presets.chipTextActive,
   },
   searchRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: theme.spacing.xs,
   },
   input: {
     flex: 1,
-    height: 40,
-    borderRadius: 12,
+    height: 46,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
-    backgroundColor: "rgba(255,255,255,0.9)",
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 12,
-    color: "#0F1F3D",
-    fontWeight: "600",
+    color: theme.colors.textPrimary,
+    fontWeight: "500",
+    fontFamily: theme.typography.fontFamilySans,
   },
   cardInfo: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
-    backgroundColor: "rgba(255,255,255,0.9)",
-    padding: 12,
+    ...presets.card,
+    backgroundColor: theme.colors.textPrimary,
     gap: 6,
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: theme.typography.h2.fontSize,
+    lineHeight: theme.typography.h2.lineHeight,
     fontWeight: "800",
-    color: "#0F1F3D",
+    color: theme.colors.surface,
+    fontFamily: theme.typography.fontFamilySerif,
   },
   cardMeta: {
-    fontSize: 12.5,
-    color: "#6B7A99",
-    fontWeight: "600",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.body.fontSize,
+    lineHeight: theme.typography.body.lineHeight,
+    color: "rgba(255,255,255,0.85)",
+    fontWeight: "500",
   },
   routesWrap: {
-    gap: 8,
+    gap: theme.spacing.xs,
   },
   routeCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
-    backgroundColor: "#fff",
-    padding: 12,
+    ...presets.card,
     gap: 6,
   },
   routeName: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#0F1F3D",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.body.fontSize,
+    lineHeight: theme.typography.body.lineHeight,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
   },
   routePath: {
-    fontSize: 12.5,
-    color: "#6B7A99",
-    fontWeight: "600",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.body.fontSize,
+    lineHeight: theme.typography.body.lineHeight,
+    color: theme.colors.textSecondary,
+    fontWeight: "500",
   },
   routeMeta: {
-    fontSize: 12,
-    color: "#0F1F3D",
+    fontSize: theme.typography.caption.fontSize,
+    lineHeight: theme.typography.caption.lineHeight,
+    color: theme.colors.textPrimary,
     fontWeight: "700",
   },
   emptyText: {
     textAlign: "center",
-    color: "#6B7A99",
-    fontSize: 13,
-    fontWeight: "600",
+    color: theme.colors.textSecondary,
+    fontSize: theme.typography.body.fontSize,
+    lineHeight: theme.typography.body.lineHeight,
+    fontWeight: "500",
     paddingVertical: 16,
   },
 });

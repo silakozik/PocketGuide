@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 
 import type { POI } from "@/src/types/poi";
 import { PIN_COLORS, PIN_ICONS } from "@/src/constants/mapConfig";
+import { presets } from "@/src/theme/presets";
+import { theme } from "@/src/theme/tokens";
 
 export type POIBottomSheetProps = {
   poi: POI;
@@ -156,7 +158,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: theme.colors.overlay,
     zIndex: 998,
   },
   sheet: {
@@ -165,14 +167,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 999,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    backgroundColor: "#fff",
+    borderTopLeftRadius: theme.radius.lg,
+    borderTopRightRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
     overflow: "hidden",
   },
 
   header: {
-    paddingHorizontal: 16,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: 14,
   },
   headerInner: {
@@ -187,10 +189,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
+    fontFamily: theme.typography.fontFamilySerif,
+    fontSize: theme.typography.h2.fontSize,
+    lineHeight: theme.typography.h2.lineHeight,
     fontWeight: "800",
-    color: "#fff",
-    marginBottom: 8,
+    color: theme.colors.surface,
+    marginBottom: theme.spacing.xs,
   },
   headerMetaRow: {
     flexDirection: "row",
@@ -198,9 +202,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   metaText: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.85)",
-    fontWeight: "800",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.caption.fontSize,
+    lineHeight: theme.typography.caption.lineHeight,
+    color: "rgba(255,255,255,0.9)",
+    fontWeight: "700",
   },
   headerRestaurant: { backgroundColor: PIN_COLORS.restaurant },
   headerMuseum: { backgroundColor: PIN_COLORS.museum },
@@ -215,7 +221,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.18)",
   },
   badgeText: {
-    color: "#fff",
+    color: theme.colors.surface,
     fontSize: 12,
     fontWeight: "700",
   },
@@ -233,80 +239,77 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.06)",
+    borderBottomColor: theme.colors.border,
   },
   poiChip: {
     flexDirection: "row",
     gap: 8,
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.04)",
+    backgroundColor: "rgba(26,35,64,0.06)",
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginRight: 10,
   },
   poiChipSelected: {
-    backgroundColor: "rgba(29, 158, 117, 0.16)",
+    backgroundColor: "rgba(26,35,64,0.16)",
   },
   poiChipEmoji: {
     fontSize: 16,
   },
   poiChipText: {
     maxWidth: 160,
-    fontSize: 12,
+    fontSize: theme.typography.caption.fontSize,
     fontWeight: "700",
+    color: theme.colors.textPrimary,
   },
 
   content: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
   },
   distanceRow: {
     flexDirection: "row",
     alignItems: "baseline",
     gap: 8,
-    marginBottom: 12,
+    marginBottom: theme.spacing.sm,
   },
   distanceLabel: {
-    fontSize: 13,
-    color: "#5B6B84",
-    fontWeight: "700",
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
+    fontWeight: "500",
   },
   distanceValue: {
-    fontSize: 15,
-    color: "#0F1F3D",
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textPrimary,
     fontWeight: "800",
   },
   description: {
-    fontSize: 14,
-    color: "#0F1F3D",
-    lineHeight: 20,
-    fontWeight: "500",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textPrimary,
+    lineHeight: theme.typography.body.lineHeight,
+    fontWeight: "400",
     marginBottom: 16,
   },
   descriptionFallback: {
-    fontSize: 14,
-    color: "#7B8AA8",
-    lineHeight: 20,
-    fontWeight: "600",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
+    lineHeight: theme.typography.body.lineHeight,
+    fontWeight: "500",
     marginBottom: 16,
   },
   actionsRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: theme.spacing.xs,
   },
   actionButton: {
+    ...presets.primaryButton,
     flex: 1,
-    backgroundColor: "#0F1F3D",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
   },
   actionText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "800",
+    ...presets.primaryButtonText,
   },
 });
 

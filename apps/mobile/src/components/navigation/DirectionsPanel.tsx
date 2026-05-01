@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useRoute } from "@/src/context/RouteContext";
+import { presets } from "@/src/theme/presets";
+import { theme } from "@/src/theme/tokens";
 
 function getStepIcon(type: number) {
   switch (type) {
@@ -92,11 +94,12 @@ const styles = StyleSheet.create({
     right: 12,
     bottom: 84,
     zIndex: 121,
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
-    backgroundColor: "rgba(255,255,255,0.95)",
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    ...theme.shadows.card,
   },
   headerRow: {
     flexDirection: "row",
@@ -104,12 +107,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summary: {
-    color: "#0F1F3D",
+    color: theme.colors.textPrimary,
     fontWeight: "800",
-    fontSize: 12.5,
+    fontSize: theme.typography.caption.fontSize,
   },
   progress: {
-    color: "#6B7A99",
+    color: theme.colors.textSecondary,
     fontWeight: "700",
     fontSize: 12,
   },
@@ -123,45 +126,38 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   stepText: {
-    color: "#0F1F3D",
+    color: theme.colors.textPrimary,
     fontWeight: "700",
     fontSize: 13,
     marginBottom: 4,
   },
   stepDistance: {
-    color: "#6B7A99",
+    color: theme.colors.textSecondary,
     fontWeight: "600",
     fontSize: 12,
   },
   controls: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 8,
+    gap: theme.spacing.xs,
   },
   secondaryBtn: {
+    ...presets.secondaryButton,
     flex: 1,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
-    paddingVertical: 10,
-    alignItems: "center",
+    paddingVertical: 12,
   },
   secondaryBtnText: {
-    color: "#0F1F3D",
-    fontWeight: "700",
-    fontSize: 13,
+    ...presets.secondaryButtonText,
+    fontSize: theme.typography.caption.fontSize,
   },
   primaryBtn: {
+    ...presets.primaryButton,
     flex: 1,
-    borderRadius: 10,
-    backgroundColor: "#0F1F3D",
-    paddingVertical: 10,
-    alignItems: "center",
+    paddingVertical: 12,
   },
   primaryBtnText: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 13,
+    ...presets.primaryButtonText,
+    fontSize: theme.typography.caption.fontSize,
   },
 });
 

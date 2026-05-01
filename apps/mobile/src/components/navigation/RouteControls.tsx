@@ -2,6 +2,8 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useRoute } from "@/src/context/RouteContext";
+import { presets } from "@/src/theme/presets";
+import { theme } from "@/src/theme/tokens";
 
 export function RouteControls() {
   const { t } = useTranslation();
@@ -55,37 +57,27 @@ const styles = StyleSheet.create({
     zIndex: 120,
   },
   primaryBtn: {
-    backgroundColor: "#0F1F3D",
-    borderRadius: 12,
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    alignItems: "center",
+    ...presets.primaryButton,
+    paddingVertical: 14,
   },
   primaryBtnText: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 14,
+    ...presets.primaryButtonText,
   },
   activeActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
   },
   secondaryBtn: {
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    ...presets.secondaryButton,
+    paddingVertical: 12,
   },
   secondaryBtnText: {
-    color: "#0F1F3D",
-    fontWeight: "800",
-    fontSize: 13,
+    ...presets.secondaryButtonText,
+    fontSize: theme.typography.caption.fontSize,
   },
   errorText: {
     marginTop: 8,
-    color: "#9b1c1c",
+    color: theme.colors.danger,
     fontWeight: "700",
     fontSize: 12,
     textAlign: "center",

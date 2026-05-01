@@ -10,6 +10,8 @@ import { PocketGuideMap } from "@/src/components/map/PocketGuideMap";
 import { DirectionsPanel } from "@/src/components/navigation/DirectionsPanel";
 import { RouteControls } from "@/src/components/navigation/RouteControls";
 import { RouteProvider } from "@/src/context/RouteContext";
+import { presets } from "@/src/theme/presets";
+import { theme } from "@/src/theme/tokens";
 import type { POI } from "@/src/types/poi";
 
 type CategoryFilter = "all" | "culture" | "food" | "transit" | "accommodation";
@@ -119,7 +121,7 @@ export default function PocketGuideMapScreen() {
               onChangeText={setSearchQuery}
               placeholder={t("mobile.searchMapPlaceholder")}
               style={styles.searchInput}
-              placeholderTextColor="#9aa8c2"
+              placeholderTextColor={theme.colors.textMuted}
             />
           </View>
 
@@ -158,121 +160,117 @@ export default function PocketGuideMapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.background,
   },
   floatingHeader: {
     position: "absolute",
-    top: 12,
-    left: 10,
-    right: 10,
+    top: theme.spacing.sm,
+    left: theme.spacing.sm,
+    right: theme.spacing.sm,
     zIndex: 200,
-    gap: 8,
+    gap: theme.spacing.xs,
   },
   headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
+    gap: theme.spacing.xs,
   },
   backBtn: {
-    backgroundColor: "rgba(255,255,255,0.86)",
+    ...presets.secondaryButton,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(221, 227, 240, 1)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    borderColor: theme.colors.textPrimary,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     alignItems: "center",
   },
   backBtnText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#0F1F3D",
+    ...presets.secondaryButtonText,
+    fontSize: theme.typography.caption.fontSize,
   },
   firstDayBtn: {
-    backgroundColor: "rgba(255,255,255,0.86)",
+    ...presets.secondaryButton,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(221, 227, 240, 1)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    borderColor: theme.colors.textPrimary,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     flex: 1,
     alignItems: "center",
   },
   firstDayBtnText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#0F1F3D",
+    ...presets.secondaryButtonText,
+    fontSize: theme.typography.caption.fontSize,
   },
   profileBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#0F1F3D",
+    backgroundColor: theme.colors.textPrimary,
     alignItems: "center",
     justifyContent: "center",
   },
   profileBtnText: {
-    color: "#fff",
+    color: theme.colors.surface,
     fontSize: 13,
     fontWeight: "900",
   },
   searchBar: {
-    backgroundColor: "rgba(255,255,255,0.93)",
+    ...presets.card,
+    padding: 0,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(221, 227, 240, 1)",
-    borderRadius: 14,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
     paddingHorizontal: 12,
-    height: 42,
+    height: 48,
     alignItems: "center",
     flexDirection: "row",
-    gap: 8,
+    gap: theme.spacing.xs,
   },
   searchIcon: {
     fontSize: 14,
   },
   searchInput: {
     flex: 1,
-    fontSize: 13.5,
-    color: "#0F1F3D",
-    fontWeight: "600",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textPrimary,
+    fontWeight: "500",
   },
   chipRow: {
-    gap: 8,
+    gap: theme.spacing.xs,
     paddingRight: 20,
   },
   chip: {
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderWidth: 1,
-    borderColor: "rgba(221, 227, 240, 1)",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 999,
+    ...presets.chip,
+    borderColor: theme.colors.textPrimary,
   },
   chipActive: {
-    backgroundColor: "#0F1F3D",
-    borderColor: "#0F1F3D",
+    ...presets.chipActive,
   },
   chipText: {
-    color: "#0F1F3D",
-    fontSize: 12,
-    fontWeight: "800",
+    ...presets.chipText,
   },
   chipTextActive: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "800",
+    ...presets.chipText,
+    ...presets.chipTextActive,
   },
   savedMeta: {
     alignSelf: "flex-end",
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
+    borderColor: theme.colors.border,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   savedMetaText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#6B7A99",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.caption.fontSize,
+    lineHeight: theme.typography.caption.lineHeight,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
   },
 });

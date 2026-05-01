@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { Text } from "@/components/Themed";
+import { presets } from "@/src/theme/presets";
+import { theme } from "@/src/theme/tokens";
 
 export default function LandingScreen() {
   const router = useRouter();
@@ -46,90 +48,81 @@ export default function LandingScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#f7f4ee",
+    backgroundColor: theme.colors.background,
   },
   header: {
-    paddingTop: 14,
-    paddingHorizontal: 16,
+    paddingTop: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     height: 64,
   },
   logo: {
-    fontSize: 16,
+    fontFamily: theme.typography.fontFamilySerif,
+    fontSize: 20,
     fontWeight: "800",
-    color: "#0F1F3D",
+    color: theme.colors.textPrimary,
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: theme.spacing.md,
     justifyContent: "center",
   },
   title: {
-    fontSize: 26,
-    fontWeight: "800",
+    fontFamily: theme.typography.fontFamilySerif,
+    fontSize: theme.typography.h1.fontSize,
+    lineHeight: theme.typography.h1.lineHeight,
+    fontWeight: theme.typography.h1.fontWeight,
     textAlign: "center",
-    color: "#0F1F3D",
-    marginBottom: 10,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.xs,
   },
   subtitle: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.body.fontSize,
+    lineHeight: theme.typography.body.lineHeight,
+    fontWeight: "500",
     textAlign: "center",
-    color: "#6B7A99",
-    marginBottom: 24,
-    lineHeight: 18,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.lg,
   },
   actions: {
-    gap: 12,
+    gap: theme.spacing.sm,
     alignItems: "center",
   },
   primaryBtn: {
+    ...presets.primaryButton,
     width: "90%",
-    backgroundColor: "#0F1F3D",
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
   },
   primaryBtnText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "800",
+    ...presets.primaryButtonText,
   },
   secondaryBtn: {
+    ...presets.secondaryButton,
     width: "90%",
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.7)",
-    borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
   },
   secondaryBtnText: {
-    color: "#0F1F3D",
-    fontSize: 14,
-    fontWeight: "800",
+    ...presets.secondaryButtonText,
   },
   hintCard: {
-    marginTop: 18,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.65)",
-    borderWidth: 1,
-    borderColor: "rgba(221,227,240,1)",
+    ...presets.card,
+    marginTop: theme.spacing.md,
   },
   hintTitle: {
-    fontSize: 14,
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.body.fontSize,
+    lineHeight: theme.typography.body.lineHeight,
     fontWeight: "900",
-    color: "#0F1F3D",
-    marginBottom: 8,
+    color: theme.colors.accent,
+    marginBottom: theme.spacing.xs,
   },
   hintText: {
-    fontSize: 12.5,
-    fontWeight: "600",
-    color: "#6B7A99",
-    lineHeight: 18,
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.caption.fontSize,
+    lineHeight: theme.typography.caption.lineHeight,
+    fontWeight: "500",
+    color: theme.colors.textSecondary,
   },
 });
 

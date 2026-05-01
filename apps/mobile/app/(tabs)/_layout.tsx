@@ -6,6 +6,7 @@ import { Platform, Pressable } from 'react-native';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { theme } from '@/src/theme/tokens';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -14,6 +15,16 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme].tint,
+        tabBarInactiveTintColor: theme.colors.textMuted,
+        tabBarStyle: {
+          backgroundColor: theme.colors.background,
+          borderTopColor: theme.colors.border,
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: {
+          fontSize: theme.typography.caption.fontSize,
+          fontWeight: "600",
+        },
         // Disable the static render of the header on web
         // to prevent a hydration error in React Navigation v6.
         headerShown: useClientOnlyValue(false, true),
