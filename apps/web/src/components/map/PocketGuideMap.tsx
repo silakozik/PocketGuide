@@ -1,17 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, useMapEvents } from 'react-leaflet';
-import type { Map as LeafletMap, LatLngBounds } from 'leaflet';
-import { useCluster } from '../../hooks/useCluster';
-import { MOCK_POIS } from '../../data/mockPOIs';
-import { POI } from '../../types/poi';
-import { CustomMarker } from './CustomMarker';
-import { ClusterMarker } from './ClusterMarker';
-import { POICard } from './POICard';
-import { LayerToggle, LayerState } from './LayerToggle';
-import { RoutePolyline } from './RoutePolyline';
-import styles from './PocketGuideMap.module.css';
-import { useNetworkStatus, useOfflineStorage } from '@pocketguide/hooks';
-import type { OfflinePOI } from '@pocketguide/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MapRef } from "react-map-gl/mapbox";
+
+import { useNetworkStatus, useOfflineStorage } from "@pocketguide/hooks";
+import type { OfflinePOI } from "@pocketguide/types";
+
+import { poiMatchesUiMapFilter } from "../../constants/uiCategoryFilters";
+import { useMarkerCluster } from "../../hooks/useMarkerCluster";
+import { featureToPoi } from "../../lib/geoJsonToPoi";
+import { poisToGeoJsonFeatures } from "../../lib/poiGeoJson";
+import type { POIGeoJsonProperties } from "../../lib/poiGeoJson";
+import { MOCK_POIS } from "../../data/mockPOIs";
+import { POI } from "../../types/poi";
+import type { LayerState } from "./LayerToggle";
+import { LayerToggle } from "./LayerToggle";
+import { POICard } from "./POICard";
+import styles from "./PocketGuideMap.module.css";
+import { MapView } from "./MapView";
 
 const DEFAULT_CITY_ID = "elazig";
 
@@ -58,45 +62,29 @@ function toUiPoi(poi: OfflinePOI): POI {
   };
 }
 
-function MapController({ 
-  setBounds, 
-  setZoom 
-}: { 
-  setBounds: (b: LatLngBounds) => void, 
-  setZoom: (z: number) => void 
-}) {
-  const map = useMapEvents({
-    moveend: () => {
-      setBounds(map.getBounds());
-      setZoom(map.getZoom());
-    },
-    zoomend: () => {
-      setZoom(map.getZoom());
-    }
-  });
-  return null;
-}
-
 interface PocketGuideMapProps {
   categoryFilter?: string;
   searchQuery?: string;
 }
 
-export function PocketGuideMap({ categoryFilter = "all", searchQuery = "" }: PocketGuideMapProps) {
-  const [map, setMap] = useState<LeafletMap | null>(null);
-  const [bounds, setBounds] = useState<LatLngBounds | null>(null);
-  const [zoom, setZoom] = useState(13);
+export function PocketGuideMap({
+  categoryFilter = "all",
+  searchQuery = "",
+}: PocketGuideMapProps) {
+  const mapRef = useRef<MapRef | null>(null);
   const [pois, setPois] = useState<POI[]>([]);
-  
+  const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN as string | undefined;
+
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [clusterPois, setClusterPois] = useState<POI[] | null>(null);
+
   const { isOnline } = useNetworkStatus();
   const { savePOIs, getPOIsByCity, saveCity, clearOldData } = useOfflineStorage();
-  
+
   const [layers, setLayers] = useState<LayerState>({
     pins: true,
     route: false,
-    heatmap: false
+    heatmap: false,
   });
 
   useEffect(() => {
@@ -142,125 +130,103 @@ export function PocketGuideMap({ categoryFilter = "all", searchQuery = "" }: Poc
     };
   }, [isOnline, clearOldData, getPOIsByCity, saveCity, savePOIs]);
 
-  const filteredPOIs = useMemo(() => pois.filter(poi => {
-    if (categoryFilter !== "all" && poi.category !== categoryFilter) return false;
-    if (searchQuery.trim().length > 0) {
-      if (!poi.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    }
-    return true;
-  }), [pois, categoryFilter, searchQuery]);
+  const filteredPOIs = useMemo(
+    () =>
+      pois.filter((poi) => {
+        if (!poiMatchesUiMapFilter(categoryFilter, poi.category)) return false;
+        if (searchQuery.trim().length > 0) {
+          if (!poi.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        }
+        return true;
+      }),
+    [pois, categoryFilter, searchQuery],
+  );
 
-  const { clusters, getLeaves } = useCluster(layers.pins ? filteredPOIs : [], bounds, zoom);
+  const poiFeatures = useMemo(
+    () => poisToGeoJsonFeatures(filteredPOIs),
+    [filteredPOIs],
+  );
 
-  const handleZoomIn = () => map?.zoomIn();
-  const handleZoomOut = () => map?.zoomOut();
-  const handleLocateInfo = () => {
-    // Burada aslında tarayıcı lokasyonu alınır, mock olarak merkeze dönüyoruz
-    map?.flyTo([38.6748, 39.2225], 13);
-  };
+  const {
+    clusters,
+    superclusterInstance,
+    notifyViewportChanged,
+    primeViewportImmediate,
+  } = useMarkerCluster(layers.pins ? poiFeatures : []);
 
-  const handleLayerChange = (key: keyof LayerState, value: boolean) => {
-    setLayers(prev => ({ ...prev, [key]: value }));
-  };
+  const handleLayerChange = useCallback((key: keyof LayerState, value: boolean) => {
+    setLayers((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
-  const handleClusterClick = (clusterId: number, count: number, lat: number, lng: number) => {
-    if (map) {
-      if (count <= 8) {
-        const leaves = getLeaves(clusterId, count);
-        const fetchedPois = leaves.map(l => l.properties as POI);
-        setClusterPois(fetchedPois);
-        setSelectedPOI(null);
-      } else {
-        map.flyTo([lat, lng], map.getZoom() + 2);
+  const handlePoiMarkerClick = useCallback(
+    (props: POIGeoJsonProperties) => {
+      const found = filteredPOIs.find((p) => p.id === props.id);
+      if (found) {
+        setSelectedPOI(found);
+        setClusterPois(null);
       }
-    }
-  };
+    },
+    [filteredPOIs],
+  );
 
-  const handlePoiClick = (poi: POI) => {
-    setSelectedPOI(poi);
-    setClusterPois(null);
-  };
+  const handleClusterMarkerClick = useCallback(
+    async (clusterId: number, count: number, lng: number, lat: number) => {
+      const rawMap = mapRef.current?.getMap?.();
+      if (!rawMap) return;
+      const map = rawMap as {
+        flyTo: (opts: Record<string, unknown>) => void;
+        getZoom: () => number;
+      };
+
+      if (count <= 8) {
+        const leaves = await superclusterInstance.getLeaves(clusterId, count);
+        setClusterPois(leaves.map(featureToPoi));
+        setSelectedPOI(null);
+        return;
+      }
+
+      const ez = await superclusterInstance.getClusterExpansionZoom(clusterId);
+      const floor = Math.floor(ez);
+      const targetZ = Math.min(Math.max(floor, map.getZoom() + 1), 20);
+      map.flyTo({
+        center: [lng, lat],
+        zoom: targetZ,
+        essential: true,
+        duration: 520,
+      });
+    },
+    [superclusterInstance],
+  );
 
   return (
     <div className={styles.mapWrapper}>
-      <MapContainer 
-        center={[38.6748, 39.2225]} 
-        zoom={13} 
-        className={styles.mapContainer}
-        ref={setMap}
-        zoomControl={false}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <MapController setBounds={setBounds} setZoom={setZoom} />
-
-        {clusters.map((cluster) => {
-          const [lng, lat] = cluster.geometry.coordinates;
-          const props = cluster.properties;
-          const isCluster = 'cluster' in props ? props.cluster : false;
-
-          if (isCluster) {
-            const cluster_id = 'cluster_id' in props ? props.cluster_id : 0;
-            const point_count = 'point_count' in props ? props.point_count : 0;
-            return (
-              <ClusterMarker
-                key={`cluster-${cluster_id}`}
-                position={[lat, lng]}
-                count={point_count}
-                onClick={() => handleClusterClick(cluster_id, point_count, lat, lng)}
-              />
-            );
-          }
-
-          const poi = props as POI;
-          return (
-            <CustomMarker
-              key={`poi-${poi.id}`}
-              position={[lat, lng]}
-              category={poi.category}
-              selected={selectedPOI?.id === poi.id}
-              onClick={() => handlePoiClick(poi)}
-            />
-          );
-        })}
-        <RoutePolyline />
-      </MapContainer>
+      <MapView
+        mapboxAccessToken={mapboxToken}
+        mapRef={mapRef}
+        clusters={clusters}
+        showPinsLayer={layers.pins}
+        showRouteLayer={layers.route}
+        notifyViewportChanged={notifyViewportChanged}
+        primeViewportImmediate={primeViewportImmediate}
+        onClusterClick={handleClusterMarkerClick}
+        onPoiClick={handlePoiMarkerClick}
+        selectedPoiId={selectedPOI?.id ?? null}
+      />
 
       <LayerToggle layers={layers} onChange={handleLayerChange} />
-      
-      <POICard 
-        poi={selectedPOI} 
+
+      <POICard
+        poi={selectedPOI}
         clusterPois={clusterPois}
         onClose={() => {
           setSelectedPOI(null);
           setClusterPois(null);
-        }} 
-        onSelectPOI={handlePoiClick}
+        }}
+        onSelectPOI={(p) => {
+          setSelectedPOI(p);
+          setClusterPois(null);
+        }}
       />
-
-      {/* Özel Harita Kontrolleri */}
-      <div className={styles.customMapControls}>
-        <button type="button" className={styles.mapCtrlBtn} onClick={handleLocateInfo} title="Konumuma Git">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
-        </button>
-        <div className={styles.zoomGroup}>
-          <button type="button" className={styles.mapCtrlBtn} onClick={handleZoomIn} title="Yakınlaştır">
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12M6 12h12" />
-            </svg>
-          </button>
-          <button type="button" className={styles.mapCtrlBtn} onClick={handleZoomOut} title="Uzaklaştır">
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12h12" />
-            </svg>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

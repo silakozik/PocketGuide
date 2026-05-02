@@ -17,10 +17,10 @@ export function SyncManagerProvider({ children }: { children: ReactNode }) {
     useMemo(
       () => ({
         apiBaseUrl: API_BASE,
-        getAuthHeaders: () =>
+        getAuthHeaders: (): Record<string, string> =>
           OFFLINE_SYNC_TOKEN
             ? { Authorization: `Bearer ${OFFLINE_SYNC_TOKEN}` }
-            : {},
+            : ({} as Record<string, string>),
       }),
       [],
     ),

@@ -5,7 +5,8 @@ export const PIN_COLORS: Record<POICategory, string> = {
   museum: '#534AB7',
   transport: '#185FA5',
   event: '#1D9E75',
-  hotel: '#BA7517'
+  hotel: '#BA7517',
+  park: '#15803d',
 };
 
 export const PIN_ICONS: Record<POICategory, string> = {
@@ -13,12 +14,6 @@ export const PIN_ICONS: Record<POICategory, string> = {
   museum: '🏛️',
   transport: '🚌',
   event: '🎭',
-  hotel: '🏨'
+  hotel: '🏨',
+  park: '🌳',
 };
-
-export const CLUSTER_SIZE_BREAKPOINTS = [
-  { max: 9, size: 36, color: '#1D9E75' },
-  { max: 49, size: 46, color: '#185FA5' },
-  { max: 99, size: 58, color: '#993C1D' },
-  { max: Infinity, size: 70, color: '#3C3489' }
-];

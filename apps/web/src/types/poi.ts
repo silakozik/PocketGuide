@@ -1,4 +1,10 @@
-export type POICategory = 'restaurant' | 'museum' | 'transport' | 'event' | 'hotel';
+export type POICategory =
+  | 'restaurant'
+  | 'museum'
+  | 'transport'
+  | 'event'
+  | 'hotel'
+  | 'park';
 
 export interface POI {
   id: string;
