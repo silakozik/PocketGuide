@@ -99,6 +99,43 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Clears cache keys matching a pattern using SCAN instead of KEYS
    */
+  /**
+   * INCR counter and set TTL on first hit (minute-based rate buckets).
+   * Returns null if Redis is unavailable.
+   */
+  async incrCounterWithTtl(key: string, ttlSeconds: number): Promise<number | null> {
+    if (!this.isConfiguredAndConnected || !this.redisClient) return null;
+
+    try {
+      const pipe = this.redisClient.multi();
+      pipe.incr(key);
+      pipe.ttl(key);
+      const res = await pipe.exec();
+      if (!res?.[0] || !res?.[1]) return null;
+
+      const count = res[0][1] as number;
+      const ttl = res[1][1] as number;
+
+      if (ttl === -1) {
+        await this.redisClient.expire(key, ttlSeconds);
+      }
+      return count;
+    } catch (error) {
+      this.logger.warn(
+        `Redis INCR/TTL failed for key ${key}: ${(error as Error).message}`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Exposes Redis for queue internals when cache semantics are inadequate.
+   * Prefer higher-level helpers when possible.
+   */
+  getClient(): Redis | null {
+    return this.redisClient;
+  }
+
   async clearCacheByPattern(pattern: string): Promise<number> {
     if (!this.isConfiguredAndConnected) return 0;
     
