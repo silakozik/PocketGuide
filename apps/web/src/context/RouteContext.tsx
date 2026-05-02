@@ -3,6 +3,7 @@ import { RouteState } from '../types/route';
 import { POI } from '../types/poi';
 import { fetchDirections } from '../lib/ors';
 import { useNetworkStatus, useOfflineStorage } from '@pocketguide/hooks';
+import { DEFAULT_ROUTE_CITY_ID } from '../constants/syncConfig';
 import type { OfflineRoute } from '@pocketguide/types';
 
 interface RouteContextProps extends RouteState {
@@ -16,7 +17,7 @@ interface RouteContextProps extends RouteState {
 }
 
 const RouteContext = createContext<RouteContextProps | undefined>(undefined);
-const DEFAULT_CITY_ID = "elazig";
+const DEFAULT_CITY_ID = DEFAULT_ROUTE_CITY_ID;
 
 const buildRouteId = (pois: POI[]): string => pois.map((poi) => poi.id).join("__");
 

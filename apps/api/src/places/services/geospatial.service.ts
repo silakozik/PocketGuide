@@ -343,4 +343,40 @@ export class GeospatialService {
     await this.cacheManager.set(cacheKey, rows, 60);
     return rows;
   }
+
+  /**
+   * Batch fetch POIs by primary id (offline sync / bundle).
+   */
+  async findPoisByIds(ids: string[]): Promise<PoiWithDistance[]> {
+    const uuidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const valid = ids.filter((id) => uuidRe.test(id));
+    if (!valid.length) return [];
+
+    const idList = sql.join(
+      valid.map((id) => sql`${id}::uuid`),
+      sql`, `,
+    );
+
+    const result = await this.db.execute(sql`
+      SELECT
+        p.id,
+        p.name,
+        p.category,
+        p.address,
+        p.description,
+        p.rating,
+        p."priceLevel",
+        p.opening_hours AS "openingHours",
+        ST_Y(p.location::geometry) AS lat,
+        ST_X(p.location::geometry) AS lng,
+        0 AS "distanceMeters",
+        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = p.id) AS "reviewCount",
+        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = p.id) AS "favoriteCount"
+      FROM pois p
+      WHERE p.id IN (${idList})
+    `);
+
+    return result.rows as PoiWithDistance[];
+  }
 }

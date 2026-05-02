@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { PocketGuideMap } from "../components/map/PocketGuideMap";
 import { AIAssistant } from "../components/AIAssistant";
 import { RouteProvider } from "../context/RouteContext";
+import { SyncManagerProvider } from "../context/SyncManagerContext";
 import { DirectionsPanel } from "../components/navigation/DirectionsPanel";
 import { RouteControls } from "../components/navigation/RouteControls";
 import { useNetworkStatus } from "@pocketguide/hooks";
@@ -22,6 +23,7 @@ export default function MapPage() {
 
   return (
     <RouteProvider>
+      <SyncManagerProvider>
       <div className="mapPageRoot">
         {/* Harita Üstü Yüzen Arayüz (Floating UI) */}
         <div className="map-floating-header">
@@ -101,6 +103,7 @@ export default function MapPage() {
         {/* AI Asistan Paneli */}
         <AIAssistant />
       </div>
+      </SyncManagerProvider>
     </RouteProvider>
   );
 }

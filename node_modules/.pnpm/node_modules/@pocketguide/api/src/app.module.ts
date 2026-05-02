@@ -16,6 +16,7 @@ import { AdminModule } from './admin/admin.module';
 import { RedisCacheModule } from './config/redis.module';
 import { DatabaseModule } from './config/database.module';
 import { TransfersModule } from './transfers/transfers.module';
+import { SyncModule } from './sync/sync.module';
 import { BullmqRootModule } from './routes/queue/bullmq-root.module';
 import { RouteQueueModule } from './routes/queue/route-queue.module';
 
@@ -75,6 +76,7 @@ import { RouteQueueModule } from './routes/queue/route-queue.module';
     AIModule,
     AdminModule,
     TransfersModule,
+    SyncModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

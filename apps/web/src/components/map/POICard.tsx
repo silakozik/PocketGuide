@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
+import { useNetworkStatus } from '@pocketguide/hooks';
 import { POI } from '../../types/poi';
 import { PIN_COLORS, PIN_ICONS } from '../../constants/mapConfig';
 import { useRoute } from '../../context/RouteContext';
+import { useSyncManagerContext } from '../../context/SyncManagerContext';
+import { getOrCreateLocalUserId } from '../../lib/clientIdentity';
 import styles from './POICard.module.css';
 
 export interface POICardProps {
@@ -14,6 +17,8 @@ export interface POICardProps {
 export function POICard({ poi, clusterPois, onClose, onSelectPOI }: POICardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const { draftPOIs, addToRouteDraft, removeFromRouteDraft } = useRoute();
+  const { isOnline } = useNetworkStatus();
+  const sync = useSyncManagerContext();
   
   const isInDraft = poi ? draftPOIs.some(p => p.id === poi.id) : false;
 
@@ -108,8 +113,30 @@ export function POICard({ poi, clusterPois, onClose, onSelectPOI }: POICardProps
               Rotaya Ekle ({draftPOIs.length} Seçili)
             </button>
           )}
-          <button className={`${styles.actionBtn} ${styles.secondaryBtn}`}>
-            Kaydet
+          <button
+            type="button"
+            className={`${styles.actionBtn} ${styles.secondaryBtn}`}
+            title={
+              !isOnline
+                ? 'Çevrimdışı: favori sıraya alındı, bağlantı gelince senkron olur.'
+                : 'Favori sunucuya senkron kuyruğuna eklendi'
+            }
+            onClick={() => {
+              if (!poi) return;
+              const uid = getOrCreateLocalUserId();
+              void (async () => {
+                await sync.enqueuePendingChange({
+                  id: `fav-add-${uid}-${poi.id}`,
+                  action: 'favorite.add',
+                  endpoint: '/pois/favorites',
+                  payload: { resource: 'pois', userId: uid, placeId: poi.id },
+                  createdAt: new Date().toISOString(),
+                });
+                if (isOnline) void sync.syncPendingChanges();
+              })();
+            }}
+          >
+            Favoriye ekle
           </button>
         </div>
       </div>

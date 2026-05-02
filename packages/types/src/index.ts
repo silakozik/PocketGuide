@@ -9,6 +9,7 @@
 
 export * from './poi';
 export * from './offline';
+export * from './sync';
 
 export type LanguageCode = "en" | "tr";
 export type Theme = "light" | "dark";
