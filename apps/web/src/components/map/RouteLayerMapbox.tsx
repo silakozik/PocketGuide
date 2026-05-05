@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
-import { Layer, Marker, Source, useMap } from "react-map-gl";
-import mapboxgl from "mapbox-gl";
+import { Layer, Marker, Source, useMap } from "react-map-gl/maplibre";
+import maplibregl from "maplibre-gl";
 
 import { useRoute } from "../../context/RouteContext";
 
@@ -74,16 +74,9 @@ export function RouteLayerMapbox({ visible }: RouteLayerMapboxProps) {
       : null;
     if (!map?.fitBounds || !routeData.geometry.length) return;
 
-    const Mb = mapboxgl as unknown as {
-      LngLatBounds: new (
-        southwest: [number, number],
-        northeast: [number, number],
-      ) => { extend: (coord: [number, number]) => void };
-    };
-
     const pts = routeData.geometry;
     const [lat0, lng0] = pts[0];
-    const bb = new Mb.LngLatBounds([lng0, lat0], [lng0, lat0]);
+    const bb = new maplibregl.LngLatBounds([lng0, lat0], [lng0, lat0]);
     for (let i = 1; i < pts.length; i += 1) {
       const [lat, lng] = pts[i];
       bb.extend([lng, lat]);

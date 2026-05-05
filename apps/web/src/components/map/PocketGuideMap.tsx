@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MapRef } from "react-map-gl";
+import type { MapRef } from "react-map-gl/maplibre";
 
 import { useNetworkStatus, useOfflineStorage } from "@pocketguide/hooks";
 import type { OfflinePOI } from "@pocketguide/types";
@@ -73,7 +73,6 @@ export function PocketGuideMap({
 }: PocketGuideMapProps) {
   const mapRef = useRef<MapRef | null>(null);
   const [pois, setPois] = useState<POI[]>([]);
-  const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN as string | undefined;
 
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [clusterPois, setClusterPois] = useState<POI[] | null>(null);
@@ -201,7 +200,6 @@ export function PocketGuideMap({
   return (
     <div className={styles.mapWrapper}>
       <MapView
-        mapboxAccessToken={mapboxToken}
         mapRef={mapRef}
         clusters={clusters}
         showPinsLayer={layers.pins}

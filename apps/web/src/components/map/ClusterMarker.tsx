@@ -1,6 +1,6 @@
 import { memo } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { Marker } from "react-map-gl";
+import { Marker } from "react-map-gl/maplibre";
 
 import {
   CLUSTER_TIER_DIMENSIONS_PX,

@@ -1,8 +1,8 @@
-import "mapbox-gl/dist/mapbox-gl.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 import { useCallback, useRef, useState } from "react";
-import MapGL from "react-map-gl";
-import type { MapRef } from "react-map-gl";
+import MapGL from "react-map-gl/maplibre";
+import type { MapRef } from "react-map-gl/maplibre";
 
 import type { MarkerClusterFeature } from "../../hooks/useMarkerCluster";
 import type { POIGeoJsonProperties } from "../../lib/poiGeoJson";
@@ -15,9 +15,30 @@ export const MAP_INITIAL_LNG = 39.2225;
 export const MAP_INITIAL_LAT = 38.6748;
 export const MAP_INITIAL_ZOOM = 13;
 
+/** OpenStreetMap tile stili — token gerektirmez */
+const OSM_STYLE = {
+  version: 8 as const,
+  sources: {
+    osm: {
+      type: "raster" as const,
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution: "© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors",
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    {
+      id: "osm-tiles",
+      type: "raster" as const,
+      source: "osm",
+      minzoom: 0,
+      maxzoom: 22,
+    },
+  ],
+};
+
 export interface MapViewProps {
-  /** Mapbox public access token (.env → VITE_MAPBOX_ACCESS_TOKEN) */
-  mapboxAccessToken: string | undefined;
   mapRef: React.RefObject<MapRef | null>;
   clusters: MarkerClusterFeature[];
   showPinsLayer: boolean;
@@ -35,7 +56,6 @@ export interface MapViewProps {
 }
 
 export function MapView({
-  mapboxAccessToken,
   mapRef,
   clusters,
   showPinsLayer,
@@ -85,23 +105,11 @@ export function MapView({
     );
   }, [mapRef, notifyViewportChanged]);
 
-  if (!mapboxAccessToken) {
-    return (
-      <div className={styles.mapContainer}>
-        <p style={{ padding: 24 }}>
-          Haritayi kullanmak icin <code>VITE_MAPBOX_ACCESS_TOKEN</code> degerini apps/web ortaminda
-          tanimlayin.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <MapGL
       ref={mapRef}
       reuseMaps
-      mapboxAccessToken={mapboxAccessToken}
-      mapStyle="mapbox://styles/mapbox/streets-v12"
+      mapStyle={OSM_STYLE}
       initialViewState={{
         longitude: MAP_INITIAL_LNG,
         latitude: MAP_INITIAL_LAT,
