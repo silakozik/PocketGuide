@@ -8,8 +8,8 @@ const routeLinePaint = {
   "line-color": "#3b82f6",
   "line-width": 5,
   "line-opacity": 0.9,
-  "line-dasharray": [2, 1.5],
-} as const;
+  "line-dasharray": [2, 1.5] as number[],
+};
 
 const routeLineLayout = {
   "line-cap": "round" as const,

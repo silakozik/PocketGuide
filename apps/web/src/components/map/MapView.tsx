@@ -115,7 +115,7 @@ export function MapView({
         latitude: MAP_INITIAL_LAT,
         zoom: MAP_INITIAL_ZOOM,
       }}
-      attributionControl={true}
+      attributionControl={{ compact: true }}
       onLoad={() => {
         const map = mapRef.current?.getMap?.() as {
           getBounds: () => {
