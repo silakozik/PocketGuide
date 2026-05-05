@@ -11,6 +11,7 @@ import { poisToGeoJsonFeatures } from "../../lib/poiGeoJson";
 import type { POIGeoJsonProperties } from "../../lib/poiGeoJson";
 import { MOCK_POIS } from "../../data/mockPOIs";
 import { POI } from "../../types/poi";
+import { useRoute } from "../../context/RouteContext";
 import type { LayerState } from "./LayerToggle";
 import { LayerToggle } from "./LayerToggle";
 import { POICard } from "./POICard";
@@ -79,12 +80,18 @@ export function PocketGuideMap({
 
   const { isOnline } = useNetworkStatus();
   const { savePOIs, getPOIsByCity, saveCity, clearOldData } = useOfflineStorage();
+  const { isActive: isRouteActive } = useRoute();
 
   const [layers, setLayers] = useState<LayerState>({
     pins: true,
     route: false,
     heatmap: false,
   });
+
+  // Rota başladığında route layer'ı otomatik aç, bitince kapat
+  useEffect(() => {
+    setLayers((prev) => ({ ...prev, route: isRouteActive }));
+  }, [isRouteActive]);
 
   useEffect(() => {
     let isMounted = true;

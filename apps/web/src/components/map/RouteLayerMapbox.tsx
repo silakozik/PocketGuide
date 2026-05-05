@@ -7,8 +7,14 @@ import { useRoute } from "../../context/RouteContext";
 const routeLinePaint = {
   "line-color": "#3b82f6",
   "line-width": 5,
-  "line-opacity": 0.82,
+  "line-opacity": 0.9,
+  "line-dasharray": [2, 1.5],
 } as const;
+
+const routeLineLayout = {
+  "line-cap": "round" as const,
+  "line-join": "round" as const,
+};
 
 function numberedBadge(num: number, kind: "start" | "end" | "mid") {
   let bgColor = "#3b82f6";
@@ -114,12 +120,22 @@ export function RouteLayerMapbox({ visible }: RouteLayerMapboxProps) {
   return (
     <>
       <Source id="route-line" type="geojson" data={geojsonLine}>
+        {/* Gölge / arka plan çizgisi */}
+        <Layer
+          id="route-line-shadow"
+          type="line"
+          layout={routeLineLayout}
+          paint={{
+            "line-color": "#1d4ed8",
+            "line-width": 9,
+            "line-opacity": 0.15,
+          }}
+        />
+        {/* Ana kesik çizgi */}
         <Layer
           id="route-line-layer"
           type="line"
-          layout={{
-            visibility: visible ? "visible" : "none",
-          }}
+          layout={routeLineLayout}
           paint={routeLinePaint}
         />
       </Source>
