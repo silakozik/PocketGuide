@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MapRef } from "react-map-gl/mapbox";
+import type { MapRef } from "react-map-gl";
 
 import { useNetworkStatus, useOfflineStorage } from "@pocketguide/hooks";
 import type { OfflinePOI } from "@pocketguide/types";

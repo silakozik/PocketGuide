@@ -1,6 +1,6 @@
 declare module "mapbox-gl";
 
-declare module "react-map-gl/mapbox" {
+declare module "react-map-gl" {
   import type { ComponentType } from "react";
 
   export type MapRef = {

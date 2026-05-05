@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Layer, Marker, Source, useMap } from "react-map-gl/mapbox";
+import { Layer, Marker, Source, useMap } from "react-map-gl";
 import mapboxgl from "mapbox-gl";
 
 import { useRoute } from "../../context/RouteContext";

@@ -1,8 +1,8 @@
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import { useCallback, useRef, useState } from "react";
-import MapGL from "react-map-gl/mapbox";
-import type { MapRef } from "react-map-gl/mapbox";
+import MapGL from "react-map-gl";
+import type { MapRef } from "react-map-gl";
 
 import type { MarkerClusterFeature } from "../../hooks/useMarkerCluster";
 import type { POIGeoJsonProperties } from "../../lib/poiGeoJson";
