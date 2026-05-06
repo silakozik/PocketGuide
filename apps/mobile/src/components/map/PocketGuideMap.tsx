@@ -1,15 +1,13 @@
+import Mapbox from "@rnmapbox/maps";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MapView, { Marker, Polyline, Region } from "react-native-maps";
 import * as Location from "expo-location";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 
 import { MOCK_POIS } from "@/src/data/mockPOIs";
 import type { POI } from "@/src/types/poi";
-import { useCluster } from "@/src/hooks/useCluster";
 import { useRoute } from "@/src/context/RouteContext";
 
 import { CustomPin } from "@/src/components/map/CustomPin";
-import { ClusterPin } from "@/src/components/map/ClusterPin";
 import { POIBottomSheet } from "@/src/components/map/POIBottomSheet";
 import { LayerToggle } from "@/src/components/map/LayerToggle";
 import type { POICategory } from "@/src/types/poi";
@@ -37,21 +35,14 @@ export function PocketGuideMap({
   savedPoiIds,
   onToggleSave,
 }: PocketGuideMapProps) {
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<any>(null);
+  const mapboxToken = (process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "").trim();
+  const canRenderMap = mapboxToken.length > 0;
   const { routeData, isActive, activeLegIndex, activeStepIndex, draftPOIs, addToRouteDraft, removeFromRouteDraft } =
     useRoute();
+  const [cameraCenter, setCameraCenter] = useState<[number, number]>([39.2214, 38.6736]);
+  const [cameraZoom, setCameraZoom] = useState(12);
 
-  const initialRegion = useMemo<Region>(
-    () => ({
-      latitude: 38.6736,
-      longitude: 39.2214,
-      latitudeDelta: 0.05,
-      longitudeDelta: 0.05,
-    }),
-    []
-  );
-
-  const [region, setRegion] = useState<Region>(initialRegion);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [poiList, setPoiList] = useState<POI[] | undefined>(undefined);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -66,7 +57,25 @@ export function PocketGuideMap({
       return true;
     });
   }, [categoryFilter, searchQuery]);
-  const { clusterFeatures, poiFeatures, getLeaves } = useCluster(filteredPOIs, region);
+  const routeShape = useMemo(() => {
+    if (!routeData?.geometry?.length) return null;
+    return {
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "LineString",
+        coordinates: routeData.geometry.map(([latitude, longitude]) => [longitude, latitude]),
+      },
+    };
+  }, [routeData]);
+
+  useEffect(() => {
+    if (!canRenderMap) {
+      console.error("Mapbox token missing. Set EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN in apps/mobile/.env.");
+      return;
+    }
+    Mapbox.setAccessToken(mapboxToken);
+  }, [canRenderMap]);
 
   useEffect(() => {
     let mounted = true;
@@ -79,20 +88,20 @@ export function PocketGuideMap({
       const pos = await Location.getCurrentPositionAsync({});
       if (!mounted) return;
 
-      const nextRegion: Region = {
-        ...initialRegion,
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-      };
-
-      setRegion(nextRegion);
-      mapRef.current?.animateToRegion(nextRegion, 900);
+      const nextCenter: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+      setCameraCenter(nextCenter);
+      setCameraZoom(13.5);
+      cameraRef.current?.setCamera({
+        centerCoordinate: nextCenter,
+        zoomLevel: 13.5,
+        animationDuration: 900,
+      });
     })();
 
     return () => {
       mounted = false;
     };
-  }, [initialRegion]);
+  }, []);
 
   const openSheet = useCallback((poi: POI, list?: POI[]) => {
     setSelectedPOI(poi);
@@ -118,33 +127,6 @@ export function PocketGuideMap({
   const isInDraft = useCallback((poi: POI) => draftPOIs.some((p) => p.id === poi.id), [draftPOIs]);
   const isSaved = useCallback((poi: POI) => Boolean(savedPoiIds?.has(poi.id)), [savedPoiIds]);
 
-  const handleClusterPress = useCallback(
-    (clusterId: number, count: number, lat: number, lng: number) => {
-      if (count <= 8) {
-        const leaves = getLeaves(clusterId, 20);
-        const limited = leaves.slice(0, 8);
-        if (limited.length === 0) return;
-        openSheet(limited[0], limited);
-        return;
-      }
-
-      const nextLatitudeDelta = Math.max(region.latitudeDelta / 2.5, 0.00001);
-      const nextLongitudeDelta = Math.max(region.longitudeDelta / 2.5, 0.00001);
-
-      const nextRegion: Region = {
-        ...region,
-        latitude: lat,
-        longitude: lng,
-        latitudeDelta: nextLatitudeDelta,
-        longitudeDelta: nextLongitudeDelta,
-      };
-
-      setRegion(nextRegion);
-      mapRef.current?.animateToRegion(nextRegion, 350);
-    },
-    [getLeaves, openSheet, region]
-  );
-
   const handlePoiPress = useCallback(
     (poi: POI) => {
       openSheet(poi);
@@ -163,90 +145,72 @@ export function PocketGuideMap({
     const pointIndex = activeStep.way_points[0];
     const point = routeData.geometry[pointIndex];
     if (!point) return;
-    mapRef.current?.animateToRegion(
-      {
-        latitude: point[0],
-        longitude: point[1],
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      },
-      900
-    );
+    const nextCenter: [number, number] = [point[1], point[0]];
+    setCameraCenter(nextCenter);
+    setCameraZoom(14.5);
+    cameraRef.current?.setCamera({
+      centerCoordinate: nextCenter,
+      zoomLevel: 14.5,
+      animationDuration: 900,
+    });
   }, [activeLegIndex, activeStepIndex, routeData, showRoute]);
+
+  if (!canRenderMap) {
+    return (
+      <View style={styles.missingKeyContainer}>
+        <Text style={styles.missingKeyTitle}>Harita acilamadi</Text>
+        <Text style={styles.missingKeyText}>
+          Mapbox access token bulunamadi. <Text style={styles.code}>apps/mobile/.env</Text> dosyasina{" "}
+          <Text style={styles.code}>EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN=...</Text> ekleyip uygulamayi yeniden derleyin.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
+      <Mapbox.MapView
         style={styles.map}
-        initialRegion={initialRegion}
-        region={region}
-        onRegionChangeComplete={setRegion}
-        showsUserLocation={true}
-        showsMyLocationButton={true}
+        styleURL={Mapbox.StyleURL.Street}
       >
-        {showRoute && routeData ? (
-          <>
-            <Polyline
-              coordinates={routeData.geometry.map(([latitude, longitude]) => ({ latitude, longitude }))}
-              strokeColor="#3B82F6"
-              strokeWidth={5}
-              lineDashPattern={[10, 10]}
+        <Mapbox.Camera
+          ref={cameraRef}
+          zoomLevel={cameraZoom}
+          centerCoordinate={cameraCenter}
+          animationMode="flyTo"
+          animationDuration={500}
+        />
+        <Mapbox.UserLocation visible={true} />
+
+        {showRoute && routeShape ? (
+          <Mapbox.ShapeSource id="active-route" shape={routeShape as any}>
+            <Mapbox.LineLayer
+              id="active-route-line"
+              style={{
+                lineColor: "#3B82F6",
+                lineWidth: 5,
+                lineDasharray: [2, 2],
+              }}
             />
-            {routeData.ordered_pois.map((poi, index) => (
-              <Marker
-                key={`route-poi-${poi.id}`}
-                coordinate={{
-                  latitude: poi.coordinate.latitude,
-                  longitude: poi.coordinate.longitude,
-                }}
-                title={`${index + 1}. ${poi.name}`}
-              />
-            ))}
-          </>
+          </Mapbox.ShapeSource>
         ) : null}
 
         {showPins &&
-          poiFeatures.map((feature: any) => {
-            const poi = feature.properties as POI;
-            const [lng, lat] = feature.geometry.coordinates as [number, number];
-
-            return (
-              <Marker
-                key={poi.id}
-                coordinate={{ latitude: lat, longitude: lng }}
-                tracksViewChanges={false}
-              >
-                <CustomPin
-                  category={poi.category}
-                  selected={selectedPOI?.id === poi.id}
-                  onPress={() => handlePoiPress(poi)}
-                />
-              </Marker>
-            );
-          })}
-
-        {showPins &&
-          clusterFeatures.map((feature: any) => {
-            const props = feature.properties as any;
-            const clusterId = props.cluster_id as number;
-            const count = props.point_count as number;
-            const [lng, lat] = feature.geometry.coordinates as [number, number];
-
-            return (
-              <Marker
-                key={`cluster-${clusterId}`}
-                coordinate={{ latitude: lat, longitude: lng }}
-                tracksViewChanges={false}
-              >
-                <ClusterPin
-                  count={count}
-                  onPress={() => handleClusterPress(clusterId, count, lat, lng)}
-                />
-              </Marker>
-            );
-          })}
-      </MapView>
+          filteredPOIs.map((poi) => (
+            <Mapbox.PointAnnotation
+              id={`poi-${poi.id}`}
+              key={`poi-${poi.id}`}
+              coordinate={[poi.coordinate.longitude, poi.coordinate.latitude]}
+              onSelected={() => handlePoiPress(poi)}
+            >
+              <CustomPin
+                category={poi.category}
+                selected={selectedPOI?.id === poi.id}
+                onPress={() => handlePoiPress(poi)}
+              />
+            </Mapbox.PointAnnotation>
+          ))}
+      </Mapbox.MapView>
 
       <View pointerEvents="box-none" style={styles.overlay}>
         <LayerToggle layers={layers} onChange={setLayers} />
@@ -282,6 +246,27 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 60,
+  },
+  missingKeyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "#FFFFFF",
+  },
+  missingKeyTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+    color: "#111827",
+  },
+  missingKeyText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#374151",
+  },
+  code: {
+    fontFamily: "monospace",
+    color: "#111827",
   },
 });
 
