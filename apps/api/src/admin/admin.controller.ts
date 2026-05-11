@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
 import { Response, Request } from 'express';
 
-@Controller('api/admin')
+@Controller('admin')
 export class AdminController {
   constructor(private readonly configService: ConfigService) {}
 

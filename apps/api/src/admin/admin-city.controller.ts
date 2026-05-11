@@ -18,7 +18,7 @@ import { cities, pois, adaptationPoints } from '@pocketguide/database';
 import { eq, count, or } from 'drizzle-orm';
 import { CityPipeline } from './services/cityPipeline';
 
-@Controller('api/admin')
+@Controller('admin')
 @UseGuards(AdminGuard)
 export class AdminCityController {
   private readonly logger = new Logger(AdminCityController.name);
@@ -34,35 +34,40 @@ export class AdminCityController {
    */
   @Get('cities')
   async listCities() {
-    // Get all cities
-    const allCities = await this.db.select().from(cities).orderBy(cities.createdAt);
+    try {
+      // Get all cities
+      const allCities = await this.db.select().from(cities).orderBy(cities.createdAt);
 
-    // Get counts from adaptation_points for the dashboard chips
-    const adaptCounts = await this.db
-      .select({
-        cityId: adaptationPoints.cityId as any,
-        category: adaptationPoints.category as any,
-        count: count(),
-      })
-      .from(adaptationPoints)
-      .groupBy(adaptationPoints.cityId as any, adaptationPoints.category as any);
+      // Get counts from adaptation_points for the dashboard chips
+      const adaptCounts = await this.db
+        .select({
+          cityId: adaptationPoints.cityId as any,
+          category: adaptationPoints.category as any,
+          count: count(),
+        })
+        .from(adaptationPoints)
+        .groupBy(adaptationPoints.cityId as any, adaptationPoints.category as any);
 
-    // Build a map for fast lookup
-    const countMap: Record<string, Record<string, number>> = {};
-    for (const row of adaptCounts) {
-      if (!row.cityId) continue;
-      if (!countMap[row.cityId]) countMap[row.cityId] = {};
-      // Map to keys expected by frontend
-      const uiKey = row.category === 'transport_card' ? 'transport_stop' : 
-                    row.category === 'sim' ? 'sim_card' : row.category;
-      countMap[row.cityId][uiKey] = Number(row.count);
+      // Build a map for fast lookup
+      const countMap: Record<string, Record<string, number>> = {};
+      for (const row of adaptCounts) {
+        if (!row.cityId) continue;
+        if (!countMap[row.cityId]) countMap[row.cityId] = {};
+        // Map to keys expected by frontend
+        const uiKey = row.category === 'transport_card' ? 'transport_stop' :
+          row.category === 'sim' ? 'sim_card' : row.category;
+        countMap[row.cityId][uiKey] = Number(row.count);
+      }
+
+      return allCities.map((city: any) => ({
+        ...city,
+        status: city.isActive ? 'active' : 'passive', // map isActive to status for frontend compatibility
+        poiCounts: countMap[city.id] || {},
+      }));
+    } catch (error) {
+      this.logger.error('Failed to list cities', error as any);
+      return [];
     }
-
-    return allCities.map((city: any) => ({
-      ...city,
-      status: city.isActive ? 'active' : 'passive', // map isActive to status for frontend compatibility
-      poiCounts: countMap[city.id] || {},
-    }));
   }
 
   /**

@@ -4,7 +4,7 @@ import { TransferRouteDTO, TransportCardDTO } from '@pocketguide/types';
 import { Observable, Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-@Controller('api/admin/transfers')
+@Controller('admin/transfers')
 export class TransfersController {
   constructor(private readonly transfersService: TransfersService) {}
 

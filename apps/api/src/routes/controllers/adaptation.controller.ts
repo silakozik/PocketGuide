@@ -2,7 +2,7 @@ import { Controller, Get, Param, Query, Inject, NotFoundException } from '@nestj
 import { cities, adaptationPoints } from '@pocketguide/database';
 import { eq, and } from 'drizzle-orm';
 
-@Controller('api/adaptation')
+@Controller('adaptation')
 export class AdaptationController {
   constructor(
     @Inject('DB_CONNECTION') private readonly db: any,

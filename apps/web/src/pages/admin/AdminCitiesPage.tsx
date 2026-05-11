@@ -28,6 +28,7 @@ interface ProgressStep {
 export default function AdminCitiesPage() {
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const navigate = useNavigate();
 
   // Form state
@@ -44,15 +45,26 @@ export default function AdminCitiesPage() {
 
   const fetchCities = useCallback(async () => {
     try {
+      setFetchError('');
       const res = await fetch(`${API}/api/admin/cities`, { credentials: 'include' });
       if (res.status === 401) {
         navigate('/admin/login', { replace: true });
         return;
       }
       const data = await res.json();
-      setCities(data);
+      if (!res.ok) {
+        setFetchError(data?.message || 'Şehir listesi alınamadı');
+        setCities([]);
+        return;
+      }
+      setCities(Array.isArray(data) ? data : []);
+      if (!Array.isArray(data)) {
+        setFetchError('Beklenmeyen veri formatı alındı');
+      }
     } catch (err) {
       console.error('Fetch failed:', err);
+      setCities([]);
+      setFetchError('Sunucudan şehir listesi alınamadı');
     } finally {
       setLoading(false);
     }
@@ -347,6 +359,11 @@ export default function AdminCitiesPage() {
 
         {/* ── Cities Table ── */}
         <div className="admin-table-wrap">
+          {fetchError && (
+            <div className="admin-empty" style={{ marginBottom: 12, borderColor: '#ffb4b4', color: '#b42318' }}>
+              {fetchError}
+            </div>
+          )}
           <table className="admin-table">
             <thead>
               <tr>
