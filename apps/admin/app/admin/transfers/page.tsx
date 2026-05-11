@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { TransferRouteDTO, CityDTO } from "@pocketguide/types";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+
 export default function TransfersPage() {
   const [routes, setRoutes] = useState<TransferRouteDTO[]>([]);
   const [cities, setCities] = useState<CityDTO[]>([]);
@@ -25,10 +27,10 @@ export default function TransfersPage() {
   const fetchInitialData = async () => {
     try {
       // Fetch cities for the filter
-      const citiesRes = await fetch("http://localhost:3001/api/admin/cities"); // Assuming cities endpoint
+      const citiesRes = await fetch(`${API_BASE}/api/admin/cities`, { credentials: "include" });
       if (citiesRes.ok) {
         const citiesData = await citiesRes.json();
-        setCities(citiesData);
+        setCities(Array.isArray(citiesData) ? citiesData : []);
       }
 
       fetchRoutes();
@@ -42,10 +44,10 @@ export default function TransfersPage() {
     setLoading(true);
     try {
       const query = new URLSearchParams(filters as any).toString();
-      const res = await fetch(`http://localhost:3001/api/admin/transfers/routes?${query}`);
+      const res = await fetch(`${API_BASE}/api/admin/transfers/routes?${query}`, { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
-        setRoutes(data);
+        setRoutes(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Failed to fetch routes:", error);
