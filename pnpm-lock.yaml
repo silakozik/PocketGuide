@@ -263,6 +263,9 @@ importers:
       '@pocketguide/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      groq-sdk:
+        specifier: ^1.2.0
+        version: 1.2.0
       i18next:
         specifier: ^23.11.5
         version: 23.16.8
@@ -5040,6 +5043,10 @@ packages:
 
   grid-index@1.1.0:
     resolution: {integrity: sha512-HZRwumpOGUrHyxO5bqKZL0B0GlUpwtCAzZ42sgxUPniu33R1LSFH5yrIcBCHjkctCAh3mtWKcKd9J4vDDdeVHA==}
+
+  groq-sdk@1.2.0:
+    resolution: {integrity: sha512-pMhSYXWcjiqvbOeKdv2zjci1BYjGdp04a40hnmQmJpKJyB6oa+gRndAqE128gwR0NLgYO+Wt1fIF46KNHcplsw==}
+    hasBin: true
 
   hard-rejection@2.1.0:
     resolution: {integrity: sha512-VIZB+ibDhx7ObhAe7OVtoEbuP4h/MuOTHJ+J8h/eBXotJYl0fBgR72xDFCKgIh22OJZIOVNxBMWuhAr10r8HdA==}
@@ -13889,6 +13896,8 @@ snapshots:
   graphemer@1.4.0: {}
 
   grid-index@1.1.0: {}
+
+  groq-sdk@1.2.0: {}
 
   hard-rejection@2.1.0: {}
 

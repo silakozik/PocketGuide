@@ -47,7 +47,7 @@
     "step": "Step",
     "remaining": "Remaining",
     "aiAssistantTitle": "Trip Assistant",
-    "aiLoading": "Gemini is planning for you...",
+    "aiLoading": "Preparing recommendations...",
     "aiRetry": "Try again",
     "aiRefresh": "Refresh",
     "aiFetch": "Get recommendations",

@@ -14,6 +14,7 @@
     "@pocketguide/i18n": "workspace:*",
     "@pocketguide/types": "workspace:*",
     "@pocketguide/ui": "workspace:*",
+    "groq-sdk": "^1.2.0",
     "i18next": "^23.11.5",
     "i18next-browser-languagedetector": "^7.2.1",
     "leaflet": "^1.9.4",

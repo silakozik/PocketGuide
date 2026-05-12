@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
+import { fetchTravelRecommendationsFromGroq } from '../lib/groqRecommendations';
 
 /**
- * AIAssistant Component
- *
- * A premium AI-powered recommendation panel for the Map Page.
- * Calls `/api/ai/recommendations`; Gemini model is configured in `apps/api/src/ai/gemini.service.ts`
- * (primary `gemini-2.0-flash`, fallback `gemini-1.5-flash-latest`).
+ * AIAssistant — harita sayfası için öneri paneli.
+ * Yakındaki POI’lar `/api/pois/nearby` ile alınır; metin üretimi tarayıcıda Groq (`llama-3.1-8b-instant`) ile yapılır.
+ * Anahtar: `VITE_GROQ_API_KEY` (`apps/web/.env`).
  */
 export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,19 +20,8 @@ export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng
       const latitude = lat || 38.6748;
       const longitude = lng || 39.2225;
 
-      const response = await fetch(`/api/ai/recommendations?lat=${latitude}&lng=${longitude}`);
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.message || data.error);
-      }
-      
-      setRecommendations(Array.isArray(data) ? data : []);
+      const data = await fetchTravelRecommendationsFromGroq(latitude, longitude);
+      setRecommendations(data);
     } catch (error: any) {
       console.error('Failed to fetch AI recommendations', error);
       setError(error.message || 'Öneriler getirilirken bir hata oluştu.');
@@ -69,7 +57,7 @@ export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng
           {loading ? (
             <div className="ai-loading-wrap">
               <div className="ai-spinner"></div>
-              <p>Gemini senin için planlıyor...</p>
+              <p>Öneriler hazırlanıyor...</p>
             </div>
           ) : error ? (
             <div className="ai-empty-state">
@@ -81,8 +69,8 @@ export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng
             </div>
           ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
             <div className="ai-recs-list">
-              {recommendations.map((rec: any, index: number) => (
-                <div key={index} className="ai-rec-card">
+              {recommendations.map((rec: any) => (
+                <div key={rec.placeId} className="ai-rec-card">
                   <div className="ai-rec-header">
                     <span className="ai-rec-name">{rec.name}</span>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
