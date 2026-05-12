@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 
 /**
  * AIAssistant Component
- * 
+ *
  * A premium AI-powered recommendation panel for the Map Page.
- * Uses Gemini API to suggest places based on context.
+ * Calls `/api/ai/recommendations`; Gemini model is configured in `apps/api/src/ai/gemini.service.ts`
+ * (primary `gemini-2.0-flash`, fallback `gemini-1.5-flash-latest`).
  */
 export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng }) => {
   const [isOpen, setIsOpen] = useState(false);

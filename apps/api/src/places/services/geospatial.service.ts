@@ -58,11 +58,39 @@ export interface DistanceMatrixEntry {
 @Injectable()
 export class GeospatialService {
   private readonly logger = new Logger(GeospatialService.name);
+  private openingHoursColumnExists: boolean | null = null;
 
   constructor(
     @Inject('DB_CONNECTION') private readonly db: any,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) { }
+
+  private async getOpeningHoursProjection(tableAlias?: string) {
+    if (this.openingHoursColumnExists === null) {
+      try {
+        const result = await this.db.execute(sql`
+          SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = 'pois' AND column_name = 'opening_hours'
+          ) AS exists
+        `);
+
+        this.openingHoursColumnExists = Boolean(result.rows?.[0]?.exists);
+      } catch (error) {
+        this.logger.warn('Failed to inspect pois.opening_hours column; defaulting to NULL projection.');
+        this.openingHoursColumnExists = false;
+      }
+    }
+
+    if (!this.openingHoursColumnExists) {
+      return sql`NULL::text AS "openingHours"`;
+    }
+
+    return tableAlias === 'p'
+      ? sql`p.opening_hours AS "openingHours"`
+      : sql`opening_hours AS "openingHours"`;
+  }
 
   /**
    * Find nearby POIs using PostGIS ST_DWithin for fast radius filtering
@@ -105,29 +133,36 @@ export class GeospatialService {
 
     const whereClause = sql.join(conditions, sql` AND `);
 
-    const result = await this.db.execute(sql`
-      SELECT
-        id,
-        name,
-        category,
-        address,
-        description,
-        rating,
-        "priceLevel",
-        opening_hours AS "openingHours",
-        ST_Y(location::geometry) AS lat,
-        ST_X(location::geometry) AS lng,
-        ST_Distance(location, ${userPoint}) AS "distanceMeters",
-        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = id) AS "reviewCount",
-        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = id) AS "favoriteCount"
-      FROM pois
-      WHERE ${whereClause}
-      ORDER BY "distanceMeters" ASC
-      LIMIT ${limit}
-      OFFSET ${offset}
-    `);
+    const openingHoursProjection = await this.getOpeningHoursProjection();
+    let rows: PoiWithDistance[] = [];
+    try {
+      const result = await this.db.execute(sql`
+        SELECT
+          id,
+          name,
+          category,
+          address,
+          description,
+          rating,
+          "priceLevel",
+          ${openingHoursProjection},
+          ST_Y(location::geometry) AS lat,
+          ST_X(location::geometry) AS lng,
+          ST_Distance(location, ${userPoint}) AS "distanceMeters",
+          (SELECT count(*)::int FROM reviews r WHERE r."placeId" = id) AS "reviewCount",
+          (SELECT count(*)::int FROM favorites f WHERE f."placeId" = id) AS "favoriteCount"
+        FROM pois
+        WHERE ${whereClause}
+        ORDER BY "distanceMeters" ASC
+        LIMIT ${limit}
+        OFFSET ${offset}
+      `);
 
-    const rows = result.rows as PoiWithDistance[];
+      rows = result.rows as PoiWithDistance[];
+    } catch (error) {
+      this.logger.error('Nearby POI query failed. Returning an empty result set for graceful fallback.', error);
+      rows = [];
+    }
 
     // Cache for 60 seconds
     await this.cacheManager.set(cacheKey, rows, 60);
@@ -176,6 +211,7 @@ export class GeospatialService {
 
     const whereClause = sql.join(conditions, sql` AND `) as any;
 
+    const openingHoursProjection = await this.getOpeningHoursProjection();
     const result = await this.db.execute(sql`
       SELECT
         id,
@@ -185,7 +221,7 @@ export class GeospatialService {
         description,
         rating,
         "priceLevel",
-        opening_hours AS "openingHours",
+        ${openingHoursProjection},
         ST_Y(location::geometry) AS lat,
         ST_X(location::geometry) AS lng,
         ST_Distance(location, ${centerPoint}) AS "distanceMeters",
@@ -246,6 +282,7 @@ export class GeospatialService {
   async findKNearest(lat: number, lng: number, k: number = 10): Promise<PoiWithDistance[]> {
     const userPoint = sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography`;
 
+    const openingHoursProjection = await this.getOpeningHoursProjection();
     const result = await this.db.execute(sql`
       SELECT
         id,
@@ -255,7 +292,7 @@ export class GeospatialService {
         description,
         rating,
         "priceLevel",
-        opening_hours AS "openingHours",
+        ${openingHoursProjection},
         ST_Y(location::geometry) AS lat,
         ST_X(location::geometry) AS lng,
         ST_Distance(location, ${userPoint}) AS "distanceMeters",
@@ -318,6 +355,7 @@ export class GeospatialService {
 
     const whereClause = sql.join(whereConditions, sql` AND `);
 
+    const openingHoursProjection = await this.getOpeningHoursProjection('p');
     const result = await this.db.execute(sql`
       SELECT
         p.id,
@@ -327,7 +365,7 @@ export class GeospatialService {
         p.description,
         p.rating,
         p."priceLevel",
-        p.opening_hours AS "openingHours",
+        ${openingHoursProjection},
         ST_Y(p.location::geometry) AS lat,
         ST_X(p.location::geometry) AS lng,
         0 AS "distanceMeters",
@@ -358,6 +396,7 @@ export class GeospatialService {
       sql`, `,
     );
 
+    const openingHoursProjection = await this.getOpeningHoursProjection('p');
     const result = await this.db.execute(sql`
       SELECT
         p.id,
@@ -367,7 +406,7 @@ export class GeospatialService {
         p.description,
         p.rating,
         p."priceLevel",
-        p.opening_hours AS "openingHours",
+        ${openingHoursProjection},
         ST_Y(p.location::geometry) AS lat,
         ST_X(p.location::geometry) AS lng,
         0 AS "distanceMeters",
