@@ -11,6 +11,8 @@ i18n.use(initReactI18next).init({
   lng: DEFAULT_LANGUAGE,
   fallbackLng: DEFAULT_LANGUAGE,
   defaultNS: "common",
+  /** Hermes/Android bazı ortamlarda Intl.PluralRules yok; v3 plural kuralları uyarıyı ve hatayı önler. */
+  compatibilityJSON: "v3",
   interpolation: {
     escapeValue: false,
   },

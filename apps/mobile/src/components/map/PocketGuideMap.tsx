@@ -1,7 +1,8 @@
 import Mapbox from "@rnmapbox/maps";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Location from "expo-location";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { MOCK_POIS } from "@/src/data/mockPOIs";
 import type { POI } from "@/src/types/poi";
@@ -29,6 +30,10 @@ type PocketGuideMapProps = {
   onToggleSave?: (poi: POI) => void;
 };
 
+/** Expo Go içinde özel native modüller (ör. @rnmapbox/maps) yoktur; development build gerekir. */
+const runsInExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
 export function PocketGuideMap({
   categoryFilter = "all",
   searchQuery = "",
@@ -37,7 +42,6 @@ export function PocketGuideMap({
 }: PocketGuideMapProps) {
   const cameraRef = useRef<any>(null);
   const mapboxToken = (process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "").trim();
-  const canRenderMap = mapboxToken.length > 0;
   const { routeData, isActive, activeLegIndex, activeStepIndex, draftPOIs, addToRouteDraft, removeFromRouteDraft } =
     useRoute();
   const [cameraCenter, setCameraCenter] = useState<[number, number]>([39.2214, 38.6736]);
@@ -70,12 +74,9 @@ export function PocketGuideMap({
   }, [routeData]);
 
   useEffect(() => {
-    if (!canRenderMap) {
-      console.error("Mapbox token missing. Set EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN in apps/mobile/.env.");
-      return;
-    }
+    if (runsInExpoGo || !mapboxToken) return;
     Mapbox.setAccessToken(mapboxToken);
-  }, [canRenderMap]);
+  }, [mapboxToken]);
 
   useEffect(() => {
     let mounted = true;
@@ -155,7 +156,22 @@ export function PocketGuideMap({
     });
   }, [activeLegIndex, activeStepIndex, routeData, showRoute]);
 
-  if (!canRenderMap) {
+  if (runsInExpoGo) {
+    return (
+      <View style={styles.missingKeyContainer}>
+        <Text style={styles.missingKeyTitle}>Harita bu ortamda acilmaz</Text>
+        <Text style={styles.missingKeyText}>
+          <Text style={styles.code}>@rnmapbox/maps</Text> yerel kod icerir;{" "}
+          <Text style={styles.code}>Expo Go</Text> icinde calismaz. Konsoldan proje kokunden veya{" "}
+          <Text style={styles.code}>apps/mobile</Text> icinden{" "}
+          <Text style={styles.code}>pnpm android</Text> (veya <Text style={styles.code}>npx expo run:android</Text>)
+          ile development build yukleyin; Android Studio Run da ayni native uygulamayi derler.
+        </Text>
+      </View>
+    );
+  }
+
+  if (!mapboxToken) {
     return (
       <View style={styles.missingKeyContainer}>
         <Text style={styles.missingKeyTitle}>Harita acilamadi</Text>
