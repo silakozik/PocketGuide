@@ -3,29 +3,22 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { presets } from "@/src/theme/presets";
 import { theme } from "@/src/theme/tokens";
-
-type Recommendation = {
-  name: string;
-  category: string;
-  reason: string;
-  badge: string;
-  walkingDistanceMeters: number;
-  estimatedVisitMinutes: number;
-};
+import {
+  fetchTravelRecommendationsFromGroq,
+  type TravelRecommendation,
+} from "@/src/lib/groqRecommendations";
 
 type AIAssistantProps = {
   lat?: number;
   lng?: number;
 };
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3000";
-
 export function AIAssistant({ lat, lng }: AIAssistantProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [recommendations, setRecommendations] = useState<Recommendation[] | null>(null);
+  const [recommendations, setRecommendations] = useState<TravelRecommendation[] | null>(null);
 
   const fetchRecommendations = async () => {
     setLoading(true);
@@ -33,11 +26,8 @@ export function AIAssistant({ lat, lng }: AIAssistantProps) {
     try {
       const latitude = lat ?? 38.6748;
       const longitude = lng ?? 39.2225;
-      const res = await fetch(`${API_BASE_URL}/api/ai/recommendations?lat=${latitude}&lng=${longitude}`);
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data = await res.json();
-      if (data?.error) throw new Error(data?.message ?? data.error);
-      setRecommendations(Array.isArray(data) ? data : []);
+      const data = await fetchTravelRecommendationsFromGroq(latitude, longitude);
+      setRecommendations(data);
     } catch (e: any) {
       setError(e?.message ?? t("common.error"));
     } finally {
