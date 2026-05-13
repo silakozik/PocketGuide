@@ -155,9 +155,52 @@ export async function fetchTravelRecommendationsFromGroq(
     radius: '2000',
     limit: '15',
   });
-  const poiRes = await fetch(`/api/pois/nearby?${qs.toString()}`);
+
+  let poiRes: Response;
+  try {
+    poiRes = await fetch(`/api/pois/nearby?${qs.toString()}`);
+  } catch {
+    throw new Error(
+      'Ağ hatası: `/api` isteği başarısız. Vite bu adresi `http://localhost:3000` üzerindeki Nest API\'ye yönlendirir — önce API\'yi çalıştırın: `pnpm --filter @pocketguide/api start:dev` (sadece web yeterli değil).',
+    );
+  }
+
   if (!poiRes.ok) {
-    throw new Error(`Yakındaki yerler alınamadı (HTTP ${poiRes.status}).`);
+    let backendDetail = '';
+    try {
+      const raw = await poiRes.text();
+      if (raw) {
+        try {
+          const j = JSON.parse(raw) as { message?: string; error?: string };
+          backendDetail = (j.message || j.error || '').trim();
+        } catch {
+          backendDetail = raw.slice(0, 240).trim();
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    const hints: string[] = [];
+    if (poiRes.status >= 502 && poiRes.status <= 504) {
+      hints.push(
+        'Proxy, localhost:3000\'de çalışan API\'ye ulaşamıyor (API kapalı veya port yanlış).',
+      );
+    }
+    if (poiRes.status === 500) {
+      hints.push(
+        'Sunucu içi hata: PostgreSQL/PostGIS çalışıyor mu? Kod güncellediyseniz API\'yi yeniden başlatın. Port 3000 meşgulse eski `node ... dist/main` sürecini kapatıp tek Nest örneği bırakın.',
+      );
+    }
+
+    const msg = [
+      `Yakındaki yerler alınamadı (HTTP ${poiRes.status}).`,
+      backendDetail && `Ayrıntı: ${backendDetail}`,
+      ...hints,
+    ]
+      .filter(Boolean)
+      .join(' ');
+    throw new Error(msg);
   }
 
   const poiBody = (await poiRes.json()) as { data?: NearbyPoiRow[] };

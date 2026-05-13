@@ -2,7 +2,6 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { sql } from 'drizzle-orm';
-import { pois } from '@pocketguide/database';
 
 /**
  * GeospatialService
@@ -65,6 +64,23 @@ export class GeospatialService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) { }
 
+  /**
+   * Drizzle 0.45+ `db.execute(sql\`...\`)` resolves to a row array; older code expected `{ rows }`.
+   */
+  private rowsFromExecute(result: unknown): unknown[] {
+    if (Array.isArray(result)) return result;
+    if (result && typeof result === 'object' && 'rows' in result) {
+      const r = (result as { rows?: unknown }).rows;
+      if (Array.isArray(r)) return r;
+    }
+    return [];
+  }
+
+  /** Raw SQL rows shaped as POIs for this service (trusts query column list). */
+  private poiRowsFromExecute(result: unknown): PoiWithDistance[] {
+    return this.rowsFromExecute(result) as unknown as PoiWithDistance[];
+  }
+
   private async getOpeningHoursProjection(tableAlias?: string) {
     if (this.openingHoursColumnExists === null) {
       try {
@@ -76,7 +92,9 @@ export class GeospatialService {
           ) AS exists
         `);
 
-        this.openingHoursColumnExists = Boolean(result.rows?.[0]?.exists);
+        const probe = this.rowsFromExecute(result);
+        const first = probe[0] as { exists?: boolean } | undefined;
+        this.openingHoursColumnExists = Boolean(first?.exists);
       } catch (error) {
         this.logger.warn('Failed to inspect pois.opening_hours column; defaulting to NULL projection.');
         this.openingHoursColumnExists = false;
@@ -158,7 +176,7 @@ export class GeospatialService {
         OFFSET ${offset}
       `);
 
-      rows = result.rows as PoiWithDistance[];
+      rows = this.poiRowsFromExecute(result);
     } catch (error) {
       this.logger.error('Nearby POI query failed. Returning an empty result set for graceful fallback.', error);
       rows = [];
@@ -234,7 +252,7 @@ export class GeospatialService {
       OFFSET ${offset}
     `);
 
-    const rows = result.rows as PoiWithDistance[];
+    const rows = this.poiRowsFromExecute(result);
     await this.cacheManager.set(cacheKey, rows, 30);
 
     return rows;
@@ -303,7 +321,7 @@ export class GeospatialService {
       LIMIT ${k}
     `);
 
-    return result.rows as PoiWithDistance[];
+    return this.poiRowsFromExecute(result);
   }
 
   /**
@@ -333,7 +351,7 @@ export class GeospatialService {
       ORDER BY count DESC
     `);
 
-    return result.rows;
+    return this.rowsFromExecute(result);
   }
 
   /**
@@ -377,7 +395,7 @@ export class GeospatialService {
       ORDER BY p.name ASC
     `);
 
-    const rows = result.rows as PoiWithDistance[];
+    const rows = this.poiRowsFromExecute(result);
     await this.cacheManager.set(cacheKey, rows, 60);
     return rows;
   }
@@ -416,6 +434,6 @@ export class GeospatialService {
       WHERE p.id IN (${idList})
     `);
 
-    return result.rows as PoiWithDistance[];
+    return this.poiRowsFromExecute(result);
   }
 }

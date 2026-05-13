@@ -53,6 +53,8 @@ export interface MapViewProps {
   ) => void;
   onPoiClick: (props: POIGeoJsonProperties) => void;
   selectedPoiId: string | null;
+  /** Görünür harita merkezi (Gezi Asistanı vb. için). */
+  onMapCenterChange?: (lat: number, lng: number) => void;
 }
 
 export function MapView({
@@ -65,6 +67,7 @@ export function MapView({
   onClusterClick,
   onPoiClick,
   selectedPoiId,
+  onMapCenterChange,
 }: MapViewProps) {
   const lastZoomRef = useRef<number>(MAP_INITIAL_ZOOM);
   const burstTimerRef = useRef<number | undefined>(undefined);
@@ -103,7 +106,13 @@ export function MapView({
       ],
       z,
     );
-  }, [mapRef, notifyViewportChanged]);
+
+    if (onMapCenterChange) {
+      const centerLat = (bb.getNorth() + bb.getSouth()) / 2;
+      const centerLng = (bb.getEast() + bb.getWest()) / 2;
+      onMapCenterChange(centerLat, centerLng);
+    }
+  }, [mapRef, notifyViewportChanged, onMapCenterChange]);
 
   return (
     <MapGL
@@ -140,6 +149,12 @@ export function MapView({
           ],
           map.getZoom(),
         );
+
+        if (onMapCenterChange) {
+          const centerLat = (bb.getNorth() + bb.getSouth()) / 2;
+          const centerLng = (bb.getEast() + bb.getWest()) / 2;
+          onMapCenterChange(centerLat, centerLng);
+        }
       }}
       onMove={() => handleMapMovement()}
       style={{

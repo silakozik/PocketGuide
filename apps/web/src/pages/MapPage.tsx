@@ -7,6 +7,7 @@ import { SyncManagerProvider } from "../context/SyncManagerContext";
 import { DirectionsPanel } from "../components/navigation/DirectionsPanel";
 import { RouteControls } from "../components/navigation/RouteControls";
 import { useNetworkStatus } from "@pocketguide/hooks";
+import { MAP_INITIAL_LAT, MAP_INITIAL_LNG } from "../components/map/MapView";
 
 const CATEGORIES = [
   { id: "all", label: "Tümü", icon: "✨" },
@@ -19,6 +20,7 @@ const CATEGORIES = [
 export default function MapPage() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [mapCenter, setMapCenter] = useState({ lat: MAP_INITIAL_LAT, lng: MAP_INITIAL_LNG });
   const { isOnline } = useNetworkStatus();
 
   return (
@@ -94,14 +96,18 @@ export default function MapPage() {
 
         {/* Harita Bileşeni */}
         <div className="map-container-wrapper">
-          <PocketGuideMap categoryFilter={activeCategory} searchQuery={searchQuery} />
+          <PocketGuideMap
+            categoryFilter={activeCategory}
+            searchQuery={searchQuery}
+            onMapCenterChange={(lat, lng) => setMapCenter({ lat, lng })}
+          />
         </div>
 
         <RouteControls />
         <DirectionsPanel />
 
         {/* AI Asistan Paneli */}
-        <AIAssistant />
+        <AIAssistant lat={mapCenter.lat} lng={mapCenter.lng} />
       </div>
       </SyncManagerProvider>
     </RouteProvider>

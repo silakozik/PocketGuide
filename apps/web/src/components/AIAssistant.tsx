@@ -94,7 +94,10 @@ export const AIAssistant: React.FC<{ lat?: number; lng?: number }> = ({ lat, lng
           ) : recommendations && recommendations.length === 0 ? (
             <div className="ai-empty-state">
               <span className="ai-empty-icon">🏜️</span>
-              <p>Yakınlarda uygun öneri bulunamadı. Lütfen haritada farklı bir konuma gidin.</p>
+              <p>
+                Bu harita merkezinin yakınında (yaklaşık 2 km) sunucudan yer bulunamadı veya asistan öneri üretemedi.
+                Haritayı pinlerin yoğun olduğu bir alana kaydırıp Yenile&apos;ye basın. Sorun sürerse arka planda bu bölge için veritabanında kayıt olmayabilir.
+              </p>
               <button className="ai-btn-primary" onClick={fetchRecommendations}>
                 Yenile
               </button>

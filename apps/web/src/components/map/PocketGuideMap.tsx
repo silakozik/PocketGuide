@@ -66,11 +66,13 @@ function toUiPoi(poi: OfflinePOI): POI {
 interface PocketGuideMapProps {
   categoryFilter?: string;
   searchQuery?: string;
+  onMapCenterChange?: (lat: number, lng: number) => void;
 }
 
 export function PocketGuideMap({
   categoryFilter = "all",
   searchQuery = "",
+  onMapCenterChange,
 }: PocketGuideMapProps) {
   const mapRef = useRef<MapRef | null>(null);
   const [pois, setPois] = useState<POI[]>([]);
@@ -216,6 +218,7 @@ export function PocketGuideMap({
         onClusterClick={handleClusterMarkerClick}
         onPoiClick={handlePoiMarkerClick}
         selectedPoiId={selectedPOI?.id ?? null}
+        onMapCenterChange={onMapCenterChange}
       />
 
       <LayerToggle layers={layers} onChange={handleLayerChange} />
