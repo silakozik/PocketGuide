@@ -1,12 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense, type ComponentType } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { AIAssistant } from "@/src/components/AIAssistant";
-import { PocketGuideMap } from "@/src/components/map/PocketGuideMap";
 import { DirectionsPanel } from "@/src/components/navigation/DirectionsPanel";
 import { RouteControls } from "@/src/components/navigation/RouteControls";
 import { RouteProvider } from "@/src/context/RouteContext";
@@ -23,6 +22,41 @@ const CATEGORIES: { id: CategoryFilter; label: string; icon: string }[] = [
   { id: "transit", label: "Ulaşım", icon: "🚇" },
   { id: "accommodation", label: "Konaklama", icon: "🏨" },
 ];
+
+type MapLazyProps = {
+  categoryFilter?: CategoryFilter;
+  searchQuery?: string;
+  savedPoiIds?: Set<string>;
+  onToggleSave?: (poi: POI) => void;
+};
+
+/** Harita chunk’ı yüklenemezse veya export Metro’da farklı paketlenirse uygulama çökmez. */
+function MapModuleFallback(_props: MapLazyProps) {
+  return (
+    <View style={styles.mapModuleFallback}>
+      <Text style={styles.mapModuleFallbackTitle}>Harita yüklenemedi</Text>
+      <Text style={styles.mapModuleFallbackBody}>
+        Expo Go bu haritayı desteklemez. Geliştirme sürümü ile derleyin (ör. repo kökünden apps/mobile içinde pnpm android) ve
+        EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN tanımlayın.
+      </Text>
+    </View>
+  );
+}
+
+function resolvePocketGuideMapExport(m: {
+  default?: unknown;
+  PocketGuideMap?: unknown;
+}): ComponentType<MapLazyProps> {
+  const C = m.default ?? m.PocketGuideMap;
+  return typeof C === "function" ? (C as ComponentType<MapLazyProps>) : MapModuleFallback;
+}
+
+/** Ayrı chunk: route dosyası Mapbox’u eager import etmez; lazy her zaman geçerli bir bileşen döner. */
+const PocketGuideMapLazy = lazy<ComponentType<MapLazyProps>>(() =>
+  import("@/src/components/map/PocketGuideMap")
+    .then((m) => ({ default: resolvePocketGuideMapExport(m) }))
+    .catch(() => ({ default: MapModuleFallback })),
+);
 
 export default function PocketGuideMapScreen() {
   const router = useRouter();
@@ -84,12 +118,14 @@ export default function PocketGuideMapScreen() {
   return (
     <RouteProvider>
       <View style={styles.container}>
-        <PocketGuideMap
-          categoryFilter={activeCategory}
-          searchQuery={searchQuery}
-          savedPoiIds={savedPoiIds}
-          onToggleSave={onToggleSave}
-        />
+        <Suspense fallback={<View style={styles.container} />}>
+          <PocketGuideMapLazy
+            categoryFilter={activeCategory}
+            searchQuery={searchQuery}
+            savedPoiIds={savedPoiIds}
+            onToggleSave={onToggleSave}
+          />
+        </Suspense>
         <View style={styles.floatingHeader}>
           <View style={styles.headerTopRow}>
             <Pressable
@@ -161,6 +197,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  mapModuleFallback: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: theme.colors.background,
+  },
+  mapModuleFallbackTitle: {
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: 18,
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
+    marginBottom: 10,
+  },
+  mapModuleFallbackBody: {
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: 14,
+    lineHeight: 22,
+    color: theme.colors.textSecondary,
   },
   floatingHeader: {
     position: "absolute",
