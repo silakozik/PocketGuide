@@ -55,7 +55,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="landing" options={{ headerShown: false }} />
-        <Stack.Screen name="transfer" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={{ headerShown: true }} />
         <Stack.Screen name="[citySlug]/first-day" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>

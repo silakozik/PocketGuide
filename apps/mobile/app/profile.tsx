@@ -1,18 +1,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { Pressable, StyleSheet, Text as RNText, View as RNView } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
+
+import { Text, View } from "@/components/Themed";
 import { setAppLanguage } from "@/src/i18n";
 import { presets } from "@/src/theme/presets";
 import { theme } from "@/src/theme/tokens";
 
-import { Text, View } from "@/components/Themed";
-
-export default function TabTwoScreen() {
+export default function ProfileScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { t, i18n } = useTranslation();
   const [ready, setReady] = useState(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: t("nav.profile") });
+  }, [navigation, t]);
 
   useEffect(() => {
     let mounted = true;
@@ -25,7 +31,7 @@ export default function TabTwoScreen() {
           return;
         }
       } catch {
-        // If storage fails, allow rendering.
+        // allow
       }
 
       if (mounted) setReady(true);
@@ -40,22 +46,26 @@ export default function TabTwoScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("nav.profile")}</Text>
-
       <RNView style={styles.section}>
         <RNText style={styles.sectionTitle}>Sıla Kozik</RNText>
         <RNText style={styles.sectionSub}>Profesyonel Gezgin</RNText>
       </RNView>
 
-      <Pressable style={styles.primaryBtn} onPress={() => router.push("/transfer" as any)}>
+      <Pressable style={styles.primaryBtn} onPress={() => router.push("/transfer")}>
         <Text style={styles.primaryBtnText}>{t("mobile.goTransfer")}</Text>
       </Pressable>
 
       <RNView style={styles.langRow}>
-        <Pressable style={[styles.langBtn, i18n.language === "tr" ? styles.langBtnActive : null]} onPress={() => setAppLanguage("tr")}>
+        <Pressable
+          style={[styles.langBtn, i18n.language === "tr" ? styles.langBtnActive : null]}
+          onPress={() => setAppLanguage("tr")}
+        >
           <RNText style={[styles.langBtnText, i18n.language === "tr" ? styles.langBtnTextActive : null]}>TR</RNText>
         </Pressable>
-        <Pressable style={[styles.langBtn, i18n.language === "en" ? styles.langBtnActive : null]} onPress={() => setAppLanguage("en")}>
+        <Pressable
+          style={[styles.langBtn, i18n.language === "en" ? styles.langBtnActive : null]}
+          onPress={() => setAppLanguage("en")}
+        >
           <RNText style={[styles.langBtnText, i18n.language === "en" ? styles.langBtnTextActive : null]}>EN</RNText>
         </Pressable>
       </RNView>
@@ -67,16 +77,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: theme.spacing.md,
-  },
-  title: {
-    fontFamily: theme.typography.fontFamilySerif,
-    fontSize: theme.typography.h2.fontSize,
-    lineHeight: theme.typography.h2.lineHeight,
-    color: theme.colors.textPrimary,
-    fontWeight: '700',
   },
   section: {
     marginTop: 16,

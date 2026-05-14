@@ -27,7 +27,7 @@ export default function OnboardingScreen() {
     (async () => {
       try {
         const hasOnboarded = await AsyncStorage.getItem("pg_has_onboarded");
-        if (hasOnboarded === "true") router.replace("/landing" as any);
+        if (hasOnboarded === "true") router.replace("/");
       } catch {
         // ignore
       }
@@ -49,7 +49,7 @@ export default function OnboardingScreen() {
     try {
       await AsyncStorage.setItem("pg_has_onboarded", "true");
       await AsyncStorage.setItem("pg_user_interests", JSON.stringify(selected));
-      router.replace("/landing" as any);
+      router.replace("/");
     } finally {
       setSubmitting(false);
     }

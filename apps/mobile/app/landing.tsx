@@ -24,11 +24,11 @@ export default function LandingScreen() {
         </Text>
 
         <View style={styles.actions}>
-          <Pressable onPress={() => router.push("/")} style={styles.primaryBtn}>
+          <Pressable onPress={() => router.push("/map")} style={styles.primaryBtn}>
             <Text style={styles.primaryBtnText}>{t("mobile.goMap")}</Text>
           </Pressable>
 
-          <Pressable onPress={() => router.push("/transfer" as any)} style={styles.secondaryBtn}>
+          <Pressable onPress={() => router.push("/transfer")} style={styles.secondaryBtn}>
             <Text style={styles.secondaryBtnText}>{t("mobile.goTransfer")}</Text>
           </Pressable>
         </View>

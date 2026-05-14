@@ -1,5 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -34,14 +35,34 @@ const TRANSFER_ROUTES = [
   { id: "lon-1", city: "London", type: "airport", mode: "train", name: "Heathrow Express", from: "Heathrow", to: "Paddington", duration: 15, fee: "£25.00" },
 ];
 
-export default function TransferScreen() {
+export default function TransferTabScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const [ready, setReady] = useState(false);
   const [selectedCity, setSelectedCity] = useState("İstanbul");
   const [activeType, setActiveType] = useState<TransferType>("all");
   const [activeMode, setActiveMode] = useState<TransferMode>("all");
   const [fromQuery, setFromQuery] = useState("");
   const [toQuery, setToQuery] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const hasOnboarded = await AsyncStorage.getItem("pg_has_onboarded");
+        if (hasOnboarded !== "true") {
+          router.replace("/onboarding" as any);
+          return;
+        }
+      } catch {
+        // allow
+      }
+      if (mounted) setReady(true);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
 
   const filteredRoutes = useMemo(() => {
     return TRANSFER_ROUTES.filter((route) => {
@@ -56,22 +77,22 @@ export default function TransferScreen() {
 
   const transportCard = TRANSPORT_CARDS.find((c) => c.city === selectedCity);
 
+  if (!ready) return null;
+
   return (
     <View style={styles.root}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>Geri</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>{t("mobile.transferTitle")}</Text>
-        <View style={{ width: 60 }} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.filterRow}>
-          <Pressable onPress={() => setSelectedCity("İstanbul")} style={[styles.chip, selectedCity === "İstanbul" ? styles.chipActive : null]}>
+          <Pressable
+            onPress={() => setSelectedCity("İstanbul")}
+            style={[styles.chip, selectedCity === "İstanbul" ? styles.chipActive : null]}
+          >
             <Text style={selectedCity === "İstanbul" ? styles.chipTextActive : styles.chipText}>İstanbul</Text>
           </Pressable>
-          <Pressable onPress={() => setSelectedCity("London")} style={[styles.chip, selectedCity === "London" ? styles.chipActive : null]}>
+          <Pressable
+            onPress={() => setSelectedCity("London")}
+            style={[styles.chip, selectedCity === "London" ? styles.chipActive : null]}
+          >
             <Text style={selectedCity === "London" ? styles.chipTextActive : styles.chipText}>London</Text>
           </Pressable>
         </View>
@@ -130,9 +151,7 @@ export default function TransferScreen() {
               </Text>
             </View>
           ))}
-          {filteredRoutes.length === 0 ? (
-            <Text style={styles.emptyText}>No routes found.</Text>
-          ) : null}
+          {filteredRoutes.length === 0 ? <Text style={styles.emptyText}>No routes found.</Text> : null}
         </View>
       </ScrollView>
     </View>
@@ -144,37 +163,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  header: {
-    paddingTop: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 64,
-  },
-  backBtn: {
-    width: 60,
-    paddingVertical: 10,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.textPrimary,
-    alignItems: "center",
-  },
-  backBtnText: {
-    ...presets.secondaryButtonText,
-    fontSize: theme.typography.caption.fontSize,
-  },
-  headerTitle: {
-    fontFamily: theme.typography.fontFamilySerif,
-    fontSize: theme.typography.h2.fontSize,
-    lineHeight: theme.typography.h2.lineHeight,
-    fontWeight: theme.typography.h2.fontWeight,
-    color: theme.colors.textPrimary,
-  },
   content: {
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
+    paddingBottom: theme.spacing.xl,
   },
   filterRow: {
     flexDirection: "row",
@@ -264,4 +256,3 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
 });
-
