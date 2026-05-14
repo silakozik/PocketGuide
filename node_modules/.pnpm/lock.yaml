@@ -148,9 +148,15 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@pocketguide/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@pocketguide/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@pocketguide/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
       '@react-native-async-storage/async-storage':
         specifier: ^2.2.0
         version: 2.2.0(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))
@@ -193,9 +199,6 @@ importers:
       expo-web-browser:
         specifier: ~55.0.10
         version: 55.0.10(expo@55.0.19)(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))
-      groq-sdk:
-        specifier: ^1.2.0
-        version: 1.2.0
       i18next:
         specifier: ^23.16.8
         version: 23.16.8
@@ -251,6 +254,9 @@ importers:
       '@mapbox/polyline':
         specifier: ^1.2.1
         version: 1.2.1
+      '@pocketguide/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@pocketguide/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -260,15 +266,15 @@ importers:
       '@pocketguide/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@pocketguide/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
       '@pocketguide/types':
         specifier: workspace:*
         version: link:../../packages/types
       '@pocketguide/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      groq-sdk:
-        specifier: ^1.2.0
-        version: 1.2.0
       i18next:
         specifier: ^23.11.5
         version: 23.16.8
@@ -327,6 +333,12 @@ importers:
 
   packages/config: {}
 
+  packages/core:
+    dependencies:
+      groq-sdk:
+        specifier: ^1.2.0
+        version: 1.2.0
+
   packages/database:
     dependencies:
       dotenv:
@@ -378,6 +390,8 @@ importers:
       i18next:
         specifier: ^23.11.5
         version: 23.16.8
+
+  packages/theme: {}
 
   packages/types:
     devDependencies:

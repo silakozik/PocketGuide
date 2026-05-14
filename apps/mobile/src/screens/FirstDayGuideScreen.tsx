@@ -58,7 +58,7 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          !onBack ? [styles.contentNoHeader, { paddingTop: Math.max(theme.spacing.sm, insets.top) }] : null,
+          !onBack ? { paddingTop: Math.max(theme.spacing.sm, insets.top) } : null,
         ]}
         keyboardShouldPersistTaps="handled"
       >
