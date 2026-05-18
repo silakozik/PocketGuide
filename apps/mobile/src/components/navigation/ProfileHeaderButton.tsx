@@ -1,20 +1,40 @@
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 
+import { useAuth } from "@/src/context/AuthContext";
 import { theme } from "@/src/theme/tokens";
 
-/** Spotify tarzı sol üst profil; tam ekran profil stack’ine gider. */
+/** Sol üst profil; giriş yoksa login, varsa profil. */
 export function ProfileHeaderButton() {
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  const letter = user?.userName?.charAt(0).toUpperCase() ?? "?";
+
+  const onPress = () => {
+    if (user) {
+      router.push("/profile");
+    } else {
+      router.push("/login" as any);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Pressable style={styles.circle} disabled>
+        <ActivityIndicator size="small" color={theme.colors.surface} />
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
-      onPress={() => router.push("/profile")}
+      onPress={onPress}
       style={({ pressed }) => [styles.circle, pressed ? { opacity: 0.88 } : null]}
       accessibilityRole="button"
-      accessibilityLabel="Profile"
+      accessibilityLabel={user ? "Profile" : "Sign in"}
     >
-      <Text style={styles.letter}>S</Text>
+      <Text style={styles.letter}>{letter}</Text>
     </Pressable>
   );
 }

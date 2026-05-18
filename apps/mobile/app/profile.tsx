@@ -1,11 +1,18 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useLayoutEffect, useState } from "react";
-import { Pressable, StyleSheet, Text as RNText, View as RNView } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text as RNText,
+  View as RNView,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 
 import { Text, View } from "@/components/Themed";
+import { useAuth } from "@/src/context/AuthContext";
 import { setAppLanguage } from "@/src/i18n";
 import { presets } from "@/src/theme/presets";
 import { theme } from "@/src/theme/tokens";
@@ -14,7 +21,11 @@ export default function ProfileScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { t, i18n } = useTranslation();
+  const { user, loading: authLoading, logout } = useAuth();
   const [ready, setReady] = useState(false);
+
+  const displayName = user?.userName ?? "Gezgin";
+  const avatarLetter = displayName.charAt(0).toUpperCase();
 
   useLayoutEffect(() => {
     navigation.setOptions({ title: t("nav.profile") });
@@ -24,6 +35,13 @@ export default function ProfileScreen() {
     let mounted = true;
 
     (async () => {
+      if (authLoading) return;
+
+      if (!user) {
+        router.replace("/login" as any);
+        return;
+      }
+
       try {
         const hasOnboarded = await AsyncStorage.getItem("pg_has_onboarded");
         if (hasOnboarded !== "true") {
@@ -40,15 +58,29 @@ export default function ProfileScreen() {
     return () => {
       mounted = false;
     };
-  }, [router]);
+  }, [router, user, authLoading]);
 
-  if (!ready) return null;
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/login" as any);
+  };
+
+  if (authLoading || !ready) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color={theme.colors.textPrimary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <RNView style={styles.section}>
-        <RNText style={styles.sectionTitle}>Sıla Kozik</RNText>
-        <RNText style={styles.sectionSub}>Profesyonel Gezgin</RNText>
+        <RNView style={styles.avatar}>
+          <RNText style={styles.avatarText}>{avatarLetter}</RNText>
+        </RNView>
+        <RNText style={styles.sectionTitle}>{displayName}</RNText>
+        <RNText style={styles.sectionSub}>{user?.email}</RNText>
       </RNView>
 
       <Pressable style={styles.primaryBtn} onPress={() => router.push("/transfer")}>
@@ -60,20 +92,44 @@ export default function ProfileScreen() {
           style={[styles.langBtn, i18n.language === "tr" ? styles.langBtnActive : null]}
           onPress={() => setAppLanguage("tr")}
         >
-          <RNText style={[styles.langBtnText, i18n.language === "tr" ? styles.langBtnTextActive : null]}>TR</RNText>
+          <RNText
+            style={[
+              styles.langBtnText,
+              i18n.language === "tr" ? styles.langBtnTextActive : null,
+            ]}
+          >
+            TR
+          </RNText>
         </Pressable>
         <Pressable
           style={[styles.langBtn, i18n.language === "en" ? styles.langBtnActive : null]}
           onPress={() => setAppLanguage("en")}
         >
-          <RNText style={[styles.langBtnText, i18n.language === "en" ? styles.langBtnTextActive : null]}>EN</RNText>
+          <RNText
+            style={[
+              styles.langBtnText,
+              i18n.language === "en" ? styles.langBtnTextActive : null,
+            ]}
+          >
+            EN
+          </RNText>
         </Pressable>
       </RNView>
+
+      <Pressable style={styles.logoutBtn} onPress={handleLogout}>
+        <RNText style={styles.logoutText}>Çıkış yap</RNText>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -91,6 +147,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     ...theme.shadows.card,
     width: "90%",
+    alignItems: "center",
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.textPrimary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  avatarText: {
+    color: theme.colors.surface,
+    fontSize: 22,
+    fontWeight: "800",
   },
   sectionTitle: {
     fontFamily: theme.typography.fontFamilySerif,
@@ -138,5 +209,18 @@ const styles = StyleSheet.create({
   },
   langBtnTextActive: {
     color: theme.colors.surface,
+  },
+  logoutBtn: {
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: "rgba(180, 35, 24, 0.35)",
+  },
+  logoutText: {
+    color: "#b42318",
+    fontWeight: "700",
+    fontSize: theme.typography.body.fontSize,
   },
 });

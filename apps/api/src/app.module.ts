@@ -13,6 +13,7 @@ import { PlacesModule } from './places/places.module';
 import { RoutesModule } from './routes/routes.module';
 import { AIModule } from './ai/ai.module';
 import { AdminModule } from './admin/admin.module';
+import { AuthModule } from './auth/auth.module';
 import { RedisCacheModule } from './config/redis.module';
 import { DatabaseModule } from './config/database.module';
 import { TransfersModule } from './transfers/transfers.module';
@@ -75,6 +76,7 @@ import { RouteQueueModule } from './routes/queue/route-queue.module';
     RouteQueueModule,
     AIModule,
     AdminModule,
+    AuthModule,
     TransfersModule,
     SyncModule,
   ],

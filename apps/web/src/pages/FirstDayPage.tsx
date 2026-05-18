@@ -5,7 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './first-day.css';
 
-const API = 'http://localhost:3000';
+const API = 'http://localhost:3001';
 
 interface POI {
   id: string;

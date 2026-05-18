@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { INTERESTS } from "./OnboardingPage";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
+import { useAuth } from "../context/AuthContext";
 
 const UPCOMING_TRIPS = [
   { id: 1, city: "Paris", country: "🇫🇷", date: "15-20 Mayıs 2026", days: 5, status: "Yaklaşan" },
@@ -16,9 +17,19 @@ const SAVED_PLACES = [
 ];
 
 export default function ProfilePage() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("trips");
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [isEditingInterests, setIsEditingInterests] = useState(false);
+
+  const displayName = user?.userName ?? "Gezgin";
+  const avatarLetter = displayName.charAt(0).toUpperCase();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("pg_user_interests");
@@ -47,11 +58,11 @@ export default function ProfilePage() {
         <div className="profile-cover-bg" />
         <div className="profile-header-content">
           <div className="profile-avatar-large">
-            <span>S</span>
+            <span>{avatarLetter}</span>
           </div>
           <div className="profile-user-info">
-            <h1>Sıla Kozik</h1>
-            <p>Profesyonel Gezgin · 12 Şehir Keşfedildi</p>
+            <h1>{displayName}</h1>
+            <p>{user?.email}</p>
           </div>
           <Link to="/map" className="profile-btn-primary">
             🗺 Yeni Rota Oluştur
@@ -229,7 +240,21 @@ export default function ProfilePage() {
             <div className="p-tab-fade-in">
               <h2 className="p-section-title">Ayarlar</h2>
               <div className="p-card settings-card">
-                <p style={{color: "var(--muted)"}}>Profil ve hesap ayarları burada yer alacak.</p>
+                <p style={{ color: "var(--muted)", marginBottom: "1rem" }}>
+                  Hesap: {user?.email}
+                </p>
+                <button
+                  type="button"
+                  className="profile-btn-primary"
+                  style={{
+                    background: "transparent",
+                    color: "#b42318",
+                    border: "1px solid rgba(180, 35, 24, 0.35)",
+                  }}
+                  onClick={handleLogout}
+                >
+                  Çıkış yap
+                </button>
               </div>
             </div>
           )}

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { TransferRouteDTO, CityDTO } from "@pocketguide/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 export default function TransfersPage() {
   const [routes, setRoutes] = useState<TransferRouteDTO[]>([]);

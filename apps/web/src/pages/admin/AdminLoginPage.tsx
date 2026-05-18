@@ -2,7 +2,7 @@ import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './admin.css';
 
-const API = 'http://localhost:3000';
+const API = 'http://localhost:3001';
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState('');

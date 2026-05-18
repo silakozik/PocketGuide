@@ -7,7 +7,7 @@ import {
 export type { NearbyPoiRow, TravelRecommendation };
 
 function apiBaseUrl(): string {
-  return (process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return (process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 }
 
 /**

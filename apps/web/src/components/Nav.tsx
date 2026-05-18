@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../context/AuthContext";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { t } = useTranslation();
+  const { user, loading } = useAuth();
+  const avatarLetter = user?.userName?.charAt(0).toUpperCase() ?? "?";
 
   return (
     <nav>
@@ -37,9 +40,26 @@ export function Nav() {
         <Link to="/map" className="nav-outline" onClick={() => setMenuOpen(false)}>
           🗺 {t('nav.map')}
         </Link>
-        <Link to="/profile" className="map-profile-btn" style={{ marginLeft: '8px' }} onClick={() => setMenuOpen(false)}>
-          <div className="profile-avatar">S</div>
-        </Link>
+        {!loading && !user && (
+          <>
+            <Link to="/login" className="nav-login" onClick={() => setMenuOpen(false)}>
+              {t("nav.login", "Giriş yap")}
+            </Link>
+            <Link to="/register" className="nav-cta" onClick={() => setMenuOpen(false)}>
+              {t("nav.register", "Kayıt ol")}
+            </Link>
+          </>
+        )}
+        {!loading && user && (
+          <Link
+            to="/profile"
+            className="map-profile-btn"
+            style={{ marginLeft: "8px" }}
+            onClick={() => setMenuOpen(false)}
+          >
+            <div className="profile-avatar">{avatarLetter}</div>
+          </Link>
+        )}
       </div>
 
       {/* Overlay */}

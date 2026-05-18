@@ -5,12 +5,14 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { Text } from "@/components/Themed";
+import { useAuth } from "@/src/context/AuthContext";
 import { presets } from "@/src/theme/presets";
 import { theme } from "@/src/theme/tokens";
 
 export default function HomeTabScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { user, loading: authLoading } = useAuth();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -40,6 +42,25 @@ export default function HomeTabScreen() {
         <Text style={styles.heroKicker}>PocketGuide</Text>
         <Text style={styles.heroTitle}>{t("mobile.landingTitle")}</Text>
         <Text style={styles.heroSub}>{t("mobile.landingSubtitle")}</Text>
+        {!authLoading && !user ? (
+          <View style={styles.authRow}>
+            <Pressable
+              style={({ pressed }) => [styles.authBtn, pressed ? { opacity: 0.9 } : null]}
+              onPress={() => router.push("/login" as any)}
+            >
+              <Text style={styles.authBtnText}>Giriş yap</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.authBtnOutline,
+                pressed ? { opacity: 0.9 } : null,
+              ]}
+              onPress={() => router.push("/register" as any)}
+            >
+              <Text style={styles.authBtnOutlineText}>Kayıt ol</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.grid}>
@@ -103,6 +124,27 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontWeight: "500",
     maxWidth: 360,
+  },
+  authRow: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  authBtn: {
+    ...presets.primaryButton,
+    flex: 1,
+    backgroundColor: theme.colors.accent,
+  },
+  authBtnText: {
+    ...presets.primaryButtonText,
+    color: theme.colors.textPrimary,
+  },
+  authBtnOutline: {
+    ...presets.secondaryButton,
+    flex: 1,
+  },
+  authBtnOutlineText: {
+    ...presets.secondaryButtonText,
   },
   grid: {
     flexDirection: "row",
