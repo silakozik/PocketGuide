@@ -14,6 +14,7 @@ const INTERESTS = [
   { id: "nightlife", label: "Gece Hayatı", icon: "🍸" },
   { id: "shopping", label: "Alışveriş", icon: "🛍️" },
   { id: "architecture", label: "Mimari", icon: "🏢" },
+  { id: "music_events", label: "Müzik & Etkinlik", icon: "🎵" },
 ];
 
 export default function OnboardingScreen() {
