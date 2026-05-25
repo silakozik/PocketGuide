@@ -9,6 +9,19 @@ import { useAuth } from "@/src/context/AuthContext";
 import { presets } from "@/src/theme/presets";
 import { theme } from "@/src/theme/tokens";
 
+const CITIES = [
+  { name: "Paris", country: "Fransa", emoji: "🗼", bg: "#667eea" },
+  { name: "Tokyo", country: "Japonya", emoji: "🏯", bg: "#e74c3c" },
+  { name: "New York", country: "ABD", emoji: "🗽", bg: "#2193b0" },
+  { name: "Londra", country: "İngiltere", emoji: "🎡", bg: "#536976" },
+  { name: "Roma", country: "İtalya", emoji: "🏛️", bg: "#c79081" },
+  { name: "Barcelona", country: "İspanya", emoji: "🌊", bg: "#f7971e" },
+  { name: "Dubai", country: "BAE", emoji: "🏙️", bg: "#d4a574" },
+  { name: "Amsterdam", country: "Hollanda", emoji: "🚲", bg: "#f46b45" },
+  { name: "Sydney", country: "Avustralya", emoji: "🦘", bg: "#11998e" },
+  { name: "İstanbul", country: "Türkiye", emoji: "🕌", bg: "#4facfe" },
+] as const;
+
 export default function HomeTabScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -61,6 +74,30 @@ export default function HomeTabScreen() {
             </Pressable>
           </View>
         ) : null}
+      </View>
+
+      <View style={styles.citiesSection}>
+        <Text style={styles.citiesSectionTitle}>Şehirleri Keşfet</Text>
+        <Text style={styles.citiesSectionSub}>
+          Dünyanın en ikonik şehirlerine göz at — rotanı planlamaya hazır ol.
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.citiesScroll}
+        >
+          {CITIES.map((city) => (
+            <Pressable key={city.name} style={styles.cityCard}>
+              <View style={[styles.cityCardImg, { backgroundColor: city.bg }]}>
+                <Text style={styles.cityCardEmoji}>{city.emoji}</Text>
+              </View>
+              <View style={styles.cityCardBody}>
+                <Text style={styles.cityCardName}>{city.name}</Text>
+                <Text style={styles.cityCardCountry}>{city.country}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
       </View>
 
       <View style={styles.grid}>
@@ -145,6 +182,59 @@ const styles = StyleSheet.create({
   },
   authBtnOutlineText: {
     ...presets.secondaryButtonText,
+  },
+  citiesSection: {
+    marginBottom: theme.spacing.lg,
+    gap: theme.spacing.xs,
+  },
+  citiesSectionTitle: {
+    fontFamily: theme.typography.fontFamilySerif,
+    fontSize: 22,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+  },
+  citiesSectionSub: {
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: theme.typography.caption.fontSize,
+    lineHeight: theme.typography.caption.lineHeight,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.sm,
+  },
+  citiesScroll: {
+    gap: theme.spacing.sm,
+    paddingRight: theme.spacing.md,
+  },
+  cityCard: {
+    width: 130,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  cityCardImg: {
+    height: 90,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cityCardEmoji: {
+    fontSize: 36,
+  },
+  cityCardBody: {
+    padding: 10,
+    gap: 2,
+  },
+  cityCardName: {
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: 13,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+  },
+  cityCardCountry: {
+    fontFamily: theme.typography.fontFamilySans,
+    fontSize: 11,
+    fontWeight: "500",
+    color: theme.colors.textSecondary,
   },
   grid: {
     flexDirection: "row",
