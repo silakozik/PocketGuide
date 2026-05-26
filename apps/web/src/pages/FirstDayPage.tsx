@@ -103,12 +103,41 @@ function normalizeApiPOI(p: ApiPOI): NormalizedPOI {
   };
 }
 
+const ADAPT_CATEGORIES = ['sim', 'transport_card', 'exchange'] as const;
+
+/** API'de boş kalan kategoriler için statik POI'ları tamamlar */
+function mergeApiAndStatic(
+  apiPois: ApiPOI[],
+  staticPois: StaticPOI[],
+): { merged: NormalizedPOI[]; fallbackCategories: string[] } {
+  const normalizedApi = apiPois.map(normalizeApiPOI);
+  const normalizedStatic = staticPois.map(normalizeStaticPOI);
+  const merged: NormalizedPOI[] = [];
+  const fallbackCategories: string[] = [];
+
+  for (const cat of ADAPT_CATEGORIES) {
+    const apiForCat = normalizedApi.filter(p => p.category === cat);
+    if (apiForCat.length > 0) {
+      merged.push(...apiForCat);
+    } else {
+      const staticForCat = normalizedStatic.filter(p => p.category === cat);
+      if (staticForCat.length > 0) {
+        merged.push(...staticForCat);
+        fallbackCategories.push(cat);
+      }
+    }
+  }
+
+  return { merged, fallbackCategories };
+}
+
 export default function FirstDayPage() {
   const { citySlug } = useParams<{ citySlug: string }>();
   const [activeTab, setActiveTab] = useState<TabId>('sim');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
+  const [fallbackCategories, setFallbackCategories] = useState<string[]>([]);
   const [cityName, setCityName] = useState('');
   const [mapCenter, setMapCenter] = useState<[number, number]>([41.0082, 28.9784]);
   const [poisNorm, setPoisNorm] = useState<NormalizedPOI[]>([]);
@@ -143,12 +172,20 @@ export default function FirstDayPage() {
     ])
       .then(([adaptResult, eventsResult]) => {
         const apiPois = (adaptResult.data ?? []) as ApiPOI[];
+        const staticPois = sd?.pois ?? [];
         if (apiPois.length > 0) {
-          setPoisNorm(apiPois.map(normalizeApiPOI));
-          setUsingFallback(false);
-        } else {
-          if (sd) setPoisNorm(sd.pois.map(normalizeStaticPOI));
+          const { merged, fallbackCategories: fb } = mergeApiAndStatic(apiPois, staticPois);
+          setPoisNorm(merged);
+          setFallbackCategories(fb);
+          setUsingFallback(fb.length > 0);
+        } else if (sd) {
+          setPoisNorm(staticPois.map(normalizeStaticPOI));
+          setFallbackCategories([...ADAPT_CATEGORIES]);
           setUsingFallback(true);
+        } else {
+          setPoisNorm([]);
+          setFallbackCategories([]);
+          setUsingFallback(false);
         }
         if (adaptResult.city?.nameTr || adaptResult.city?.nameEn) {
           setCityName(adaptResult.city.nameTr ?? adaptResult.city.nameEn);
@@ -156,7 +193,13 @@ export default function FirstDayPage() {
         setApiEvents(eventsResult.data ?? []);
       })
       .catch(() => {
-        if (sd) setPoisNorm(sd.pois.map(normalizeStaticPOI));
+        if (sd) {
+          setPoisNorm(sd.pois.map(normalizeStaticPOI));
+          setFallbackCategories([...ADAPT_CATEGORIES]);
+        } else {
+          setPoisNorm([]);
+          setFallbackCategories([]);
+        }
         setUsingFallback(true);
         setApiEvents([]);
       })
@@ -194,6 +237,9 @@ export default function FirstDayPage() {
   }, [poisNorm, activeCategory, searchQuery, userLocation]);
 
   const activeTabMeta = TABS.find(t => t.id === activeTab);
+  const activeCategoryUsesFallback = Boolean(
+    activeCategory && fallbackCategories.includes(activeCategory),
+  );
 
   if (loading && !staticData && !cityName) {
     return (
@@ -217,9 +263,11 @@ export default function FirstDayPage() {
         </div>
       </header>
 
-      {usingFallback && (
+      {(usingFallback && (activeCategoryUsesFallback || !activeCategory)) && (
         <div className="fd-fallback-banner">
-          📋 Şu an öneri verisi gösteriliyor — canlı veri için internet bağlantısını kontrol et.
+          📋 {activeCategoryUsesFallback
+            ? 'Bu sekme için öneri verisi gösteriliyor — canlı veri henüz yüklenmedi.'
+            : 'Şu an öneri verisi gösteriliyor — canlı veri için internet bağlantısını kontrol et.'}
         </div>
       )}
 
