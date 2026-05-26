@@ -56,6 +56,10 @@ import { RouteQueueModule } from './routes/queue/route-queue.module';
     ]),
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: [
+        path.resolve(process.cwd(), 'apps/api/.env'),
+        path.resolve(process.cwd(), '.env'),
+      ],
     }),
     I18nModule.forRoot({
       fallbackLanguage: 'en',

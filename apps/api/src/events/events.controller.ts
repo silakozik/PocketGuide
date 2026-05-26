@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query, Inject } from '@nestjs/common';
 import { cities, events } from '@pocketguide/database';
 import { eq, and, gte, lte } from 'drizzle-orm';
+import { resolveCitySlug } from '../utils/city-slug';
 
 @Controller('events')
 export class EventsController {
@@ -13,9 +14,10 @@ export class EventsController {
    */
   @Get('city/:slug')
   async getByCity(
-    @Param('slug') slug: string,
+    @Param('slug') rawSlug: string,
     @Query('date') dateStr?: string,
   ) {
+    const slug = resolveCitySlug(rawSlug);
     const targetDate = dateStr ? new Date(dateStr) : new Date();
     const dayStart = new Date(targetDate);
     dayStart.setHours(0, 0, 0, 0);

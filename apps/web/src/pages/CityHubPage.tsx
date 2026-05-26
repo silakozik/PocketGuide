@@ -32,6 +32,11 @@ interface Feature {
   className: string;
 }
 
+const SLUG_ALIASES: Record<string, string> = {
+  london: "londra",
+  rome: "roma",
+};
+
 const CITY_META: Record<string, CityMeta> = {
   paris: {
     name: "Paris",
@@ -207,7 +212,8 @@ const FEATURES: Feature[] = [
 export default function CityHubPage() {
   const navigate = useNavigate();
   const { citySlug } = useParams<{ citySlug: string }>();
-  const meta = citySlug ? CITY_META[citySlug] : undefined;
+  const resolvedSlug = citySlug ? (SLUG_ALIASES[citySlug] ?? citySlug) : undefined;
+  const meta = resolvedSlug ? CITY_META[resolvedSlug] : undefined;
 
   if (!meta) {
     return <Navigate to="/" replace />;
@@ -216,7 +222,7 @@ export default function CityHubPage() {
   const handleFeature = (key: FeatureKey) => {
     switch (key) {
       case "first-day":
-        navigate(`/${citySlug}/first-day`);
+        navigate(`/${resolvedSlug}/first-day`);
         break;
       case "transfer":
         navigate("/transfer");

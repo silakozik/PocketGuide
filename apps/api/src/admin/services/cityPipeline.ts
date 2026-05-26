@@ -18,8 +18,9 @@ export class CityPipeline {
    */
   async importCityData(
     citySlug: string,
-    cityName: string,
+    cityNameEn: string,
     onProgress?: (data: any) => void,
+    cityNameTr?: string,
   ): Promise<Record<string, number>> {
     const categories = ['sim', 'transport', 'exchange'];
     const results: Record<string, number> = {};
@@ -32,12 +33,19 @@ export class CityPipeline {
       this.logger.log(`City not found for slug ${citySlug}, creating...`);
       [city] = await this.db.insert(cities).values({
         slug: citySlug,
-        nameEn: cityName,
-        nameTr: cityName,
+        nameEn: cityNameEn,
+        nameTr: cityNameTr || cityNameEn,
         countryCode: 'XX',
       }).returning();
-      onProgress?.({ step: 'city', status: 'done', message: `Şehir oluşturuldu: ${cityName}` });
+      onProgress?.({ step: 'city', status: 'done', message: `Şehir oluşturuldu: ${cityNameTr || cityNameEn}` });
     } else {
+      await this.db.update(cities)
+        .set({
+          nameEn: cityNameEn,
+          nameTr: cityNameTr || cityNameEn,
+          updatedAt: new Date(),
+        } as any)
+        .where(eq(cities.id as any, city.id));
       onProgress?.({ step: 'city', status: 'done', message: `Şehir bulundu: ${city.nameEn}` });
     }
 
@@ -50,7 +58,7 @@ export class CityPipeline {
     for (const category of categories) {
       onProgress?.({ step: category, status: 'loading', message: `${category.toUpperCase()} verileri getiriliyor...` });
       
-      const rawPoints = await this.overpassImporter.fetchCityPoints(cityName, category);
+      const rawPoints = await this.overpassImporter.fetchCityPoints(cityNameEn, category);
       this.logger.log(`Fetched ${rawPoints.length} points for ${category}`);
 
       // Deduplicate by 100m radius

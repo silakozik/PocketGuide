@@ -33,6 +33,7 @@ export default function AdminCitiesPage() {
 
   // Form state
   const [cityName, setCityName] = useState('');
+  const [cityNameEn, setCityNameEn] = useState('');
   const [citySlug, setCitySlug] = useState('');
   const [countryCode, setCountryCode] = useState('');
   const [importing, setImporting] = useState(false);
@@ -83,6 +84,7 @@ export default function AdminCitiesPage() {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
     setCitySlug(slug);
+    setCityNameEn(cityName);
   }, [cityName]);
 
   // ── Import City ──
@@ -97,7 +99,12 @@ export default function AdminCitiesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ citySlug, cityName, countryCode: countryCode || 'XX' }),
+        body: JSON.stringify({
+          citySlug,
+          cityName,
+          cityNameEn,
+          countryCode: countryCode || 'XX',
+        }),
       });
 
       const reader = res.body?.getReader();
@@ -139,6 +146,7 @@ export default function AdminCitiesPage() {
       // Refresh city list
       await fetchCities();
       setCityName('');
+      setCityNameEn('');
       setCountryCode('');
     } catch (err) {
       console.error('Import error:', err);
@@ -178,7 +186,12 @@ export default function AdminCitiesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ citySlug: city.slug, cityName: city.nameEn, countryCode: city.countryCode }),
+        body: JSON.stringify({
+          citySlug: city.slug,
+          cityName: city.nameTr || city.nameEn,
+          cityNameEn: city.nameEn,
+          countryCode: city.countryCode,
+        }),
       });
 
       const reader = res.body?.getReader();
@@ -289,6 +302,15 @@ export default function AdminCitiesPage() {
                 placeholder="İstanbul"
                 value={cityName}
                 onChange={(e) => setCityName(e.target.value)}
+              />
+            </div>
+            <div className="admin-form-group">
+              <label className="admin-form-label">Overpass Adı (İngilizce)</label>
+              <input
+                className="admin-input"
+                placeholder="London (Overpass sorgusu için)"
+                value={cityNameEn}
+                onChange={(e) => setCityNameEn(e.target.value)}
               />
             </div>
             <div className="admin-form-group">

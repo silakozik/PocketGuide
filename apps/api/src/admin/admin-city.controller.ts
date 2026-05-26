@@ -94,15 +94,18 @@ export class AdminCityController {
   }
 
   /**
+   * POST /api/admin/cities/import
    * POST /api/admin/import-city
    * Import POIs from OSM for a given city using SSE
    */
+  @Post('cities/import')
   @Post('import-city')
   async importCity(
-    @Body() body: { citySlug: string; cityName: string },
+    @Body() body: { citySlug: string; cityName: string; cityNameEn?: string; countryCode?: string },
     @Res() res: Response,
   ) {
     const { citySlug, cityName } = body;
+    const overpassName = body.cityNameEn?.trim() || body.cityName;
 
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
@@ -117,8 +120,9 @@ export class AdminCityController {
     try {
       const results = await this.cityPipeline.importCityData(
         citySlug,
-        cityName,
+        overpassName,
         sendEvent,
+        cityName,
       );
 
       sendEvent({

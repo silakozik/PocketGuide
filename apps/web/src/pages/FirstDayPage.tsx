@@ -7,6 +7,32 @@ import './first-day.css';
 
 const API = 'http://localhost:3001';
 
+/** URL slug → DB slug (backend ile aynı) */
+const SLUG_ALIASES: Record<string, string> = {
+  london: 'londra',
+  rome: 'roma',
+};
+
+function resolveCitySlug(slug: string): string {
+  return SLUG_ALIASES[slug.toLowerCase()] ?? slug;
+}
+
+/** Şehir merkezi koordinatları — POI yokken harita buraya odaklanır */
+const CITY_CENTERS: Record<string, [number, number]> = {
+  istanbul: [41.0082, 28.9784],
+  paris: [48.8566, 2.3522],
+  londra: [51.5074, -0.1278],
+  london: [51.5074, -0.1278],
+  roma: [41.9028, 12.4964],
+  rome: [41.9028, 12.4964],
+  barcelona: [41.3874, 2.1686],
+  amsterdam: [52.3676, 4.9041],
+  tokyo: [35.6762, 139.6503],
+  'new-york': [40.7128, -74.006],
+  dubai: [25.2048, 55.2708],
+  sydney: [-33.8688, 151.2093],
+};
+
 interface POI {
   id: string;
   name: string;
@@ -68,6 +94,7 @@ export default function FirstDayPage() {
   const [routePois, setRoutePois] = useState<POI[]>([]);
   const [cityEvents, setCityEvents] = useState<CityEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -80,12 +107,17 @@ export default function FirstDayPage() {
 
   useEffect(() => {
     if (!citySlug) return;
+    const slug = resolveCitySlug(citySlug);
     setLoading(true);
+    setFetchError('');
     Promise.all([
-      fetch(`${API}/api/adaptation/${citySlug}`).then(r => r.json()),
-      fetch(`${API}/api/pois/city/${citySlug}?category=culture`).then(r => r.json()),
-      fetch(`${API}/api/pois/city/${citySlug}?category=food`).then(r => r.json()),
-      fetch(`${API}/api/events/city/${citySlug}`).then(r => r.json()).catch(() => ({ data: [] })),
+      fetch(`${API}/api/adaptation/${slug}`).then(async (r) => {
+        if (!r.ok) throw new Error('Şehir bulunamadı');
+        return r.json();
+      }),
+      fetch(`${API}/api/pois/city/${slug}?category=culture`).then(r => r.ok ? r.json() : { data: [] }),
+      fetch(`${API}/api/pois/city/${slug}?category=food`).then(r => r.ok ? r.json() : { data: [] }),
+      fetch(`${API}/api/events/city/${slug}`).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
     ]).then(([adapt, culture, food, evts]) => {
       if (adapt.city) {
         setCity({
@@ -94,13 +126,22 @@ export default function FirstDayPage() {
           nameTr: adapt.city.nameTr ?? adapt.city.name,
           slug: adapt.city.slug,
         });
+      } else {
+        setCity(null);
+        setFetchError('Bu şehir için henüz veri yüklenmemiş. Admin panelinden import edin veya seed scriptini çalıştırın.');
       }
       setPois(adapt.data || []);
       const cultureList = (culture.data || []).slice(0, 3).map((p: POI) => ({ ...p, category: 'culture' }));
       const foodList = (food.data || []).slice(0, 2).map((p: POI) => ({ ...p, category: 'food' }));
       setRoutePois([...cultureList, ...foodList]);
       setCityEvents(evts.data || []);
-    }).catch(console.error)
+    }).catch(() => {
+      setFetchError('Veri yüklenemedi. API çalışıyor mu? Şehir veritabanında kayıtlı mı?');
+      setCity(null);
+      setPois([]);
+      setRoutePois([]);
+      setCityEvents([]);
+    })
       .finally(() => setLoading(false));
   }, [citySlug]);
 
@@ -128,8 +169,9 @@ export default function FirstDayPage() {
 
   const mapCenter = useMemo((): [number, number] => {
     if (activeMarkers.length > 0) return [activeMarkers[0].lat, activeMarkers[0].lng];
-    return [41.0082, 28.9784];
-  }, [activeMarkers]);
+    const slug = resolveCitySlug(citySlug ?? '');
+    return CITY_CENTERS[slug] ?? CITY_CENTERS[citySlug ?? ''] ?? [41.0082, 28.9784];
+  }, [activeMarkers, citySlug]);
 
   const activeTabMeta = TABS.find(t => t.id === activeTab);
 
@@ -211,6 +253,12 @@ export default function FirstDayPage() {
       )}
 
       <div className="fd-content">
+        {fetchError && (
+          <div className="fd-empty" style={{ padding: '20px', marginBottom: 16 }}>
+            <span>⚠️</span>
+            <p>{fetchError}</p>
+          </div>
+        )}
         {(activeTab === 'sim' || activeTab === 'transport' || activeTab === 'exchange') && (
           <>
             <div className="fd-search">
@@ -262,7 +310,9 @@ export default function FirstDayPage() {
               )) : (
                 <div className="fd-empty">
                   <span>🔍</span>
-                  <p>Sonuç bulunamadı.</p>
+                  <p>{pois.length === 0 && !fetchError
+                    ? 'Bu şehir için SIM kart noktası henüz yüklenmemiş. Admin panelinden import edin.'
+                    : 'Sonuç bulunamadı.'}</p>
                 </div>
               )}
             </div>

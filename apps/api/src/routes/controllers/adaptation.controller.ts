@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query, Inject, NotFoundException } from '@nestjs/common';
 import { cities, adaptationPoints } from '@pocketguide/database';
 import { eq, and } from 'drizzle-orm';
+import { resolveCitySlug } from '../../utils/city-slug';
 
 @Controller('adaptation')
 export class AdaptationController {
@@ -14,9 +15,10 @@ export class AdaptationController {
    */
   @Get(':citySlug')
   async getByCity(
-    @Param('citySlug') citySlug: string,
+    @Param('citySlug') rawSlug: string,
     @Query('category') category?: string,
   ) {
+    const citySlug = resolveCitySlug(rawSlug);
     // 1. Get city info
     const [city] = await this.db
       .select()

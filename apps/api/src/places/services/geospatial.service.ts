@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { sql } from 'drizzle-orm';
+import { resolveCitySlug } from '../../utils/city-slug';
 
 /**
  * GeospatialService
@@ -358,6 +359,7 @@ export class GeospatialService {
    * Find all POIs for a specific city by its slug, optionally filtered by category.
    */
   async findByCitySlug(citySlug: string, category?: string): Promise<PoiWithDistance[]> {
+    citySlug = resolveCitySlug(citySlug);
     const cacheKey = `pois:city:${citySlug}:${category || 'all'}`;
 
     const cached = await this.cacheManager.get<PoiWithDistance[]>(cacheKey);
