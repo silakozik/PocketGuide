@@ -4,36 +4,31 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './first-day.css';
+import {
+  getCityStaticData,
+  type StaticPOI,
+  type CityStaticData,
+} from '../data/cityStaticData';
 
 const API = 'http://localhost:3001';
 
-/** URL slug → DB slug (backend ile aynı) */
-const SLUG_ALIASES: Record<string, string> = {
-  london: 'londra',
-  rome: 'roma',
+const TABS = [
+  { id: 'sim', label: 'SIM Kart', emoji: '📱', color: '#3b82f6' },
+  { id: 'transport', label: 'Ulaşım Kartı', emoji: '🚇', color: '#10b981' },
+  { id: 'exchange', label: 'Döviz', emoji: '💱', color: '#f59e0b' },
+  { id: 'route', label: 'İlk Gün Rotası', emoji: '🗺️', color: '#8b5cf6' },
+  { id: 'events', label: 'Bugünkü Etkinlikler', emoji: '🎭', color: '#e8b84b' },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
+const TAB_TO_CATEGORY: Record<string, string> = {
+  sim: 'sim',
+  transport: 'transport_card',
+  exchange: 'exchange',
 };
 
-function resolveCitySlug(slug: string): string {
-  return SLUG_ALIASES[slug.toLowerCase()] ?? slug;
-}
-
-/** Şehir merkezi koordinatları — POI yokken harita buraya odaklanır */
-const CITY_CENTERS: Record<string, [number, number]> = {
-  istanbul: [41.0082, 28.9784],
-  paris: [48.8566, 2.3522],
-  londra: [51.5074, -0.1278],
-  london: [51.5074, -0.1278],
-  roma: [41.9028, 12.4964],
-  rome: [41.9028, 12.4964],
-  barcelona: [41.3874, 2.1686],
-  amsterdam: [52.3676, 4.9041],
-  tokyo: [35.6762, 139.6503],
-  'new-york': [40.7128, -74.006],
-  dubai: [25.2048, 55.2708],
-  sydney: [-33.8688, 151.2093],
-};
-
-interface POI {
+interface ApiPOI {
   id: string;
   name: string;
   category: string;
@@ -43,14 +38,7 @@ interface POI {
   openingHours?: string;
 }
 
-interface City {
-  id: string;
-  nameEn: string;
-  nameTr: string;
-  slug: string;
-}
-
-interface CityEvent {
+interface ApiEvent {
   id: string;
   name: string;
   description: string | null;
@@ -59,13 +47,17 @@ interface CityEvent {
   endDate: string;
 }
 
-const TABS = [
-  { id: 'sim', label: 'SIM Kart', emoji: '📱', color: '#3b82f6', adaptCategory: 'sim' },
-  { id: 'transport', label: 'Ulaşım Kartı', emoji: '🚇', color: '#10b981', adaptCategory: 'transport_card' },
-  { id: 'exchange', label: 'Döviz', emoji: '💱', color: '#f59e0b', adaptCategory: 'exchange' },
-  { id: 'route', label: 'İlk Gün Rotası', emoji: '🗺️', color: '#8b5cf6', adaptCategory: null },
-  { id: 'events', label: 'Bugünkü Etkinlikler', emoji: '🎭', color: '#e8c547', adaptCategory: null },
-];
+interface NormalizedPOI {
+  id: string;
+  name: string;
+  category: string;
+  address: string;
+  lat: number;
+  lng: number;
+  openingHours?: string;
+  tip?: string;
+  distance?: number | null;
+}
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -86,16 +78,42 @@ function ChangeView({ center }: { center: [number, number] }) {
   return null;
 }
 
+function normalizeStaticPOI(p: StaticPOI): NormalizedPOI {
+  return {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    address: p.address,
+    lat: p.lat,
+    lng: p.lng,
+    openingHours: p.openingHours,
+    tip: p.tip,
+  };
+}
+
+function normalizeApiPOI(p: ApiPOI): NormalizedPOI {
+  return {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    address: p.address ?? '',
+    lat: p.lat,
+    lng: p.lng,
+    openingHours: p.openingHours,
+  };
+}
+
 export default function FirstDayPage() {
   const { citySlug } = useParams<{ citySlug: string }>();
-  const [activeTab, setActiveTab] = useState('sim');
-  const [city, setCity] = useState<City | null>(null);
-  const [pois, setPois] = useState<POI[]>([]);
-  const [routePois, setRoutePois] = useState<POI[]>([]);
-  const [cityEvents, setCityEvents] = useState<CityEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState('');
+  const [activeTab, setActiveTab] = useState<TabId>('sim');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [usingFallback, setUsingFallback] = useState(false);
+  const [cityName, setCityName] = useState('');
+  const [mapCenter, setMapCenter] = useState<[number, number]>([41.0082, 28.9784]);
+  const [poisNorm, setPoisNorm] = useState<NormalizedPOI[]>([]);
+  const [staticData, setStaticData] = useState<CityStaticData | null>(null);
+  const [apiEvents, setApiEvents] = useState<ApiEvent[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
@@ -107,50 +125,64 @@ export default function FirstDayPage() {
 
   useEffect(() => {
     if (!citySlug) return;
-    const slug = resolveCitySlug(citySlug);
     setLoading(true);
-    setFetchError('');
+
+    const sd = getCityStaticData(citySlug);
+    setStaticData(sd);
+    if (sd) {
+      setCityName(sd.nameTr);
+      setMapCenter(sd.center);
+    }
+
     Promise.all([
-      fetch(`${API}/api/adaptation/${slug}`).then(async (r) => {
-        if (!r.ok) throw new Error('Şehir bulunamadı');
+      fetch(`${API}/api/adaptation/${citySlug}`).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       }),
-      fetch(`${API}/api/pois/city/${slug}?category=culture`).then(r => r.ok ? r.json() : { data: [] }),
-      fetch(`${API}/api/pois/city/${slug}?category=food`).then(r => r.ok ? r.json() : { data: [] }),
-      fetch(`${API}/api/events/city/${slug}`).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
-    ]).then(([adapt, culture, food, evts]) => {
-      if (adapt.city) {
-        setCity({
-          id: adapt.city.id,
-          nameEn: adapt.city.nameEn,
-          nameTr: adapt.city.nameTr ?? adapt.city.name,
-          slug: adapt.city.slug,
-        });
-      } else {
-        setCity(null);
-        setFetchError('Bu şehir için henüz veri yüklenmemiş. Admin panelinden import edin veya seed scriptini çalıştırın.');
-      }
-      setPois(adapt.data || []);
-      const cultureList = (culture.data || []).slice(0, 3).map((p: POI) => ({ ...p, category: 'culture' }));
-      const foodList = (food.data || []).slice(0, 2).map((p: POI) => ({ ...p, category: 'food' }));
-      setRoutePois([...cultureList, ...foodList]);
-      setCityEvents(evts.data || []);
-    }).catch(() => {
-      setFetchError('Veri yüklenemedi. API çalışıyor mu? Şehir veritabanında kayıtlı mı?');
-      setCity(null);
-      setPois([]);
-      setRoutePois([]);
-      setCityEvents([]);
-    })
+      fetch(`${API}/api/events/city/${citySlug}`).then(r => r.json()).catch(() => ({ data: [] })),
+    ])
+      .then(([adaptResult, eventsResult]) => {
+        const apiPois = (adaptResult.data ?? []) as ApiPOI[];
+        if (apiPois.length > 0) {
+          setPoisNorm(apiPois.map(normalizeApiPOI));
+          setUsingFallback(false);
+        } else {
+          if (sd) setPoisNorm(sd.pois.map(normalizeStaticPOI));
+          setUsingFallback(true);
+        }
+        if (adaptResult.city?.nameTr || adaptResult.city?.nameEn) {
+          setCityName(adaptResult.city.nameTr ?? adaptResult.city.nameEn);
+        }
+        setApiEvents(eventsResult.data ?? []);
+      })
+      .catch(() => {
+        if (sd) setPoisNorm(sd.pois.map(normalizeStaticPOI));
+        setUsingFallback(true);
+        setApiEvents([]);
+      })
       .finally(() => setLoading(false));
   }, [citySlug]);
 
-  const activeAdaptCategory = TABS.find(t => t.id === activeTab)?.adaptCategory;
+  const activeCategory = TAB_TO_CATEGORY[activeTab] ?? null;
+
+  const activeMarkers = useMemo(() => {
+    if (activeTab === 'route') return staticData?.route ?? [];
+    if (!activeCategory) return [];
+    return poisNorm.filter(p => p.category === activeCategory);
+  }, [poisNorm, activeTab, activeCategory, staticData]);
+
+  const computedCenter = useMemo((): [number, number] => {
+    if (activeMarkers.length > 0) {
+      const first = activeMarkers[0] as { lat: number; lng: number };
+      return [first.lat, first.lng];
+    }
+    return mapCenter;
+  }, [activeMarkers, mapCenter]);
 
   const filteredPois = useMemo(() => {
-    if (!activeAdaptCategory) return [];
-    return pois
-      .filter(p => p.category === activeAdaptCategory)
+    if (!activeCategory) return [];
+    return poisNorm
+      .filter(p => p.category === activeCategory)
       .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .map(p => ({
         ...p,
@@ -159,71 +191,65 @@ export default function FirstDayPage() {
           : null,
       }))
       .sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999));
-  }, [pois, activeAdaptCategory, searchQuery, userLocation]);
-
-  const activeMarkers = useMemo(() => {
-    if (activeTab === 'route') return routePois;
-    if (!activeAdaptCategory) return [];
-    return pois.filter(p => p.category === activeAdaptCategory);
-  }, [pois, routePois, activeTab, activeAdaptCategory]);
-
-  const mapCenter = useMemo((): [number, number] => {
-    if (activeMarkers.length > 0) return [activeMarkers[0].lat, activeMarkers[0].lng];
-    const slug = resolveCitySlug(citySlug ?? '');
-    return CITY_CENTERS[slug] ?? CITY_CENTERS[citySlug ?? ''] ?? [41.0082, 28.9784];
-  }, [activeMarkers, citySlug]);
+  }, [poisNorm, activeCategory, searchQuery, userLocation]);
 
   const activeTabMeta = TABS.find(t => t.id === activeTab);
 
-  if (loading && !city) {
+  if (loading && !staticData && !cityName) {
     return (
-      <div className="fd-loading">
+      <div className="firstDayRoot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <p>Yükleniyor...</p>
       </div>
     );
   }
 
   return (
-    <div className="fd-root">
-      <header className="fd-header">
-        <Link to={`/${citySlug}`} className="fd-back-btn">
+    <div className="firstDayRoot">
+      <header className="firstDayHeader">
+        <Link to={`/${citySlug}`} className="backBtn">
           <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <div className="fd-header-info">
-          <h1>{city?.nameTr || city?.nameEn || 'Şehir Rehberi'}</h1>
+        <div className="headerTitle">
+          <h1>{cityName || citySlug} · İlk Gün Rehberi</h1>
           <p>Şehre ilk adımın için her şey burada</p>
         </div>
       </header>
 
-      <div className="fd-tabs">
+      {usingFallback && (
+        <div className="fd-fallback-banner">
+          📋 Şu an öneri verisi gösteriliyor — canlı veri için internet bağlantısını kontrol et.
+        </div>
+      )}
+
+      <div className="tabsContainer">
         {TABS.map(tab => (
           <button
             key={tab.id}
-            className={`fd-tab ${activeTab === tab.id ? 'active' : ''}`}
+            className={`tabBtn ${activeTab === tab.id ? 'active' : ''}`}
             style={{ '--tab-color': tab.color } as React.CSSProperties}
             onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }}
           >
-            <span className="fd-tab-dot" />
-            {tab.label}
+            <span className="icon">{tab.emoji}</span>
+            <span className="label">{tab.label}</span>
           </button>
         ))}
       </div>
 
       {activeTab !== 'events' && (
-        <div className="fd-map-container">
-          <MapContainer center={mapCenter} zoom={14} className="fd-map" zoomControl={false}>
+        <div className="miniMapContainer">
+          <MapContainer center={computedCenter} zoom={14} className="miniMap" zoomControl={false}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <ChangeView center={mapCenter} />
+            <ChangeView center={computedCenter} />
 
-            {activeTab !== 'route' && activeMarkers.map(p => (
+            {activeTab !== 'route' && (activeMarkers as NormalizedPOI[]).map(p => (
               <Marker
                 key={p.id}
                 position={[p.lat, p.lng]}
                 icon={L.divIcon({
                   className: 'leaflet-custom-marker',
-                  html: `<div class="fd-pin" style="background:${activeTabMeta?.color}">
+                  html: `<div class="custom-marker" style="background:${activeTabMeta?.color}">
                            ${activeTabMeta?.emoji}
                          </div>`,
                   iconSize: [32, 32],
@@ -234,35 +260,47 @@ export default function FirstDayPage() {
               </Marker>
             ))}
 
-            {activeTab === 'route' && routePois.map((p, i) => (
+            {activeTab === 'route' && (staticData?.route ?? []).map((stop, i) => (
               <Marker
-                key={p.id}
-                position={[p.lat, p.lng]}
+                key={stop.order}
+                position={[stop.lat, stop.lng]}
                 icon={L.divIcon({
                   className: 'leaflet-custom-marker',
-                  html: `<div class="fd-pin fd-pin-route">${i + 1}</div>`,
+                  html: `<div class="custom-marker route-marker">${i + 1}</div>`,
                   iconSize: [32, 32],
                   iconAnchor: [16, 32],
                 })}
               >
-                <Popup><strong>{p.name}</strong></Popup>
+                <Popup><strong>{stop.name}</strong><br />{stop.address}</Popup>
               </Marker>
             ))}
           </MapContainer>
         </div>
       )}
 
-      <div className="fd-content">
-        {fetchError && (
-          <div className="fd-empty" style={{ padding: '20px', marginBottom: 16 }}>
-            <span>⚠️</span>
-            <p>{fetchError}</p>
-          </div>
-        )}
+      <div className="listSection">
         {(activeTab === 'sim' || activeTab === 'transport' || activeTab === 'exchange') && (
           <>
-            <div className="fd-search">
-              <svg className="fd-search-icon" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {activeTab === 'transport' && staticData?.transportCard && (
+              <div className="fd-transport-card">
+                <div className="fd-tc-header">
+                  <span className="fd-tc-name">🚇 {staticData.transportCard.name}</span>
+                  <span className="fd-tc-cost">{staticData.transportCard.cost}</span>
+                </div>
+                <div className="fd-tc-row">
+                  <span className="fd-tc-label">Nereden alınır</span>
+                  <span className="fd-tc-val">{staticData.transportCard.whereToBuy}</span>
+                </div>
+                <div className="fd-tc-row">
+                  <span className="fd-tc-label">Nasıl yüklenir</span>
+                  <span className="fd-tc-val">{staticData.transportCard.howToLoad}</span>
+                </div>
+                <div className="fd-tc-tip">💡 {staticData.transportCard.tip}</div>
+              </div>
+            )}
+
+            <div className="searchBar">
+              <svg style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -272,47 +310,48 @@ export default function FirstDayPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="fd-poi-list">
+
+            <div className="poiList">
               {filteredPois.length > 0 ? filteredPois.map(p => (
-                <div key={p.id} className="fd-poi-card">
-                  <div
-                    className="fd-poi-icon"
-                    style={{ background: (activeTabMeta?.color ?? '#3b82f6') + '1a' }}
-                  >
-                    {activeTabMeta?.emoji}
-                  </div>
-                  <div className="fd-poi-body">
-                    <div className="fd-poi-name">{p.name}</div>
-                    <div className="fd-poi-addr">📍 {p.address || 'Adres bilgisi yok'}</div>
-                    <div className="fd-poi-tags">
-                      {p.distance !== null && p.distance !== undefined && (
-                        <span className="fd-tag fd-tag-dist">
+                <div key={p.id} className="poiCard">
+                  <div className="poiInfo">
+                    <h3>{p.name}</h3>
+                    <div className="poiAddress">
+                      <span>📍</span>
+                      <span>{p.address || 'Adres bilgisi yok'}</span>
+                    </div>
+                    {p.tip && (
+                      <div className="fd-poi-tip">💡 {p.tip}</div>
+                    )}
+                    <div className="poiMeta">
+                      {p.distance != null && (
+                        <div className="metaItem distance">
                           {p.distance < 1
                             ? `${Math.round(p.distance * 1000)} m`
                             : `${p.distance.toFixed(1)} km`}
-                        </span>
+                        </div>
                       )}
-                      {p.openingHours
-                        ? <span className="fd-tag">{p.openingHours}</span>
-                        : <span className="fd-tag">Hergün Açık</span>
-                      }
+                      <div className="metaItem">
+                        {p.openingHours ?? 'Hergün Açık'}
+                      </div>
                     </div>
                   </div>
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="fd-maps-btn"
+                    className="googleMapsBtn"
                   >
-                    📍
+                    <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
                   </a>
                 </div>
               )) : (
-                <div className="fd-empty">
-                  <span>🔍</span>
-                  <p>{pois.length === 0 && !fetchError
-                    ? 'Bu şehir için SIM kart noktası henüz yüklenmemiş. Admin panelinden import edin.'
-                    : 'Sonuç bulunamadı.'}</p>
+                <div className="emptyState">
+                  <span className="icon">🔍</span>
+                  <p>Sonuç bulunamadı.</p>
                 </div>
               )}
             </div>
@@ -321,28 +360,32 @@ export default function FirstDayPage() {
 
         {activeTab === 'route' && (
           <div className="fd-route-section">
-            <div className="fd-section-label">Önerilen İlk Gün Rotası</div>
             <p className="fd-route-desc">
-              Şehri tanımak için hazırlanmış temel rota — kültür noktaları ve yemek durakları.
+              Şehri ilk günde tanımak için önerilen temel rota.
             </p>
-
-            {routePois.length === 0 ? (
-              <div className="fd-empty"><span>🗺️</span><p>Rota verisi yükleniyor...</p></div>
+            {(staticData?.route ?? []).length === 0 ? (
+              <div className="emptyState">
+                <span className="icon">🗺️</span>
+                <p>Bu şehir için henüz rota eklenmemiş.</p>
+              </div>
             ) : (
               <div className="fd-stops">
-                {routePois.map((p, i) => (
-                  <div key={p.id} className="fd-stop">
+                {(staticData?.route ?? []).map((stop, i) => (
+                  <div key={stop.order} className="fd-stop">
                     <div className="fd-stop-line">
-                      <div className={`fd-stop-num ${p.category === 'food' ? 'food' : 'culture'}`}>
+                      <div className={`fd-stop-num ${stop.category}`}>
                         {i + 1}
                       </div>
-                      {i < routePois.length - 1 && <div className="fd-stop-seg" />}
+                      {i < (staticData?.route.length ?? 0) - 1 && (
+                        <div className="fd-stop-seg" />
+                      )}
                     </div>
                     <div className="fd-stop-body">
-                      <div className="fd-stop-name">{p.name}</div>
-                      {p.address && <div className="fd-stop-addr">📍 {p.address}</div>}
-                      <span className={`fd-stop-chip ${p.category === 'food' ? 'food' : 'culture'}`}>
-                        {p.category === 'food' ? '🍽️ Yemek' : '🏛️ Kültür'}
+                      <div className="fd-stop-name">{stop.name}</div>
+                      <div className="fd-stop-addr">📍 {stop.address}</div>
+                      <div className="fd-poi-tip">💡 {stop.tip}</div>
+                      <span className={`fd-stop-chip ${stop.category}`}>
+                        {stop.category === 'food' ? '🍽️ Yemek' : '🏛️ Kültür'}
                       </span>
                     </div>
                   </div>
@@ -355,38 +398,55 @@ export default function FirstDayPage() {
         {activeTab === 'events' && (
           <div className="fd-events-section">
             <div className="fd-section-label">
-              Bugün · {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              {new Date().toLocaleDateString('tr-TR', {
+                weekday: 'long', day: 'numeric', month: 'long',
+              })}
             </div>
 
-            {cityEvents.length === 0 ? (
-              <div className="fd-empty">
-                <span>🎭</span>
-                <p>Bugün için kayıtlı etkinlik bulunamadı.</p>
-              </div>
-            ) : (
-              cityEvents.map(ev => {
-                const start = new Date(ev.startDate);
-                return (
-                  <div key={ev.id} className="fd-event-card">
-                    <div className="fd-event-date">
-                      <span className="fd-event-day">{start.getDate()}</span>
-                      <span className="fd-event-mon">
-                        {start.toLocaleDateString('tr-TR', { month: 'short' }).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="fd-event-body">
-                      <div className="fd-event-name">{ev.name}</div>
-                      {ev.location && <div className="fd-event-meta">📍 {ev.location}</div>}
-                      <div className="fd-event-meta">
-                        🕐 {start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                      {ev.description && (
-                        <div className="fd-event-desc">{ev.description}</div>
-                      )}
-                    </div>
+            {apiEvents.length > 0 && apiEvents.map(ev => {
+              const start = new Date(ev.startDate);
+              return (
+                <div key={ev.id} className="fd-event-card">
+                  <div className="fd-event-date">
+                    <span className="fd-event-day">{start.getDate()}</span>
+                    <span className="fd-event-mon">
+                      {start.toLocaleDateString('tr-TR', { month: 'short' }).toUpperCase()}
+                    </span>
                   </div>
-                );
-              })
+                  <div className="fd-event-body">
+                    <div className="fd-event-name">{ev.name}</div>
+                    {ev.location && <div className="fd-event-meta">📍 {ev.location}</div>}
+                    <div className="fd-event-meta">
+                      🕐 {start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    {ev.description && (
+                      <div className="fd-event-desc">{ev.description}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {(staticData?.events ?? []).map(ev => (
+              <div key={ev.id} className="fd-event-card fd-event-static">
+                <div className="fd-event-date">
+                  <span className="fd-event-emoji">🎫</span>
+                  <span className="fd-event-mon">{ev.category.slice(0, 4).toUpperCase()}</span>
+                </div>
+                <div className="fd-event-body">
+                  <div className="fd-event-name">{ev.name}</div>
+                  <div className="fd-event-meta">📍 {ev.location}</div>
+                  <div className="fd-event-meta">🕐 {ev.time}</div>
+                  {ev.tip && <div className="fd-poi-tip">💡 {ev.tip}</div>}
+                </div>
+              </div>
+            ))}
+
+            {apiEvents.length === 0 && (staticData?.events ?? []).length === 0 && (
+              <div className="emptyState">
+                <span className="icon">🎭</span>
+                <p>Bugün için etkinlik bulunamadı.</p>
+              </div>
             )}
           </div>
         )}

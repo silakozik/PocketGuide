@@ -467,3 +467,374 @@
     height: 180px;
   }
 }
+
+/* ── Legacy layout classes (FirstDayPage) ── */
+.firstDayRoot {
+  min-height: 100vh;
+  background: var(--bg, #f7f4ee);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--ink, #0f1f3d);
+  padding-bottom: 2rem;
+}
+
+.firstDayHeader {
+  background: #fff;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border, #dde3f0);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.backBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #dde3f0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: var(--muted, #6b7a99);
+  cursor: pointer;
+  transition: 0.15s;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.backBtn:hover {
+  background: var(--surface, #f2f5fb);
+}
+
+.headerTitle h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ink, #0f1f3d);
+}
+
+.headerTitle p {
+  font-size: 12px;
+  color: var(--muted, #6b7a99);
+  margin: 0;
+}
+
+.tabsContainer {
+  display: flex;
+  padding: 10px 20px;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: #fff;
+  border-bottom: 1px solid var(--border, #dde3f0);
+}
+
+.tabsContainer::-webkit-scrollbar {
+  display: none;
+}
+
+.tabBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid transparent;
+  background: var(--surface, #f2f5fb);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted, #6b7a99);
+  white-space: nowrap;
+  transition: 0.15s;
+}
+
+.tabBtn .icon {
+  font-size: 15px;
+}
+
+.tabBtn.active {
+  background: #fff;
+  border-color: var(--tab-color, #3b82f6);
+  color: var(--tab-color, #3b82f6);
+}
+
+.miniMapContainer {
+  height: 220px;
+  width: 100%;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border, #dde3f0);
+}
+
+.miniMap {
+  height: 100%;
+  width: 100%;
+}
+
+.listSection {
+  padding: 20px 24px 80px;
+}
+
+.searchBar {
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.searchBar input {
+  width: 100%;
+  padding: 11px 11px 11px 40px;
+  border-radius: 14px;
+  border: 1px solid var(--border, #dde3f0);
+  background: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: 0.18s;
+  font-family: inherit;
+  color: var(--ink, #0f1f3d);
+}
+
+.searchBar input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.poiList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.poiCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px;
+  border: 1px solid var(--border, #dde3f0);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: 0.15s;
+}
+
+.poiCard:hover {
+  box-shadow: 0 4px 16px rgba(15, 31, 61, 0.07);
+}
+
+.poiInfo {
+  flex: 1;
+}
+
+.poiInfo h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 3px;
+  color: var(--ink, #0f1f3d);
+}
+
+.poiAddress {
+  font-size: 12px;
+  color: var(--muted, #6b7a99);
+  margin-bottom: 6px;
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.poiMeta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.metaItem {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 7px;
+  background: var(--surface, #f2f5fb);
+  color: var(--muted, #6b7a99);
+}
+
+.metaItem.distance {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.googleMapsBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--ink, #0f1f3d);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-decoration: none;
+  transition: 0.15s;
+}
+
+.googleMapsBtn:hover {
+  background: var(--ink2, #1a3560);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted, #6b7a99);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.emptyState .icon {
+  font-size: 40px;
+}
+
+.emptyState p {
+  font-size: 14px;
+  margin: 0;
+}
+
+.custom-marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  color: #fff;
+}
+
+/* ── New FirstDay additions ── */
+.fd-fallback-banner {
+  background: #fff8e0;
+  border-bottom: 1px solid #f0d870;
+  padding: 8px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a07020;
+}
+
+.fd-transport-card {
+  background: #fff;
+  border: 1px solid #dde3f0;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-top: 3px solid #10b981;
+}
+
+.fd-tc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.fd-tc-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f1f3d;
+}
+
+.fd-tc-cost {
+  font-size: 13px;
+  font-weight: 700;
+  color: #10b981;
+  background: #ecfdf5;
+  padding: 3px 8px;
+  border-radius: 7px;
+}
+
+.fd-tc-row {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f2f8;
+}
+
+.fd-tc-row:last-of-type {
+  border-bottom: none;
+}
+
+.fd-tc-label {
+  font-size: 11px;
+  color: #6b7a99;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.fd-tc-val {
+  font-size: 13px;
+  color: #0f1f3d;
+}
+
+.fd-tc-tip {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #6b7a99;
+  background: #f7f9ff;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.fd-poi-tip {
+  font-size: 12px;
+  color: #6b7a99;
+  margin: 4px 0 6px;
+  font-style: italic;
+}
+
+.fd-route-section {
+  padding: 0;
+}
+
+.fd-event-static {
+  border-left: 3px solid #e8b84b;
+}
+
+.fd-event-emoji {
+  font-size: 22px;
+}
+
+.fd-event-body {
+  flex: 1;
+}
+
+.fd-events-section {
+  padding: 0;
+}
+
+.route-marker {
+  background: #0f1f3d !important;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 768px) {
+  .firstDayHeader {
+    padding: 12px 16px;
+  }
+
+  .tabsContainer {
+    padding: 8px 16px;
+  }
+
+  .listSection {
+    padding: 16px 16px 60px;
+  }
+
+  .miniMapContainer {
+    height: 180px;
+  }
+}
