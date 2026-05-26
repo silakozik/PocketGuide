@@ -10,16 +10,16 @@ import { presets } from "@/src/theme/presets";
 import { theme } from "@/src/theme/tokens";
 
 const CITIES = [
-  { name: "Paris", country: "Fransa", emoji: "🗼", bg: "#667eea" },
-  { name: "Tokyo", country: "Japonya", emoji: "🏯", bg: "#e74c3c" },
-  { name: "New York", country: "ABD", emoji: "🗽", bg: "#2193b0" },
-  { name: "Londra", country: "İngiltere", emoji: "🎡", bg: "#536976" },
-  { name: "Roma", country: "İtalya", emoji: "🏛️", bg: "#c79081" },
-  { name: "Barcelona", country: "İspanya", emoji: "🌊", bg: "#f7971e" },
-  { name: "Dubai", country: "BAE", emoji: "🏙️", bg: "#d4a574" },
-  { name: "Amsterdam", country: "Hollanda", emoji: "🚲", bg: "#f46b45" },
-  { name: "Sydney", country: "Avustralya", emoji: "🦘", bg: "#11998e" },
-  { name: "İstanbul", country: "Türkiye", emoji: "🕌", bg: "#4facfe" },
+  { name: "Paris", country: "Fransa", slug: "paris", emoji: "🗼", bg: "#667eea" },
+  { name: "Tokyo", country: "Japonya", slug: "tokyo", emoji: "🏯", bg: "#e74c3c" },
+  { name: "New York", country: "ABD", slug: "new-york", emoji: "🗽", bg: "#2193b0" },
+  { name: "Londra", country: "İngiltere", slug: "londra", emoji: "🎡", bg: "#536976" },
+  { name: "Roma", country: "İtalya", slug: "roma", emoji: "🏛️", bg: "#c79081" },
+  { name: "Barcelona", country: "İspanya", slug: "barcelona", emoji: "🌊", bg: "#f7971e" },
+  { name: "Dubai", country: "BAE", slug: "dubai", emoji: "🏙️", bg: "#d4a574" },
+  { name: "Amsterdam", country: "Hollanda", slug: "amsterdam", emoji: "🚲", bg: "#f46b45" },
+  { name: "Sydney", country: "Avustralya", slug: "sydney", emoji: "🦘", bg: "#11998e" },
+  { name: "İstanbul", country: "Türkiye", slug: "istanbul", emoji: "🕌", bg: "#4facfe" },
 ] as const;
 
 export default function HomeTabScreen() {
@@ -87,7 +87,11 @@ export default function HomeTabScreen() {
           contentContainerStyle={styles.citiesScroll}
         >
           {CITIES.map((city) => (
-            <Pressable key={city.name} style={styles.cityCard}>
+            <Pressable
+              key={city.name}
+              style={styles.cityCard}
+              onPress={() => router.push(`/${city.slug}` as never)}
+            >
               <View style={[styles.cityCardImg, { backgroundColor: city.bg }]}>
                 <Text style={styles.cityCardEmoji}>{city.emoji}</Text>
               </View>

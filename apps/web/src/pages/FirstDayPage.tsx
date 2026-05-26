@@ -14,21 +14,33 @@ interface POI {
   address: string | null;
   lat: number;
   lng: number;
+  openingHours?: string;
 }
 
 interface City {
   id: string;
   nameEn: string;
+  nameTr: string;
   slug: string;
 }
 
-const CATEGORIES = [
-  { id: 'sim', label: 'SIM Kart', icon: '📱', color: '#3b82f6', className: 'sim' },
-  { id: 'transport_card', label: 'Ulaşım', icon: '🚇', color: '#10b981', className: 'transport' },
-  { id: 'exchange', label: 'Döviz', icon: '💱', color: '#f59e0b', className: 'exchange' },
+interface CityEvent {
+  id: string;
+  name: string;
+  description: string | null;
+  location: string | null;
+  startDate: string;
+  endDate: string;
+}
+
+const TABS = [
+  { id: 'sim', label: 'SIM Kart', emoji: '📱', color: '#3b82f6', adaptCategory: 'sim' },
+  { id: 'transport', label: 'Ulaşım Kartı', emoji: '🚇', color: '#10b981', adaptCategory: 'transport_card' },
+  { id: 'exchange', label: 'Döviz', emoji: '💱', color: '#f59e0b', adaptCategory: 'exchange' },
+  { id: 'route', label: 'İlk Gün Rotası', emoji: '🗺️', color: '#8b5cf6', adaptCategory: null },
+  { id: 'events', label: 'Bugünkü Etkinlikler', emoji: '🎭', color: '#e8c547', adaptCategory: null },
 ];
 
-// Helper to calculate distance in KM
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -40,7 +52,6 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * c;
 }
 
-// Map Updater Component to center map when data changes
 function ChangeView({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
@@ -54,184 +65,281 @@ export default function FirstDayPage() {
   const [activeTab, setActiveTab] = useState('sim');
   const [city, setCity] = useState<City | null>(null);
   const [pois, setPois] = useState<POI[]>([]);
+  const [routePois, setRoutePois] = useState<POI[]>([]);
+  const [cityEvents, setCityEvents] = useState<CityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  // 1. Get User Location
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        },
-        (err) => console.log('Location denied', err)
-      );
-    }
+    navigator.geolocation?.getCurrentPosition(
+      (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+    );
   }, []);
 
-  // 2. Fetch City and POIs
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch from new Adaptation API
-        const res = await fetch(`${API}/api/adaptation/${citySlug}`);
-        const result = await res.json();
-        
-        setCity(result.city);
-        setPois(result.data);
-      } catch (err) {
-        console.error('Fetch error:', err);
-      } finally {
-        setLoading(false);
+    if (!citySlug) return;
+    setLoading(true);
+    Promise.all([
+      fetch(`${API}/api/adaptation/${citySlug}`).then(r => r.json()),
+      fetch(`${API}/api/pois/city/${citySlug}?category=culture`).then(r => r.json()),
+      fetch(`${API}/api/pois/city/${citySlug}?category=food`).then(r => r.json()),
+      fetch(`${API}/api/events/city/${citySlug}`).then(r => r.json()).catch(() => ({ data: [] })),
+    ]).then(([adapt, culture, food, evts]) => {
+      if (adapt.city) {
+        setCity({
+          id: adapt.city.id,
+          nameEn: adapt.city.nameEn,
+          nameTr: adapt.city.nameTr ?? adapt.city.name,
+          slug: adapt.city.slug,
+        });
       }
-    };
-
-    if (citySlug) fetchData();
+      setPois(adapt.data || []);
+      const cultureList = (culture.data || []).slice(0, 3).map((p: POI) => ({ ...p, category: 'culture' }));
+      const foodList = (food.data || []).slice(0, 2).map((p: POI) => ({ ...p, category: 'food' }));
+      setRoutePois([...cultureList, ...foodList]);
+      setCityEvents(evts.data || []);
+    }).catch(console.error)
+      .finally(() => setLoading(false));
   }, [citySlug]);
 
-  // 3. Filter and Sort
+  const activeAdaptCategory = TABS.find(t => t.id === activeTab)?.adaptCategory;
+
   const filteredPois = useMemo(() => {
+    if (!activeAdaptCategory) return [];
     return pois
-      .filter(p => p.category === activeTab)
+      .filter(p => p.category === activeAdaptCategory)
       .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .map(p => ({
         ...p,
-        distance: userLocation ? getDistance(userLocation.lat, userLocation.lng, p.lat, p.lng) : null
+        distance: userLocation
+          ? getDistance(userLocation.lat, userLocation.lng, p.lat, p.lng)
+          : null,
       }))
-      .sort((a, b) => (a.distance || 9999) - (b.distance || 9999));
-  }, [pois, activeTab, searchQuery, userLocation]);
+      .sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999));
+  }, [pois, activeAdaptCategory, searchQuery, userLocation]);
 
-  // Map markers for the current category
   const activeMarkers = useMemo(() => {
-    return pois.filter(p => p.category === activeTab);
-  }, [pois, activeTab]);
+    if (activeTab === 'route') return routePois;
+    if (!activeAdaptCategory) return [];
+    return pois.filter(p => p.category === activeAdaptCategory);
+  }, [pois, routePois, activeTab, activeAdaptCategory]);
 
-  const mapCenter = useMemo(() => {
-    if (activeMarkers.length > 0) {
-      return [activeMarkers[0].lat, activeMarkers[0].lng] as [number, number];
-    }
-    return [41.0082, 28.9784] as [number, number]; // Default to Istanbul if no data
+  const mapCenter = useMemo((): [number, number] => {
+    if (activeMarkers.length > 0) return [activeMarkers[0].lat, activeMarkers[0].lng];
+    return [41.0082, 28.9784];
   }, [activeMarkers]);
+
+  const activeTabMeta = TABS.find(t => t.id === activeTab);
 
   if (loading && !city) {
     return (
-      <div className="firstDayRoot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="fd-loading">
         <p>Yükleniyor...</p>
       </div>
     );
   }
 
   return (
-    <div className="firstDayRoot">
-      {/* Header */}
-      <header className="firstDayHeader">
-        <Link to="/map" className="backBtn">
+    <div className="fd-root">
+      <header className="fd-header">
+        <Link to={`/${citySlug}`} className="fd-back-btn">
           <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <div className="headerTitle">
-          <h1>{city?.nameEn || 'Şehir Rehberi'}</h1>
-          <p>İlk Gün İhtiyaçları</p>
+        <div className="fd-header-info">
+          <h1>{city?.nameTr || city?.nameEn || 'Şehir Rehberi'}</h1>
+          <p>Şehre ilk adımın için her şey burada</p>
         </div>
       </header>
 
-      {/* Mini Map */}
-      <div className="miniMapContainer">
-        <MapContainer center={mapCenter} zoom={13} className="miniMap" zoomControl={false}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <ChangeView center={mapCenter} />
-          {activeMarkers.map(p => (
-            <Marker 
-              key={p.id} 
-              position={[p.lat, p.lng]}
-              icon={L.divIcon({
-                className: 'leaflet-custom-marker',
-                html: `<div class="custom-marker" style="background: ${CATEGORIES.find(c => c.id === p.category)?.color}">
-                        <i>${CATEGORIES.find(c => c.id === p.category)?.icon}</i>
-                      </div>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 30]
-              })}
-            >
-              <Popup>
-                <strong>{p.name}</strong><br/>
-                {p.address}
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
-      </div>
-
-      {/* Tabs */}
-      <div className="tabsContainer">
-        {CATEGORIES.map(cat => (
-          <button 
-            key={cat.id}
-            className={`tabBtn ${cat.className} ${activeTab === cat.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(cat.id)}
+      <div className="fd-tabs">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            className={`fd-tab ${activeTab === tab.id ? 'active' : ''}`}
+            style={{ '--tab-color': tab.color } as React.CSSProperties}
+            onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }}
           >
-            <span className="icon">{cat.icon}</span>
-            <span className="label">{cat.label}</span>
+            <span className="fd-tab-dot" />
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {/* List Section */}
-      <div className="listSection">
-        <div className="searchBar">
-          <svg style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input 
-            type="text" 
-            placeholder="İsime göre ara..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      {activeTab !== 'events' && (
+        <div className="fd-map-container">
+          <MapContainer center={mapCenter} zoom={14} className="fd-map" zoomControl={false}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <ChangeView center={mapCenter} />
 
-        <div className="poiList">
-          {filteredPois.length > 0 ? (
-            filteredPois.map(p => (
-              <div key={p.id} className="poiCard">
-                <div className="poiInfo">
-                  <h3>{p.name}</h3>
-                  <div className="poiAddress">
-                    <span>📍</span>
-                    <span>{p.address || 'Adres bilgisi yok'}</span>
-                  </div>
-                  <div className="poiMeta">
-                    {p.distance !== null && (
-                      <div className="metaItem distance">
-                        {p.distance < 1 ? `${Math.round(p.distance * 1000)} m` : `${p.distance.toFixed(1)} km`}
-                      </div>
-                    )}
-                    <div className="metaItem">Hergün Açık</div>
-                  </div>
-                </div>
-                <a 
-                  href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="googleMapsBtn"
-                >
-                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </a>
-              </div>
-            ))
-          ) : (
-            <div className="emptyState">
-              <span className="icon">🔍</span>
-              <p>Sonuç bulunamadı.</p>
-            </div>
-          )}
+            {activeTab !== 'route' && activeMarkers.map(p => (
+              <Marker
+                key={p.id}
+                position={[p.lat, p.lng]}
+                icon={L.divIcon({
+                  className: 'leaflet-custom-marker',
+                  html: `<div class="fd-pin" style="background:${activeTabMeta?.color}">
+                           ${activeTabMeta?.emoji}
+                         </div>`,
+                  iconSize: [32, 32],
+                  iconAnchor: [16, 32],
+                })}
+              >
+                <Popup><strong>{p.name}</strong><br />{p.address}</Popup>
+              </Marker>
+            ))}
+
+            {activeTab === 'route' && routePois.map((p, i) => (
+              <Marker
+                key={p.id}
+                position={[p.lat, p.lng]}
+                icon={L.divIcon({
+                  className: 'leaflet-custom-marker',
+                  html: `<div class="fd-pin fd-pin-route">${i + 1}</div>`,
+                  iconSize: [32, 32],
+                  iconAnchor: [16, 32],
+                })}
+              >
+                <Popup><strong>{p.name}</strong></Popup>
+              </Marker>
+            ))}
+          </MapContainer>
         </div>
+      )}
+
+      <div className="fd-content">
+        {(activeTab === 'sim' || activeTab === 'transport' || activeTab === 'exchange') && (
+          <>
+            <div className="fd-search">
+              <svg className="fd-search-icon" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="İsime göre ara..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="fd-poi-list">
+              {filteredPois.length > 0 ? filteredPois.map(p => (
+                <div key={p.id} className="fd-poi-card">
+                  <div
+                    className="fd-poi-icon"
+                    style={{ background: (activeTabMeta?.color ?? '#3b82f6') + '1a' }}
+                  >
+                    {activeTabMeta?.emoji}
+                  </div>
+                  <div className="fd-poi-body">
+                    <div className="fd-poi-name">{p.name}</div>
+                    <div className="fd-poi-addr">📍 {p.address || 'Adres bilgisi yok'}</div>
+                    <div className="fd-poi-tags">
+                      {p.distance !== null && p.distance !== undefined && (
+                        <span className="fd-tag fd-tag-dist">
+                          {p.distance < 1
+                            ? `${Math.round(p.distance * 1000)} m`
+                            : `${p.distance.toFixed(1)} km`}
+                        </span>
+                      )}
+                      {p.openingHours
+                        ? <span className="fd-tag">{p.openingHours}</span>
+                        : <span className="fd-tag">Hergün Açık</span>
+                      }
+                    </div>
+                  </div>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="fd-maps-btn"
+                  >
+                    📍
+                  </a>
+                </div>
+              )) : (
+                <div className="fd-empty">
+                  <span>🔍</span>
+                  <p>Sonuç bulunamadı.</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {activeTab === 'route' && (
+          <div className="fd-route-section">
+            <div className="fd-section-label">Önerilen İlk Gün Rotası</div>
+            <p className="fd-route-desc">
+              Şehri tanımak için hazırlanmış temel rota — kültür noktaları ve yemek durakları.
+            </p>
+
+            {routePois.length === 0 ? (
+              <div className="fd-empty"><span>🗺️</span><p>Rota verisi yükleniyor...</p></div>
+            ) : (
+              <div className="fd-stops">
+                {routePois.map((p, i) => (
+                  <div key={p.id} className="fd-stop">
+                    <div className="fd-stop-line">
+                      <div className={`fd-stop-num ${p.category === 'food' ? 'food' : 'culture'}`}>
+                        {i + 1}
+                      </div>
+                      {i < routePois.length - 1 && <div className="fd-stop-seg" />}
+                    </div>
+                    <div className="fd-stop-body">
+                      <div className="fd-stop-name">{p.name}</div>
+                      {p.address && <div className="fd-stop-addr">📍 {p.address}</div>}
+                      <span className={`fd-stop-chip ${p.category === 'food' ? 'food' : 'culture'}`}>
+                        {p.category === 'food' ? '🍽️ Yemek' : '🏛️ Kültür'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'events' && (
+          <div className="fd-events-section">
+            <div className="fd-section-label">
+              Bugün · {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+
+            {cityEvents.length === 0 ? (
+              <div className="fd-empty">
+                <span>🎭</span>
+                <p>Bugün için kayıtlı etkinlik bulunamadı.</p>
+              </div>
+            ) : (
+              cityEvents.map(ev => {
+                const start = new Date(ev.startDate);
+                return (
+                  <div key={ev.id} className="fd-event-card">
+                    <div className="fd-event-date">
+                      <span className="fd-event-day">{start.getDate()}</span>
+                      <span className="fd-event-mon">
+                        {start.toLocaleDateString('tr-TR', { month: 'short' }).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="fd-event-body">
+                      <div className="fd-event-name">{ev.name}</div>
+                      {ev.location && <div className="fd-event-meta">📍 {ev.location}</div>}
+                      <div className="fd-event-meta">
+                        🕐 {start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      {ev.description && (
+                        <div className="fd-event-desc">{ev.description}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

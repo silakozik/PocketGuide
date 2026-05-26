@@ -13,6 +13,7 @@ import AdminGuard from "./components/admin/AdminGuard";
 import AuthGuard from "./components/AuthGuard";
 import { AuthProvider } from "./context/AuthContext";
 import FirstDayPage from "./pages/FirstDayPage";
+import CityHubPage from "./pages/CityHubPage";
 import TransfersPage from "./pages/TransfersPage";
 
 
@@ -58,6 +59,7 @@ export default function App() {
               }
             />
           <Route path="/:citySlug/first-day" element={<FirstDayPage />} />
+          <Route path="/:citySlug" element={<CityHubPage />} />
           <Route path="/transfer" element={<TransfersPage />} />
 
 
