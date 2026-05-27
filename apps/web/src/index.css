@@ -351,14 +351,16 @@ nav {
 
 .map-bottom-sheet {
   position: absolute;
-  bottom: 0; left: 0; right: 0;
+  left: 24px;
+  bottom: 24px;
+  width: min(360px, calc(100vw - 48px));
   z-index: 2000;
   background: white;
-  border-radius: 20px 20px 0 0;
-  border-top: 1px solid #e2e8f0;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
   padding: 0 16px 24px;
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
-  max-height: 50vh;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  max-height: 62vh;
   overflow-y: auto;
 }
 
@@ -517,6 +519,18 @@ nav {
   .map-top-bar { top: 12px; left: 12px; right: 12px; gap: 8px; }
   .map-back-btn, .map-locate-btn { width: 40px; height: 40px; }
   .map-search-input-row { height: 40px; }
+  .map-bottom-sheet {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    border-radius: 20px 20px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    max-height: 50vh;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
+  }
 }
 
 /* â”€â”€â”€ HERO â”€â”€â”€ */

@@ -67,6 +67,7 @@ interface PocketGuideMapProps {
   categoryFilter?: string;
   searchQuery?: string;
   showPins?: boolean;
+  showLayerToggle?: boolean;
   forcedCenter?: { lat: number; lng: number };
   searchMarker?: { lat: number; lng: number };
   onMapCenterChange?: (lat: number, lng: number) => void;
@@ -76,6 +77,7 @@ export function PocketGuideMap({
   categoryFilter = "all",
   searchQuery = "",
   showPins = true,
+  showLayerToggle = true,
   forcedCenter,
   searchMarker,
   onMapCenterChange,
@@ -245,7 +247,7 @@ export function PocketGuideMap({
         onMapCenterChange={onMapCenterChange}
       />
 
-      <LayerToggle layers={layers} onChange={handleLayerChange} />
+      {showLayerToggle && <LayerToggle layers={layers} onChange={handleLayerChange} />}
 
       {showPins && (
         <POICard

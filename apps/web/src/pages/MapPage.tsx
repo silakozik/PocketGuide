@@ -300,6 +300,7 @@ function MapPageContent() {
               categoryFilter="all"
               searchQuery=""
               showPins={false}
+              showLayerToggle={false}
               forcedCenter={flyTarget}
               searchMarker={
                 selectedResult
