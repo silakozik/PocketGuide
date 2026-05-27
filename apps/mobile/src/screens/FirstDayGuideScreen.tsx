@@ -84,7 +84,9 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
       fetch(`${apiBaseUrl()}/api/adaptation/${citySlug}`).then((r) => r.json()),
       fetch(`${apiBaseUrl()}/api/pois/city/${citySlug}?category=culture`).then((r) => r.json()),
       fetch(`${apiBaseUrl()}/api/pois/city/${citySlug}?category=food`).then((r) => r.json()),
-      fetch(`${apiBaseUrl()}/api/events/city/${citySlug}`).then((r) => r.json()).catch(() => ({ data: [] })),
+      fetch(`${apiBaseUrl()}/api/events/city/${citySlug}?days=2`)
+        .then((r) => r.json())
+        .catch(() => ({ days: [] })),
     ])
       .then(([adapt, culture, food, evts]) => {
         if (!mounted) return;
@@ -92,7 +94,8 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
         const cultureList = (culture?.data ?? []).slice(0, 3).map((p: any) => ({ ...p, category: "culture" }));
         const foodList = (food?.data ?? []).slice(0, 2).map((p: any) => ({ ...p, category: "food" }));
         setRoutePois([...(cultureList as POI[]), ...(foodList as POI[])]);
-        setCityEvents((evts?.data ?? []) as CityEvent[]);
+        const days = (evts?.days ?? []) as { data?: CityEvent[] }[];
+        setCityEvents(days.flatMap((d) => d.data ?? []) as CityEvent[]);
       })
       .catch(() => {
         if (!mounted) return;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -38,13 +38,121 @@ interface ApiPOI {
   openingHours?: string;
 }
 
-interface ApiEvent {
+interface CityEvent {
   id: string;
   name: string;
   description: string | null;
   location: string | null;
+  address: string | null;
   startDate: string;
   endDate: string;
+  category: string;
+  imageUrl: string | null;
+  ticketUrl: string | null;
+  priceMin: number | null;
+  priceMax: number | null;
+  currency: string | null;
+  source: 'ticketmaster' | 'manual';
+  eventDate?: string;
+}
+
+interface EventDayGroup {
+  date: string;
+  events: CityEvent[];
+}
+
+function toLocalDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function addDays(d: Date, n: number): Date {
+  const next = new Date(d);
+  next.setDate(next.getDate() + n);
+  return next;
+}
+
+function getDaySectionTitle(dateKey: string): string {
+  const todayKey = toLocalDateKey(new Date());
+  const tomorrowKey = toLocalDateKey(addDays(new Date(), 1));
+  const d = new Date(`${dateKey}T12:00:00`);
+  const formatted = d.toLocaleDateString('tr-TR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+  if (dateKey === todayKey) return `Bugün · ${formatted}`;
+  if (dateKey === tomorrowKey) return `Yarın · ${formatted}`;
+  return formatted;
+}
+
+function EventCard({ ev }: { ev: CityEvent }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const start = new Date(ev.startDate);
+  const onImgError = useCallback(() => setImgFailed(true), []);
+
+  return (
+    <div className="fd-event-card">
+      {ev.imageUrl && !imgFailed && (
+        <img
+          src={ev.imageUrl}
+          alt=""
+          className="fd-event-img"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          onError={onImgError}
+        />
+      )}
+      <div className="fd-event-date">
+        <span className="fd-event-day">{start.getDate()}</span>
+        <span className="fd-event-mon">
+          {start.toLocaleDateString('tr-TR', { month: 'short' }).toUpperCase()}
+        </span>
+      </div>
+      <div className="fd-event-body">
+        <div className="fd-event-header">
+          <div className="fd-event-name">{ev.name}</div>
+          {ev.source === 'ticketmaster' && (
+            <span className="fd-tm-badge">TM</span>
+          )}
+        </div>
+        {ev.location && (
+          <div className="fd-event-meta">📍 {ev.location}</div>
+        )}
+        <div className="fd-event-meta">
+          🕐 {start.toLocaleTimeString('tr-TR', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </div>
+        {ev.category && (
+          <span className="fd-event-cat">{ev.category}</span>
+        )}
+        {ev.priceMin != null && (
+          <div className="fd-event-price">
+            🎟️ {ev.priceMin === ev.priceMax
+              ? `${ev.priceMin} ${ev.currency ?? ''}`
+              : `${ev.priceMin}–${ev.priceMax} ${ev.currency ?? ''}`}
+          </div>
+        )}
+        {ev.ticketUrl && (
+          <a
+            href={ev.ticketUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fd-ticket-btn"
+          >
+            Bilet Al →
+          </a>
+        )}
+        {ev.description && (
+          <div className="fd-event-desc">{ev.description}</div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 interface NormalizedPOI {
@@ -142,7 +250,7 @@ export default function FirstDayPage() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([41.0082, 28.9784]);
   const [poisNorm, setPoisNorm] = useState<NormalizedPOI[]>([]);
   const [staticData, setStaticData] = useState<CityStaticData | null>(null);
-  const [apiEvents, setApiEvents] = useState<ApiEvent[]>([]);
+  const [eventDays, setEventDays] = useState<EventDayGroup[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
@@ -168,7 +276,9 @@ export default function FirstDayPage() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       }),
-      fetch(`${API}/api/events/city/${citySlug}`).then(r => r.json()).catch(() => ({ data: [] })),
+      fetch(`${API}/api/events/city/${citySlug}?days=2`)
+        .then(r => r.json())
+        .catch(() => ({ days: [] })),
     ])
       .then(([adaptResult, eventsResult]) => {
         const apiPois = (adaptResult.data ?? []) as ApiPOI[];
@@ -190,7 +300,10 @@ export default function FirstDayPage() {
         if (adaptResult.city?.nameTr || adaptResult.city?.nameEn) {
           setCityName(adaptResult.city.nameTr ?? adaptResult.city.nameEn);
         }
-        setApiEvents(eventsResult.data ?? []);
+        const days = (eventsResult.days ?? []) as { date: string; data: CityEvent[] }[];
+        setEventDays(
+          days.map(d => ({ date: d.date, events: d.data ?? [] })),
+        );
       })
       .catch(() => {
         if (sd) {
@@ -201,7 +314,7 @@ export default function FirstDayPage() {
           setFallbackCategories([]);
         }
         setUsingFallback(true);
-        setApiEvents([]);
+        setEventDays([]);
       })
       .finally(() => setLoading(false));
   }, [citySlug]);
@@ -445,55 +558,61 @@ export default function FirstDayPage() {
 
         {activeTab === 'events' && (
           <div className="fd-events-section">
-            <div className="fd-section-label">
-              {new Date().toLocaleDateString('tr-TR', {
-                weekday: 'long', day: 'numeric', month: 'long',
-              })}
-            </div>
-
-            {apiEvents.length > 0 && apiEvents.map(ev => {
-              const start = new Date(ev.startDate);
-              return (
-                <div key={ev.id} className="fd-event-card">
-                  <div className="fd-event-date">
-                    <span className="fd-event-day">{start.getDate()}</span>
-                    <span className="fd-event-mon">
-                      {start.toLocaleDateString('tr-TR', { month: 'short' }).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="fd-event-body">
-                    <div className="fd-event-name">{ev.name}</div>
-                    {ev.location && <div className="fd-event-meta">📍 {ev.location}</div>}
-                    <div className="fd-event-meta">
-                      🕐 {start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+            {eventDays.map((day, idx) => (
+              <div key={day.date} className="fd-events-day-block">
+                <div className="fd-section-label">
+                  {getDaySectionTitle(day.date)}
+                </div>
+                {day.events.length > 0 ? (
+                  day.events.map(ev => <EventCard key={ev.id} ev={ev} />)
+                ) : (
+                  <p className="fd-events-day-empty">
+                    Bu gün için etkinlik bulunamadı.
+                  </p>
+                )}
+                {idx === 0 && (staticData?.events ?? []).map(ev => (
+                  <div key={ev.id} className="fd-event-card fd-event-static">
+                    <div className="fd-event-date">
+                      <span className="fd-event-emoji">🎫</span>
+                      <span className="fd-event-mon">{ev.category.slice(0, 4).toUpperCase()}</span>
                     </div>
-                    {ev.description && (
-                      <div className="fd-event-desc">{ev.description}</div>
-                    )}
+                    <div className="fd-event-body">
+                      <div className="fd-event-name">{ev.name}</div>
+                      <div className="fd-event-meta">📍 {ev.location}</div>
+                      <div className="fd-event-meta">🕐 {ev.time}</div>
+                      {ev.tip && <div className="fd-poi-tip">💡 {ev.tip}</div>}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-
-            {(staticData?.events ?? []).map(ev => (
-              <div key={ev.id} className="fd-event-card fd-event-static">
-                <div className="fd-event-date">
-                  <span className="fd-event-emoji">🎫</span>
-                  <span className="fd-event-mon">{ev.category.slice(0, 4).toUpperCase()}</span>
-                </div>
-                <div className="fd-event-body">
-                  <div className="fd-event-name">{ev.name}</div>
-                  <div className="fd-event-meta">📍 {ev.location}</div>
-                  <div className="fd-event-meta">🕐 {ev.time}</div>
-                  {ev.tip && <div className="fd-poi-tip">💡 {ev.tip}</div>}
-                </div>
+                ))}
               </div>
             ))}
 
-            {apiEvents.length === 0 && (staticData?.events ?? []).length === 0 && (
+            {eventDays.length === 0 && (staticData?.events ?? []).length === 0 && (
               <div className="emptyState">
                 <span className="icon">🎭</span>
-                <p>Bugün için etkinlik bulunamadı.</p>
+                <p>Bugün ve yarın için etkinlik bulunamadı.</p>
+              </div>
+            )}
+
+            {eventDays.length === 0 && (staticData?.events ?? []).length > 0 && (
+              <div className="fd-events-day-block">
+                <div className="fd-section-label">
+                  {getDaySectionTitle(toLocalDateKey(new Date()))}
+                </div>
+                {(staticData?.events ?? []).map(ev => (
+                  <div key={ev.id} className="fd-event-card fd-event-static">
+                    <div className="fd-event-date">
+                      <span className="fd-event-emoji">🎫</span>
+                      <span className="fd-event-mon">{ev.category.slice(0, 4).toUpperCase()}</span>
+                    </div>
+                    <div className="fd-event-body">
+                      <div className="fd-event-name">{ev.name}</div>
+                      <div className="fd-event-meta">📍 {ev.location}</div>
+                      <div className="fd-event-meta">🕐 {ev.time}</div>
+                      {ev.tip && <div className="fd-poi-tip">💡 {ev.tip}</div>}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

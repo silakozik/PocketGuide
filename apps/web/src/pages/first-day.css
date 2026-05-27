@@ -418,6 +418,72 @@
   border-top: 1px solid var(--border);
 }
 
+.fd-event-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.fd-event-header .fd-event-name {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.fd-tm-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  background: #026cdf;
+  padding: 2px 6px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.fd-event-cat {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f0f2f8;
+  color: #6b7a99;
+  margin: 4px 0;
+}
+
+.fd-event-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: #10b981;
+  margin-top: 4px;
+}
+
+.fd-ticket-btn {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #026cdf;
+  background: #eff6ff;
+  padding: 5px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.fd-ticket-btn:hover {
+  background: #dbeafe;
+}
+
+.fd-event-img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
 /* Empty state */
 .fd-empty {
   text-align: center;
@@ -812,6 +878,21 @@
 
 .fd-events-section {
   padding: 0;
+}
+
+.fd-events-day-block {
+  margin-bottom: 24px;
+}
+
+.fd-events-day-block:last-child {
+  margin-bottom: 0;
+}
+
+.fd-events-day-empty {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 12px;
+  padding: 0 4px;
 }
 
 .route-marker {
