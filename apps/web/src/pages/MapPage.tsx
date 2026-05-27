@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Nav } from "../components/Nav";
 import { PocketGuideMap } from "../components/map/PocketGuideMap";
-import { AIAssistant } from "../components/AIAssistant";
 import { RouteProvider } from "../context/RouteContext";
+import { useAIAssistant } from "../context/AIAssistantContext";
 import { useRoute } from "../context/RouteContext";
 import { SyncManagerProvider } from "../context/SyncManagerContext";
 import { DirectionsPanel } from "../components/navigation/DirectionsPanel";
@@ -73,6 +74,7 @@ function MapPageContent() {
   const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
   const [activeSheet, setActiveSheet] = useState<"route" | "nearby" | "firstday">("route");
   const { addToRouteDraft, removeFromRouteDraft, startRoute, isFetching, error } = useRoute();
+  const { setCoords: setAssistantCoords } = useAIAssistant();
 
   const { isOnline } = useNetworkStatus();
   const params = useParams<{ citySlug?: string }>();
@@ -94,6 +96,10 @@ function MapPageContent() {
     }, 400);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  useEffect(() => {
+    setAssistantCoords(mapCenter.lat, mapCenter.lng);
+  }, [mapCenter.lat, mapCenter.lng, setAssistantCoords]);
 
   // Dışarı tıklayınca sonuçları kapat
   useEffect(() => {
@@ -155,6 +161,8 @@ function MapPageContent() {
 
   return (
     <div className="mapPageRoot">
+      <Nav />
+      <div className="mapPageMain">
           {!isOnline && (
             <div className="map-offline-banner">
               Çevrimdışı mod — kayıtlı veriler gösteriliyor
@@ -428,8 +436,8 @@ function MapPageContent() {
           </div>
 
           <DirectionsPanel />
-          <AIAssistant lat={mapCenter.lat} lng={mapCenter.lng} />
-        </div>
+      </div>
+    </div>
   );
 }
 

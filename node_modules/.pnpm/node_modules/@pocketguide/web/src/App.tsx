@@ -12,6 +12,8 @@ import AdminCitiesPage from "./pages/admin/AdminCitiesPage";
 import AdminGuard from "./components/admin/AdminGuard";
 import AuthGuard from "./components/AuthGuard";
 import { AuthProvider } from "./context/AuthContext";
+import { AIAssistantProvider } from "./context/AIAssistantContext";
+import { AIAssistantPanel } from "./components/AIAssistantPanel";
 import FirstDayPage from "./pages/FirstDayPage";
 import CityHubPage from "./pages/CityHubPage";
 import TransfersPage from "./pages/TransfersPage";
@@ -43,7 +45,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <AIAssistantProvider>
         <OnboardingGuard>
+          <AIAssistantPanel />
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
@@ -75,6 +79,7 @@ export default function App() {
           />
           </Routes>
         </OnboardingGuard>
+        </AIAssistantProvider>
       </AuthProvider>
     </BrowserRouter>
   );
