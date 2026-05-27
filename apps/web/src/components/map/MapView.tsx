@@ -1,7 +1,7 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import { useCallback, useRef, useState } from "react";
-import MapGL from "react-map-gl/maplibre";
+import MapGL, { Marker } from "react-map-gl/maplibre";
 import type { MapRef } from "react-map-gl/maplibre";
 
 import type { MarkerClusterFeature } from "../../hooks/useMarkerCluster";
@@ -53,6 +53,7 @@ export interface MapViewProps {
   ) => void;
   onPoiClick: (props: POIGeoJsonProperties) => void;
   selectedPoiId: string | null;
+  searchMarker?: { lat: number; lng: number };
   /** Görünür harita merkezi (Gezi Asistanı vb. için). */
   onMapCenterChange?: (lat: number, lng: number) => void;
 }
@@ -67,6 +68,7 @@ export function MapView({
   onClusterClick,
   onPoiClick,
   selectedPoiId,
+  searchMarker,
   onMapCenterChange,
 }: MapViewProps) {
   const lastZoomRef = useRef<number>(MAP_INITIAL_ZOOM);
@@ -182,6 +184,22 @@ export function MapView({
             />
           );
         })}
+
+      {searchMarker && (
+        <Marker longitude={searchMarker.lng} latitude={searchMarker.lat} anchor="bottom">
+          <div
+            style={{
+              width: "16px",
+              height: "16px",
+              background: "#ef4444",
+              border: "2px solid #ffffff",
+              borderRadius: "999px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+            }}
+            title="Arama konumu"
+          />
+        </Marker>
+      )}
 
       <div className={styles.customMapControls}>
         <button

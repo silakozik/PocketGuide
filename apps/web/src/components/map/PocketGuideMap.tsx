@@ -66,12 +66,18 @@ function toUiPoi(poi: OfflinePOI): POI {
 interface PocketGuideMapProps {
   categoryFilter?: string;
   searchQuery?: string;
+  showPins?: boolean;
+  forcedCenter?: { lat: number; lng: number };
+  searchMarker?: { lat: number; lng: number };
   onMapCenterChange?: (lat: number, lng: number) => void;
 }
 
 export function PocketGuideMap({
   categoryFilter = "all",
   searchQuery = "",
+  showPins = true,
+  forcedCenter,
+  searchMarker,
   onMapCenterChange,
 }: PocketGuideMapProps) {
   const mapRef = useRef<MapRef | null>(null);
@@ -94,6 +100,23 @@ export function PocketGuideMap({
   useEffect(() => {
     setLayers((prev) => ({ ...prev, route: isRouteActive }));
   }, [isRouteActive]);
+
+  useEffect(() => {
+    setLayers((prev) => ({ ...prev, pins: showPins }));
+  }, [showPins]);
+
+  useEffect(() => {
+    if (!forcedCenter) return;
+    const map = mapRef.current?.getMap?.() as
+      | { flyTo: (opts: Record<string, unknown>) => void }
+      | undefined;
+    map?.flyTo({
+      center: [forcedCenter.lng, forcedCenter.lat],
+      zoom: 15,
+      essential: true,
+      duration: 800,
+    });
+  }, [forcedCenter]);
 
   useEffect(() => {
     let isMounted = true;
@@ -218,23 +241,26 @@ export function PocketGuideMap({
         onClusterClick={handleClusterMarkerClick}
         onPoiClick={handlePoiMarkerClick}
         selectedPoiId={selectedPOI?.id ?? null}
+        searchMarker={searchMarker}
         onMapCenterChange={onMapCenterChange}
       />
 
       <LayerToggle layers={layers} onChange={handleLayerChange} />
 
-      <POICard
-        poi={selectedPOI}
-        clusterPois={clusterPois}
-        onClose={() => {
-          setSelectedPOI(null);
-          setClusterPois(null);
-        }}
-        onSelectPOI={(p) => {
-          setSelectedPOI(p);
-          setClusterPois(null);
-        }}
-      />
+      {showPins && (
+        <POICard
+          poi={selectedPOI}
+          clusterPois={clusterPois}
+          onClose={() => {
+            setSelectedPOI(null);
+            setClusterPois(null);
+          }}
+          onSelectPOI={(p) => {
+            setSelectedPOI(p);
+            setClusterPois(null);
+          }}
+        />
+      )}
     </div>
   );
 }
