@@ -23,6 +23,7 @@ export interface UserDTO {
   studentStatus?: string | null;
   dailyBudgetLimit?: number | null;
   preferredLanguage: LanguageCode | string;
+  avatarUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }

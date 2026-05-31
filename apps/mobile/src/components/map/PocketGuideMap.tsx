@@ -1,14 +1,11 @@
-import Mapbox from "@rnmapbox/maps";
-import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import MapView, { Marker, Polyline, UrlTile, PROVIDER_DEFAULT } from "react-native-maps";
 import * as Location from "expo-location";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { MOCK_POIS } from "@/src/data/mockPOIs";
 import type { POI } from "@/src/types/poi";
 import { useRoute } from "@/src/context/RouteContext";
-
-import { CustomPin } from "@/src/components/map/CustomPin";
 import { POIBottomSheet } from "@/src/components/map/POIBottomSheet";
 import { LayerToggle } from "@/src/components/map/LayerToggle";
 import type { POICategory } from "@/src/types/poi";
@@ -23,35 +20,51 @@ const categoryMap: Record<MapCategoryFilter, POICategory[] | "all"> = {
   accommodation: ["hotel"],
 };
 
+// Kategori renkleri (pin rengi için)
+const CATEGORY_COLORS: Record<string, string> = {
+  museum: "#8b5cf6",
+  event: "#e8c547",
+  restaurant: "#10b981",
+  transport: "#3b82f6",
+  hotel: "#f59e0b",
+  default: "#0f1f3d",
+};
+
 type PocketGuideMapProps = {
   categoryFilter?: MapCategoryFilter;
   searchQuery?: string;
   savedPoiIds?: Set<string>;
   onToggleSave?: (poi: POI) => void;
+  showPins?: boolean;
+  forcedCenter?: { lat: number; lng: number };
 };
-
-/** Expo Go içinde özel native modüller (ör. @rnmapbox/maps) yoktur; development build gerekir. */
-const runsInExpoGo =
-  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 export function PocketGuideMap({
   categoryFilter = "all",
   searchQuery = "",
   savedPoiIds,
   onToggleSave,
+  showPins = true,
+  forcedCenter,
 }: PocketGuideMapProps) {
-  const cameraRef = useRef<any>(null);
-  const mapboxToken = (process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "").trim();
+  const mapRef = useRef<MapView>(null);
+
   const { routeData, isActive, activeLegIndex, activeStepIndex, draftPOIs, addToRouteDraft, removeFromRouteDraft } =
     useRoute();
-  const [cameraCenter, setCameraCenter] = useState<[number, number]>([39.2214, 38.6736]);
-  const [cameraZoom, setCameraZoom] = useState(12);
+
+  const [region, setRegion] = useState({
+    latitude: 41.0082,
+    longitude: 28.9784,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  });
 
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [poiList, setPoiList] = useState<POI[] | undefined>(undefined);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-
   const [layers, setLayers] = useState({ pins: true, route: true, heatmap: false });
+
+  // Filtrelenmiş POI listesi
   const filteredPOIs = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const mapped = categoryMap[categoryFilter];
@@ -61,48 +74,65 @@ export function PocketGuideMap({
       return true;
     });
   }, [categoryFilter, searchQuery]);
-  const routeShape = useMemo(() => {
-    if (!routeData?.geometry?.length) return null;
-    return {
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "LineString",
-        coordinates: routeData.geometry.map(([latitude, longitude]) => [longitude, latitude]),
-      },
-    };
+
+  // Rota koordinatları
+  const routeCoords = useMemo(() => {
+    if (!routeData?.geometry?.length) return [];
+    return routeData.geometry.map(([latitude, longitude]) => ({ latitude, longitude }));
   }, [routeData]);
 
-  useEffect(() => {
-    if (runsInExpoGo || !mapboxToken) return;
-    Mapbox.setAccessToken(mapboxToken);
-  }, [mapboxToken]);
-
+  // GPS konum izni ve başlangıç konumu
   useEffect(() => {
     let mounted = true;
-
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (!mounted) return;
-      if (status !== "granted") return;
-
+      if (!mounted || status !== "granted") return;
       const pos = await Location.getCurrentPositionAsync({});
       if (!mounted) return;
-
-      const nextCenter: [number, number] = [pos.coords.longitude, pos.coords.latitude];
-      setCameraCenter(nextCenter);
-      setCameraZoom(13.5);
-      cameraRef.current?.setCamera({
-        centerCoordinate: nextCenter,
-        zoomLevel: 13.5,
-        animationDuration: 900,
-      });
+      const newRegion = {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      };
+      setRegion(newRegion);
+      mapRef.current?.animateToRegion(newRegion, 900);
     })();
-
     return () => {
       mounted = false;
     };
   }, []);
+
+  // Dışarıdan gelen merkez değişikliği (MapPage'den)
+  useEffect(() => {
+    if (!forcedCenter) return;
+    const newRegion = {
+      latitude: forcedCenter.lat,
+      longitude: forcedCenter.lng,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    };
+    setRegion(newRegion);
+    mapRef.current?.animateToRegion(newRegion, 800);
+  }, [forcedCenter]);
+
+  // Aktif rota adımına göre haritayı kaydır
+  useEffect(() => {
+    if (!isActive || !routeData) return;
+    const activeLeg = routeData.legs[activeLegIndex];
+    const activeStep = activeLeg?.steps[activeStepIndex];
+    if (!activeStep?.way_points?.length) return;
+    const pointIndex = activeStep.way_points[0];
+    const point = routeData.geometry[pointIndex];
+    if (!point) return;
+    const newRegion = {
+      latitude: point[0],
+      longitude: point[1],
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    };
+    mapRef.current?.animateToRegion(newRegion, 900);
+  }, [activeLegIndex, activeStepIndex, routeData, isActive]);
 
   const openSheet = useCallback((poi: POI, list?: POI[]) => {
     setSelectedPOI(poi);
@@ -110,9 +140,7 @@ export function PocketGuideMap({
     setIsSheetOpen(true);
   }, []);
 
-  const closeSheet = useCallback(() => {
-    setIsSheetOpen(false);
-  }, []);
+  const closeSheet = useCallback(() => setIsSheetOpen(false), []);
 
   const handleToggleDraft = useCallback(
     (poi: POI) => {
@@ -128,105 +156,54 @@ export function PocketGuideMap({
   const isInDraft = useCallback((poi: POI) => draftPOIs.some((p) => p.id === poi.id), [draftPOIs]);
   const isSaved = useCallback((poi: POI) => Boolean(savedPoiIds?.has(poi.id)), [savedPoiIds]);
 
-  const handlePoiPress = useCallback(
-    (poi: POI) => {
-      openSheet(poi);
-    },
-    [openSheet]
-  );
-
-  const showPins = layers.pins;
-  const showRoute = layers.route && isActive && routeData;
-
-  useEffect(() => {
-    if (!showRoute || !routeData) return;
-    const activeLeg = routeData.legs[activeLegIndex];
-    const activeStep = activeLeg?.steps[activeStepIndex];
-    if (!activeStep?.way_points?.length) return;
-    const pointIndex = activeStep.way_points[0];
-    const point = routeData.geometry[pointIndex];
-    if (!point) return;
-    const nextCenter: [number, number] = [point[1], point[0]];
-    setCameraCenter(nextCenter);
-    setCameraZoom(14.5);
-    cameraRef.current?.setCamera({
-      centerCoordinate: nextCenter,
-      zoomLevel: 14.5,
-      animationDuration: 900,
-    });
-  }, [activeLegIndex, activeStepIndex, routeData, showRoute]);
-
-  if (runsInExpoGo) {
-    return (
-      <View style={styles.missingKeyContainer}>
-        <Text style={styles.missingKeyTitle}>Harita bu ortamda acilmaz</Text>
-        <Text style={styles.missingKeyText}>
-          <Text style={styles.code}>@rnmapbox/maps</Text> yerel kod icerir;{" "}
-          <Text style={styles.code}>Expo Go</Text> icinde calismaz. Konsoldan proje kokunden veya{" "}
-          <Text style={styles.code}>apps/mobile</Text> icinden{" "}
-          <Text style={styles.code}>pnpm android</Text> (veya <Text style={styles.code}>npx expo run:android</Text>)
-          ile development build yukleyin; Android Studio Run da ayni native uygulamayi derler.
-        </Text>
-      </View>
-    );
-  }
-
-  if (!mapboxToken) {
-    return (
-      <View style={styles.missingKeyContainer}>
-        <Text style={styles.missingKeyTitle}>Harita acilamadi</Text>
-        <Text style={styles.missingKeyText}>
-          Mapbox access token bulunamadi. <Text style={styles.code}>apps/mobile/.env</Text> dosyasina{" "}
-          <Text style={styles.code}>EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN=...</Text> ekleyip uygulamayi yeniden derleyin.
-        </Text>
-      </View>
-    );
-  }
+  const shouldShowPins = showPins && layers.pins;
+  const shouldShowRoute = layers.route && isActive && routeData && routeCoords.length > 0;
 
   return (
     <View style={styles.container}>
-      <Mapbox.MapView
+      <MapView
+        ref={mapRef}
         style={styles.map}
-        styleURL={Mapbox.StyleURL.Street}
+        provider={PROVIDER_DEFAULT}
+        region={region}
+        onRegionChangeComplete={setRegion}
+        showsUserLocation={true}
+        showsMyLocationButton={false}
+        showsCompass={false}
+        toolbarEnabled={false}
       >
-        <Mapbox.Camera
-          ref={cameraRef}
-          zoomLevel={cameraZoom}
-          centerCoordinate={cameraCenter}
-          animationMode="flyTo"
-          animationDuration={500}
+        {/* OpenStreetMap tile layer */}
+        <UrlTile
+          urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maximumZ={19}
+          flipY={false}
+          tileSize={256}
         />
-        <Mapbox.UserLocation visible={true} />
 
-        {showRoute && routeShape ? (
-          <Mapbox.ShapeSource id="active-route" shape={routeShape as any}>
-            <Mapbox.LineLayer
-              id="active-route-line"
-              style={{
-                lineColor: "#3B82F6",
-                lineWidth: 5,
-                lineDasharray: [2, 2],
-              }}
-            />
-          </Mapbox.ShapeSource>
-        ) : null}
+        {/* Rota çizgisi */}
+        {shouldShowRoute && (
+          <Polyline
+            coordinates={routeCoords}
+            strokeColor="#3B82F6"
+            strokeWidth={4}
+            lineDashPattern={[8, 4]}
+          />
+        )}
 
-        {showPins &&
+        {/* POI marker'ları */}
+        {shouldShowPins &&
           filteredPOIs.map((poi) => (
-            <Mapbox.PointAnnotation
-              id={`poi-${poi.id}`}
-              key={`poi-${poi.id}`}
-              coordinate={[poi.coordinate.longitude, poi.coordinate.latitude]}
-              onSelected={() => handlePoiPress(poi)}
-            >
-              <CustomPin
-                category={poi.category}
-                selected={selectedPOI?.id === poi.id}
-                onPress={() => handlePoiPress(poi)}
-              />
-            </Mapbox.PointAnnotation>
+            <Marker
+              key={poi.id}
+              coordinate={{
+                latitude: poi.coordinate.latitude,
+                longitude: poi.coordinate.longitude,
+              }}
+              pinColor={CATEGORY_COLORS[poi.category] ?? CATEGORY_COLORS.default}
+              onPress={() => openSheet(poi)}
+            />
           ))}
-      </Mapbox.MapView>
+      </MapView>
 
       <View pointerEvents="box-none" style={styles.overlay}>
         <LayerToggle layers={layers} onChange={setLayers} />
@@ -248,13 +225,8 @@ export function PocketGuideMap({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-    width: "100%",
-  },
+  container: { flex: 1 },
+  map: { flex: 1, width: "100%" },
   overlay: {
     position: "absolute",
     top: 0,
@@ -263,28 +235,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 60,
   },
-  missingKeyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#FFFFFF",
-  },
-  missingKeyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 8,
-    color: "#111827",
-  },
-  missingKeyText: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: "#374151",
-  },
-  code: {
-    fontFamily: "monospace",
-    color: "#111827",
-  },
 });
 
 export default PocketGuideMap;
-

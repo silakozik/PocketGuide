@@ -14,6 +14,7 @@ import { RoutesModule } from './routes/routes.module';
 import { AIModule } from './ai/ai.module';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
+import { ProfileModule } from './profile/profile.module';
 import { RedisCacheModule } from './config/redis.module';
 import { DatabaseModule } from './config/database.module';
 import { EventsModule } from './events/events.module';
@@ -82,6 +83,7 @@ import { RouteQueueModule } from './routes/queue/route-queue.module';
     AIModule,
     AdminModule,
     AuthModule,
+    ProfileModule,
     TransfersModule,
     SyncModule,
     EventsModule,

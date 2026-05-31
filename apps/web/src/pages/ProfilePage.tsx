@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { INTERESTS } from "./OnboardingPage";
 import { Link, useNavigate } from "react-router-dom";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
+import { getMyProfile, updateAvatar } from "../lib/profileApi";
 
 const UPCOMING_TRIPS = [
   { id: 1, city: "Paris", country: "🇫🇷", date: "15-20 Mayıs 2026", days: 5, status: "Yaklaşan" },
@@ -22,6 +23,10 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("trips");
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [isEditingInterests, setIsEditingInterests] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const displayName = user?.userName ?? "Gezgin";
   const avatarLetter = displayName.charAt(0).toUpperCase();
@@ -32,6 +37,14 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
+    getMyProfile()
+      .then((p) => {
+        if (p?.avatarUrl) setAvatarUrl(p.avatarUrl);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const saved = localStorage.getItem("pg_user_interests");
     if (saved) {
       try {
@@ -39,6 +52,33 @@ export default function ProfilePage() {
       } catch (e) {}
     }
   }, []);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError("Fotoğraf 2MB'dan küçük olmalı");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target?.result as string;
+      setAvatarLoading(true);
+      setAvatarError(null);
+      try {
+        await updateAvatar(base64);
+        setAvatarUrl(base64);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Yükleme başarısız";
+        setAvatarError(message);
+      } finally {
+        setAvatarLoading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const toggleInterest = (id: string) => {
     setUserInterests(prev => 
@@ -57,8 +97,44 @@ export default function ProfilePage() {
       <div className="profile-cover">
         <div className="profile-cover-bg" />
         <div className="profile-header-content">
-          <div className="profile-avatar-large">
-            <span>{avatarLetter}</span>
+          <div className="profile-avatar-wrap">
+            <div
+              className="profile-avatar-large profile-avatar-clickable"
+              onClick={() => fileInputRef.current?.click()}
+              title="Fotoğraf değiştir"
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Profil fotoğrafı"
+                  className="profile-avatar-img"
+                />
+              ) : (
+                <span>{avatarLetter}</span>
+              )}
+              {avatarLoading && (
+                <div className="profile-avatar-overlay">
+                  <span className="profile-avatar-spinner" />
+                </div>
+              )}
+              {!avatarLoading && (
+                <div className="profile-avatar-overlay profile-avatar-hover-overlay">
+                  <span>📷</span>
+                </div>
+              )}
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: "none" }}
+              onChange={handleAvatarChange}
+            />
+
+            {avatarError && (
+              <div className="profile-avatar-error">{avatarError}</div>
+            )}
           </div>
           <div className="profile-user-info">
             <h1>{displayName}</h1>
