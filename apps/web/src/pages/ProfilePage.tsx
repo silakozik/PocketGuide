@@ -5,6 +5,12 @@ import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import { getMyProfile, updateAvatar } from "../lib/profileApi";
+import {
+  getMyPhotos,
+  uploadPhoto,
+  deletePhoto,
+  type TravelPhoto,
+} from "../lib/photosApi";
 
 const UPCOMING_TRIPS = [
   { id: 1, city: "Paris", country: "🇫🇷", date: "15-20 Mayıs 2026", days: 5, status: "Yaklaşan" },
@@ -27,6 +33,17 @@ export default function ProfilePage() {
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photos, setPhotos] = useState<TravelPhoto[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadCaption, setUploadCaption] = useState("");
+  const [uploadCity, setUploadCity] = useState("");
+  const [uploadLocation, setUploadLocation] = useState("");
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [uploadIsPublic, setUploadIsPublic] = useState(true);
+  const photoFileRef = useRef<HTMLInputElement>(null);
 
   const displayName = user?.userName ?? "Gezgin";
   const avatarLetter = displayName.charAt(0).toUpperCase();
@@ -52,6 +69,15 @@ export default function ProfilePage() {
       } catch (e) {}
     }
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "photos") return;
+    setPhotosLoading(true);
+    getMyPhotos()
+      .then(setPhotos)
+      .catch(() => {})
+      .finally(() => setPhotosLoading(false));
+  }, [activeTab]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -90,6 +116,56 @@ export default function ProfilePage() {
     localStorage.setItem("pg_user_interests", JSON.stringify(userInterests));
     setIsEditingInterests(false);
   };
+
+  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("Fotoğraf 5MB'dan küçük olmalı");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setUploadPreview(ev.target?.result as string);
+      setShowUploadModal(true);
+      setPhotoError(null);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handlePhotoUpload = async () => {
+    if (!uploadPreview) return;
+    setPhotoUploading(true);
+    setPhotoError(null);
+    try {
+      const newPhoto = await uploadPhoto({
+        imageUrl: uploadPreview,
+        caption: uploadCaption || undefined,
+        cityName: uploadCity || undefined,
+        locationName: uploadLocation || undefined,
+        isPublic: uploadIsPublic,
+      });
+      setPhotos((prev) => [newPhoto, ...prev]);
+      setShowUploadModal(false);
+      setUploadPreview(null);
+      setUploadCaption("");
+      setUploadCity("");
+      setUploadLocation("");
+      setUploadIsPublic(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Yükleme başarısız";
+      setPhotoError(message);
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const handlePhotoDelete = async (id: string) => {
+    await deletePhoto(id);
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
+  };
+
   return (
     <>
       <Nav />
@@ -161,6 +237,12 @@ export default function ProfilePage() {
               onClick={() => setActiveTab("saved")}
             >
               <span className="p-nav-icon">🔖</span> Kaydedilenler
+            </button>
+            <button
+              className={`p-nav-btn ${activeTab === "photos" ? "active" : ""}`}
+              onClick={() => setActiveTab("photos")}
+            >
+              <span className="p-nav-icon">📸</span> Fotoğraflarım
             </button>
             <button 
               className={`p-nav-btn ${activeTab === "interests" ? "active" : ""}`}
@@ -309,6 +391,146 @@ export default function ProfilePage() {
                   <p style={{ color: "var(--muted)", gridColumn: "1 / -1" }}>Henüz ilgi alanı seçilmemiş.</p>
                 )}
               </div>
+            </div>
+          )}
+
+          {activeTab === "photos" && (
+            <div className="p-tab-fade-in">
+              <div className="p-section-header">
+                <h2 className="p-section-title">Seyahat Fotoğraflarım</h2>
+                <button
+                  type="button"
+                  className="profile-btn-primary"
+                  onClick={() => photoFileRef.current?.click()}
+                >
+                  + Fotoğraf Ekle
+                </button>
+              </div>
+
+              <input
+                ref={photoFileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
+                onChange={handlePhotoFileChange}
+              />
+
+              {photosLoading ? (
+                <div className="p-loading">Yükleniyor...</div>
+              ) : photos.length === 0 ? (
+                <div className="p-empty-state">
+                  <span>📸</span>
+                  <p>Henüz fotoğraf yok. İlk fotoğrafını ekle!</p>
+                </div>
+              ) : (
+                <div className="photos-grid">
+                  {photos.map((photo) => (
+                    <div key={photo.id} className="photo-card">
+                      <div className="photo-card-img-wrap">
+                        <img
+                          src={photo.imageUrl}
+                          alt={photo.caption ?? "Seyahat fotoğrafı"}
+                          className="photo-card-img"
+                        />
+                        <button
+                          type="button"
+                          className="photo-card-delete"
+                          onClick={() => handlePhotoDelete(photo.id)}
+                          title="Sil"
+                        >
+                          ×
+                        </button>
+                        {!photo.isPublic && (
+                          <span className="photo-card-private">🔒 Gizli</span>
+                        )}
+                      </div>
+                      {(photo.caption || photo.cityName) && (
+                        <div className="photo-card-info">
+                          {photo.cityName && (
+                            <div className="photo-card-city">
+                              📍 {photo.cityName}
+                              {photo.locationName ? ` · ${photo.locationName}` : ""}
+                            </div>
+                          )}
+                          {photo.caption && (
+                            <div className="photo-card-caption">{photo.caption}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {showUploadModal && uploadPreview && (
+                <div
+                  className="photo-modal-overlay"
+                  onClick={() => setShowUploadModal(false)}
+                >
+                  <div
+                    className="photo-modal"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 className="photo-modal-title">Fotoğraf Paylaş</h3>
+                    <img
+                      src={uploadPreview}
+                      alt="Önizleme"
+                      className="photo-modal-preview"
+                    />
+                    <div className="photo-modal-fields">
+                      <input
+                        type="text"
+                        placeholder="Açıklama ekle..."
+                        value={uploadCaption}
+                        onChange={(e) => setUploadCaption(e.target.value)}
+                        className="photo-modal-input"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Şehir (örn. İstanbul)"
+                        value={uploadCity}
+                        onChange={(e) => setUploadCity(e.target.value)}
+                        className="photo-modal-input"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Mekan adı (opsiyonel)"
+                        value={uploadLocation}
+                        onChange={(e) => setUploadLocation(e.target.value)}
+                        className="photo-modal-input"
+                      />
+                      <label className="photo-modal-toggle">
+                        <input
+                          type="checkbox"
+                          checked={uploadIsPublic}
+                          onChange={(e) => setUploadIsPublic(e.target.checked)}
+                        />
+                        Herkese açık paylaş
+                      </label>
+                    </div>
+                    {photoError && (
+                      <p className="photo-modal-error">{photoError}</p>
+                    )}
+                    <div className="photo-modal-actions">
+                      <button
+                        type="button"
+                        className="photo-modal-cancel"
+                        onClick={() => setShowUploadModal(false)}
+                      >
+                        İptal
+                      </button>
+                      <button
+                        type="button"
+                        className="photo-modal-submit"
+                        onClick={handlePhotoUpload}
+                        disabled={photoUploading}
+                      >
+                        {photoUploading ? "Yükleniyor..." : "Paylaş"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

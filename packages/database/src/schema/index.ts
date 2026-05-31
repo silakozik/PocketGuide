@@ -295,4 +295,18 @@ export const transportCards = pgTable("transport_cards", {
   usableOn: jsonb("usable_on"),
 });
 
+export const travelPhotos = pgTable("travel_photos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("userId")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  imageUrl: text("imageUrl").notNull(),
+  caption: text("caption"),
+  cityName: text("cityName"),
+  locationName: text("locationName"),
+  isPublic: boolean("isPublic").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
 export * from "./poi.schema";
