@@ -499,6 +499,35 @@ nav {
 }
 .map-route-start-btn:hover { opacity: 0.9; }
 
+.map-route-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.map-route-save-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.map-route-save-btn:hover:not(:disabled) {
+  border-color: var(--ink);
+  background: var(--surface);
+}
+.map-route-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .map-nearby-panel {
   text-align: center;
   padding: 16px 0;
@@ -2834,6 +2863,23 @@ footer {
   background: var(--ink);
   color: var(--white);
   border-color: var(--ink);
+}
+
+.trip-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trip-btn-delete {
+  background: transparent;
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.35);
+}
+.trip-btn-delete:hover {
+  background: #fef2f2;
+  color: #b42318;
+  border-color: #b42318;
 }
 
 .add-new-card {

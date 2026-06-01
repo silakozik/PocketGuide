@@ -4,7 +4,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "migrate:sql": "node scripts/apply-sql-migrations.mjs"
   },
   "dependencies": {
     "dotenv": "^17.3.1",

@@ -295,6 +295,23 @@ export const transportCards = pgTable("transport_cards", {
   usableOn: jsonb("usable_on"),
 });
 
+/** Kullanıcının haritada oluşturduğu kayıtlı rotalar */
+export const savedTrips = pgTable("saved_trips", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("userId")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  title: text("title").notNull(),
+  cityName: text("cityName"),
+  stops: jsonb("stops").notNull(),
+  routeData: jsonb("routeData"),
+  durationMinutes: integer("durationMinutes"),
+  distanceKm: doublePrecision("distanceKm"),
+  status: text("status").default("planned"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
 export const travelPhotos = pgTable("travel_photos", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("userId")

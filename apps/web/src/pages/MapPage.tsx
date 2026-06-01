@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { saveTrip, getSavedTrip, type SavedTripStop } from "../lib/savedTripsApi";
 import { getCityStaticData } from "../data/cityStaticData";
 import { Nav } from "../components/Nav";
 import { PocketGuideMap } from "../components/map/PocketGuideMap";
@@ -34,6 +36,11 @@ function mapNominatimTypeToCategory(type: string): POICategory {
 }
 
 function MapPageContent() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [saveTripMsg, setSaveTripMsg] = useState<string | null>(null);
+  const [savingTrip, setSavingTrip] = useState(false);
+
   // Arama
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
@@ -56,7 +63,14 @@ function MapPageContent() {
   // Rota durumu
   const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
   const [activeSheet, setActiveSheet] = useState<"route" | "nearby" | "firstday">("route");
-  const { addToRouteDraft, removeFromRouteDraft, startRoute, isFetching, error } = useRoute();
+  const {
+    addToRouteDraft,
+    removeFromRouteDraft,
+    startRoute,
+    isFetching,
+    error,
+    routeData,
+  } = useRoute();
   const { setCoords: setAssistantCoords } = useAIAssistant();
 
   const { isOnline } = useNetworkStatus();
@@ -89,6 +103,76 @@ function MapPageContent() {
       }
     }
   }, [searchParams]);
+
+  // Profilden kayıtlı seyahat aç
+  useEffect(() => {
+    const tripId = searchParams.get("savedTrip");
+    if (!tripId) return;
+
+    let cancelled = false;
+    void getSavedTrip(tripId)
+      .then((trip) => {
+        if (cancelled) return;
+        const stops = trip.stops as SavedTripStop[];
+        setRouteStops(stops);
+        stops.forEach((stop) => {
+          addToRouteDraft({
+            id: stop.id,
+            name: stop.name,
+            category: "event",
+            coordinate: { lat: stop.lat, lng: stop.lng },
+            description: stop.address,
+          });
+        });
+        if (trip.cityName) setSearchQuery(trip.cityName);
+        setActiveSheet("route");
+      })
+      .catch(() => {
+        if (!cancelled) setSaveTripMsg("Seyahat yüklenemedi");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, addToRouteDraft]);
+
+  const handleSaveToTrips = async () => {
+    if (routeStops.length < 2) return;
+
+    if (!user) {
+      navigate("/login?redirect=/map");
+      return;
+    }
+
+    setSavingTrip(true);
+    setSaveTripMsg(null);
+
+    const cityLabel =
+      searchParams.get("name") ||
+      searchQuery.trim() ||
+      routeStops[0]?.name ||
+      undefined;
+
+    try {
+      await saveTrip({
+        title: cityLabel ? `${cityLabel} Rotası` : undefined,
+        cityName: cityLabel,
+        stops: routeStops,
+        routeData: routeData ?? undefined,
+        durationMinutes: routeData?.total_duration_min,
+        distanceKm: routeData?.total_distance_km,
+      });
+      setSaveTripMsg("Seyahatlerime kaydedildi ✓");
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === "LOGIN_REQUIRED") {
+        navigate("/login?redirect=/map");
+        return;
+      }
+      setSaveTripMsg(err instanceof Error ? err.message : "Kayıt başarısız");
+    } finally {
+      setSavingTrip(false);
+    }
+  };
 
   // Arama debounce
   useEffect(() => {
@@ -390,14 +474,34 @@ function MapPageContent() {
                       ))}
                     </div>
                     {routeStops.length >= 2 && (
-                      <button
-                        type="button"
-                        className="map-route-start-btn"
-                        onClick={() => void startRoute()}
-                        disabled={isFetching}
+                      <div className="map-route-actions">
+                        <button
+                          type="button"
+                          className="map-route-start-btn"
+                          onClick={() => void startRoute()}
+                          disabled={isFetching}
+                        >
+                          {isFetching ? "Rota Hesaplanıyor..." : "Rotayı Başlat →"}
+                        </button>
+                        <button
+                          type="button"
+                          className="map-route-save-btn"
+                          onClick={() => void handleSaveToTrips()}
+                          disabled={savingTrip}
+                        >
+                          {savingTrip ? "Kaydediliyor…" : "Seyahatlerime Kaydet"}
+                        </button>
+                      </div>
+                    )}
+                    {saveTripMsg && (
+                      <p
+                        className="map-route-hint"
+                        style={{
+                          color: saveTripMsg.includes("✓") ? "#059669" : "#dc2626",
+                        }}
                       >
-                        {isFetching ? "Rota Hesaplanıyor..." : "Rotayı Başlat →"}
-                      </button>
+                        {saveTripMsg}
+                      </p>
                     )}
                     {error && (
                       <p className="map-route-hint" style={{ color: "#dc2626" }}>
@@ -445,7 +549,11 @@ function MapPageContent() {
             )}
           </div>
 
-          <DirectionsPanel />
+          <DirectionsPanel
+            onSaveToTrips={() => void handleSaveToTrips()}
+            savingTrip={savingTrip}
+            saveTripMsg={saveTripMsg}
+          />
       </div>
     </div>
   );

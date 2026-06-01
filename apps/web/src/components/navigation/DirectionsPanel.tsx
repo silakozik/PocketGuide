@@ -10,7 +10,17 @@ import {
 import { compositeRouteIdFromRouteData } from "../../lib/routeOffline";
 import styles from "./DirectionsPanel.module.css";
 
-export function DirectionsPanel() {
+type DirectionsPanelProps = {
+  onSaveToTrips?: () => void;
+  savingTrip?: boolean;
+  saveTripMsg?: string | null;
+};
+
+export function DirectionsPanel({
+  onSaveToTrips,
+  savingTrip = false,
+  saveTripMsg,
+}: DirectionsPanelProps) {
   const {
     isActive,
     routeData,
@@ -153,6 +163,27 @@ export function DirectionsPanel() {
           Sonraki
         </button>
       </div>
+
+      {onSaveToTrips && (
+        <div className={styles.saveTripSection}>
+          <button
+            type="button"
+            className={styles.saveTripBtn}
+            onClick={onSaveToTrips}
+            disabled={savingTrip}
+          >
+            {savingTrip ? "Kaydediliyor…" : "✈️ Seyahatlerime Kaydet"}
+          </button>
+          {saveTripMsg && (
+            <p
+              className={styles.saveTripMsg}
+              style={{ color: saveTripMsg.includes("✓") ? "#059669" : "#dc2626" }}
+            >
+              {saveTripMsg}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className={styles.offlineSection}>
         <p className={styles.offlineTitle}>Çevrimdışı kullanım</p>

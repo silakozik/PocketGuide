@@ -11,11 +11,11 @@ import {
   deletePhoto,
   type TravelPhoto,
 } from "../lib/photosApi";
-
-const UPCOMING_TRIPS = [
-  { id: 1, city: "Paris", country: "🇫🇷", date: "15-20 Mayıs 2026", days: 5, status: "Yaklaşan" },
-  { id: 2, city: "Roma", country: "🇮🇹", date: "02-08 Eylül 2026", days: 6, status: "Planlanıyor" },
-];
+import {
+  getMySavedTrips,
+  deleteSavedTrip,
+  type SavedTrip,
+} from "../lib/savedTripsApi";
 
 const SAVED_PLACES = [
   { id: 101, name: "Louvre Müzesi", type: "Müze · Paris", rating: 4.8, icon: "🏛" },
@@ -44,6 +44,8 @@ export default function ProfilePage() {
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [uploadIsPublic, setUploadIsPublic] = useState(true);
   const photoFileRef = useRef<HTMLInputElement>(null);
+  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
+  const [tripsLoading, setTripsLoading] = useState(false);
 
   const displayName = user?.userName ?? "Gezgin";
   const avatarLetter = displayName.charAt(0).toUpperCase();
@@ -69,6 +71,15 @@ export default function ProfilePage() {
       } catch (e) {}
     }
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "trips" || !user) return;
+    setTripsLoading(true);
+    getMySavedTrips()
+      .then(setSavedTrips)
+      .catch(() => setSavedTrips([]))
+      .finally(() => setTripsLoading(false));
+  }, [activeTab, user]);
 
   useEffect(() => {
     if (activeTab !== "photos") return;
@@ -164,6 +175,23 @@ export default function ProfilePage() {
   const handlePhotoDelete = async (id: string) => {
     await deletePhoto(id);
     setPhotos((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handleDeleteTrip = async (id: string) => {
+    await deleteSavedTrip(id);
+    setSavedTrips((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const formatTripDate = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleDateString("tr-TR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    } catch {
+      return "";
+    }
   };
 
   return (
@@ -276,26 +304,65 @@ export default function ProfilePage() {
           
           {activeTab === "trips" && (
             <div className="p-tab-fade-in">
-              <h2 className="p-section-title">Yaklaşan Seyahatler</h2>
-              <div className="p-grid-2">
-                {UPCOMING_TRIPS.map(trip => (
-                  <div key={trip.id} className="p-card trip-card">
-                    <div className="trip-card-top">
-                      <div className="trip-city">{trip.country} {trip.city}</div>
-                      <div className="trip-status">{trip.status}</div>
+              <h2 className="p-section-title">Seyahatlerim</h2>
+              {tripsLoading ? (
+                <div className="p-loading">Yükleniyor...</div>
+              ) : (
+                <div className="p-grid-2">
+                  {savedTrips.map((trip) => (
+                    <div key={trip.id} className="p-card trip-card">
+                      <div className="trip-card-top">
+                        <div className="trip-city">
+                          {trip.cityName || trip.title}
+                        </div>
+                        <div className="trip-status">
+                          {trip.status === "planned" ? "Planlandı" : trip.status}
+                        </div>
+                      </div>
+                      <div className="trip-date">
+                        📅 {formatTripDate(trip.createdAt)}
+                      </div>
+                      <div className="trip-meta">
+                        {trip.stops.length} durak
+                        {trip.durationMinutes != null &&
+                          ` · ${trip.durationMinutes} dk`}
+                        {trip.distanceKm != null &&
+                          ` · ${trip.distanceKm.toFixed(1)} km`}
+                      </div>
+                      <div className="trip-card-actions">
+                        <Link
+                          to={`/map?savedTrip=${trip.id}`}
+                          className="trip-btn"
+                        >
+                          Planı Görüntüle →
+                        </Link>
+                        <button
+                          type="button"
+                          className="trip-btn trip-btn-delete"
+                          onClick={() => void handleDeleteTrip(trip.id)}
+                        >
+                          Sil
+                        </button>
+                      </div>
                     </div>
-                    <div className="trip-date">📅 {trip.date}</div>
-                    <div className="trip-meta">{trip.days} Günlük Plan Hazır</div>
-                    <button className="trip-btn">Planı Görüntüle →</button>
-                  </div>
-                ))}
-                
-                {/* Yeni Ekle Kartı */}
-                <Link to="/map" className="p-card add-new-card">
-                  <div className="add-icon">+</div>
-                  <div>Yeni Seyahat Ekle</div>
-                </Link>
-              </div>
+                  ))}
+
+                  {savedTrips.length === 0 && (
+                    <div className="p-empty-state" style={{ gridColumn: "1 / -1" }}>
+                      <span>✈️</span>
+                      <p>
+                        Henüz kayıtlı rota yok. Haritada rota oluşturup
+                        &quot;Seyahatlerime Kaydet&quot; ile ekleyebilirsin.
+                      </p>
+                    </div>
+                  )}
+
+                  <Link to="/map" className="p-card add-new-card">
+                    <div className="add-icon">+</div>
+                    <div>Yeni Rota Oluştur</div>
+                  </Link>
+                </div>
+              )}
             </div>
           )}
 
