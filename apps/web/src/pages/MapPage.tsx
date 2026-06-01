@@ -10,28 +10,10 @@ import { SyncManagerProvider } from "../context/SyncManagerContext";
 import { DirectionsPanel } from "../components/navigation/DirectionsPanel";
 import { useNetworkStatus } from "@pocketguide/hooks";
 import { MAP_INITIAL_LAT, MAP_INITIAL_LNG } from "../components/map/MapView";
+import { searchPlaces, type NominatimPlace } from "../lib/geocode";
 import type { POI, POICategory } from "../types/poi";
 
-// Nominatim geocoding — ücretsiz, OpenStreetMap tabanlı
-async function searchPlaces(query: string): Promise<NominatimResult[]> {
-  if (!query.trim() || query.length < 3) return [];
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&accept-language=tr`;
-  try {
-    const res = await fetch(url, { headers: { "User-Agent": "PocketGuide/1.0" } });
-    return res.ok ? await res.json() : [];
-  } catch {
-    return [];
-  }
-}
-
-interface NominatimResult {
-  place_id: number;
-  display_name: string;
-  lat: string;
-  lon: string;
-  type: string;
-  importance: number;
-}
+type NominatimResult = NominatimPlace;
 
 interface RouteStop {
   id: string;
@@ -82,20 +64,35 @@ function MapPageContent() {
   const citySlug = params.citySlug ?? "istanbul";
   const [searchParams] = useSearchParams();
 
-  // Ana sayfa aramasından gelen ?city=istanbul
+  // Ana sayfa: ?city=istanbul veya ?lat=&lng=&name=Adana
   useEffect(() => {
     const city = searchParams.get("city");
-    if (!city) return;
-    const data = getCityStaticData(city);
-    if (!data) return;
-    const [lat, lng] = data.center;
-    navigateMapTo(lat, lng);
-    setSearchQuery(data.nameTr);
+    if (city) {
+      const data = getCityStaticData(city);
+      if (data) {
+        const [lat, lng] = data.center;
+        navigateMapTo(lat, lng);
+        setSearchQuery(data.nameTr);
+      }
+      return;
+    }
+
+    const latParam = searchParams.get("lat");
+    const lngParam = searchParams.get("lng");
+    const nameParam = searchParams.get("name");
+    if (latParam && lngParam) {
+      const lat = parseFloat(latParam);
+      const lng = parseFloat(lngParam);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        navigateMapTo(lat, lng);
+        if (nameParam) setSearchQuery(nameParam);
+      }
+    }
   }, [searchParams]);
 
   // Arama debounce
   useEffect(() => {
-    if (!searchQuery.trim() || searchQuery.length < 3) {
+    if (!searchQuery.trim() || searchQuery.length < 2) {
       setSearchResults([]);
       setShowResults(false);
       return;
