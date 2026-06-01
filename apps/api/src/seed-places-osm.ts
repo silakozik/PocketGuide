@@ -175,7 +175,7 @@ async function main() {
         const unique = filterDuplicates(mapped, existing);
         const inserted = await bulkInsert(pool, unique, row.id, cat, mode);
         total += inserted;
-        existing = [...existing, ...unique];
+        existing = [...existing, ...unique] as typeof existing;
         console.log(`${raw.length} bulundu, ${inserted} yeni`);
       } catch (e) {
         console.log('HATA', e);

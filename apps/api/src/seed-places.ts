@@ -195,12 +195,21 @@ async function main() {
       .where(eq(cities.id as any, cityId));
   }
 
+  const countRes = await pool.query('SELECT count(*)::int AS c FROM pois');
+  const existingTotal = Number(countRes.rows[0]?.c ?? 0);
   await pool.end();
-  if (totalInserted === 0) {
+
+  if (totalInserted === 0 && existingTotal === 0) {
     console.error('\n⚠️ Hiç mekan kaydedilmedi. Foursquare anahtarını ve API erişimini kontrol et.');
     process.exit(1);
   }
-  console.log(`\n🎉 Mekan ingest tamamlandı! Toplam ${totalInserted} yeni kayıt.`);
+  if (totalInserted === 0) {
+    console.log(
+      `\n✅ Veritabanında zaten ${existingTotal} mekan var (bu çalıştırmada 0 yeni — tekrar ingest normal).`,
+    );
+  } else {
+    console.log(`\n🎉 Mekan ingest tamamlandı! Toplam ${totalInserted} yeni kayıt.`);
+  }
 }
 
 main().catch((err) => {

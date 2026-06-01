@@ -3,32 +3,50 @@ import { sql, SQL } from 'drizzle-orm';
 
 export type PoiCoordMode = 'postgis' | 'latlng';
 
-export async function detectPoiCoordMode(dbOrPool: {
+type SqlRunner = {
   execute?: (q: unknown) => Promise<unknown>;
   query?: (text: string, values?: unknown[]) => Promise<unknown>;
-}): Promise<PoiCoordMode> {
-  const query = async (text: string) => {
-    if ('query' in dbOrPool && dbOrPool.query) {
-      return dbOrPool.query(text);
-    }
-    return (dbOrPool as { execute: (q: unknown) => Promise<unknown> }).execute(sql.raw(text));
-  };
+};
 
-  const colResult: any = await query(`
+function rowsFromResult(result: unknown): unknown[] {
+  if (Array.isArray(result)) return result;
+  if (result && typeof result === 'object' && 'rows' in result) {
+    const r = (result as { rows?: unknown }).rows;
+    if (Array.isArray(r)) return r;
+  }
+  return [];
+}
+
+async function runSql(dbOrPool: SqlRunner, text: string): Promise<unknown[]> {
+  if (typeof dbOrPool.query === 'function') {
+    const result = await dbOrPool.query(text);
+    return rowsFromResult(result);
+  }
+  if (typeof dbOrPool.execute === 'function') {
+    const result = await dbOrPool.execute(sql.raw(text));
+    return rowsFromResult(result);
+  }
+  throw new Error('Database client has no query or execute method');
+}
+
+export async function detectPoiCoordMode(dbOrPool: SqlRunner): Promise<PoiCoordMode> {
+  const colRows = await runSql(
+    dbOrPool,
+    `
     SELECT column_name FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'pois'
       AND column_name IN ('location', 'latitude')
-  `);
-  const rows = Array.isArray(colResult)
-    ? colResult
-    : colResult?.rows ?? [];
-  const cols = new Set(rows.map((r: { column_name: string }) => r.column_name));
+    `,
+  );
+  const cols = new Set(
+    colRows.map((r) => (r as { column_name: string }).column_name),
+  );
 
   if (cols.has('latitude')) return 'latlng';
   if (!cols.has('location')) return 'latlng';
 
   try {
-    await query('SELECT PostGIS_Version()');
+    await runSql(dbOrPool, 'SELECT PostGIS_Version()');
     return 'postgis';
   } catch {
     return 'latlng';

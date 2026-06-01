@@ -55,7 +55,14 @@ async function main() {
   for (const p of DEMO) {
     const sourceId = `demo-${p.category}-${p.name.replace(/\s+/g, '-').toLowerCase()}`;
     const dup = await pool.query(`SELECT 1 FROM pois WHERE source_id = $1`, [sourceId]);
-    if (dup.rowCount) continue;
+    if (dup.rowCount) {
+      await pool.query(
+        `UPDATE pois SET name = $2, category = $3, address = $4, description = $5, rating = $6
+         WHERE source_id = $1`,
+        [sourceId, p.name, p.category, p.address, p.subtype, p.rating],
+      );
+      continue;
+    }
 
     if (mode === 'postgis') {
       await pool.query(

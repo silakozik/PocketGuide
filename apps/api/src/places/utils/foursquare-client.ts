@@ -40,13 +40,17 @@ export async function searchFoursquarePlaces(params: {
   limit: number;
   categoryIds: string[];
 }): Promise<RawFoursquareVenue[]> {
+  const queryParams: Record<string, string | number> = {
+    ll: `${params.lat},${params.lng}`,
+    radius: params.radius,
+    limit: params.limit,
+  };
+  if (params.categoryIds.length > 0) {
+    queryParams.fsq_category_ids = params.categoryIds.join(',');
+  }
+
   const res = await axios.get(getFoursquareSearchUrl(), {
-    params: {
-      ll: `${params.lat},${params.lng}`,
-      radius: params.radius,
-      limit: params.limit,
-      fsq_category_ids: params.categoryIds.join(','),
-    },
+    params: queryParams,
     headers: getFoursquareAuthHeaders(),
     timeout: 20000,
   });
@@ -64,7 +68,7 @@ export async function verifyFoursquareApiKey(): Promise<void> {
       lng: 28.9784,
       radius: 1000,
       limit: 1,
-      categoryIds: ['13065'],
+      categoryIds: ['4d4b7105d754a06374d81259'],
     });
   } catch (err: unknown) {
     const status = axios.isAxiosError(err) ? err.response?.status : undefined;

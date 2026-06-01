@@ -14,7 +14,7 @@ export interface ExploreCategoryMeta {
   gradient: string;
   /** DB `pois.category` değeri (ingest sırasında yazılır) */
   dbCategory: ExplorePlaceCategory;
-  /** Foursquare Places API v3 category IDs */
+  /** Foursquare Places API (2025) fsq_category_ids — hex taxonomy, not legacy 130xx */
   foursquareCategoryIds: string[];
 }
 
@@ -26,7 +26,7 @@ export const EXPLORE_CATEGORIES: ExploreCategoryMeta[] = [
     emoji: '🍜',
     gradient: 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)',
     dbCategory: 'food',
-    foursquareCategoryIds: ['13065', '13032', '13000'],
+    foursquareCategoryIds: ['4d4b7105d754a06374d81259'],
   },
   {
     slug: 'shopping',
@@ -35,7 +35,7 @@ export const EXPLORE_CATEGORIES: ExploreCategoryMeta[] = [
     emoji: '🛍️',
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     dbCategory: 'shopping',
-    foursquareCategoryIds: ['17000', '17114', '17110'],
+    foursquareCategoryIds: ['4d4b7105d754a06378d81259'],
   },
   {
     slug: 'entertainment',
@@ -44,7 +44,7 @@ export const EXPLORE_CATEGORIES: ExploreCategoryMeta[] = [
     emoji: '🎭',
     gradient: 'linear-gradient(135deg, #f5576c 0%, #c0392b 100%)',
     dbCategory: 'entertainment',
-    foursquareCategoryIds: ['10000', '10032', '10033', '10040'],
+    foursquareCategoryIds: ['4d4b7104d754a06370d81259'],
   },
   {
     slug: 'culture',
@@ -53,7 +53,7 @@ export const EXPLORE_CATEGORIES: ExploreCategoryMeta[] = [
     emoji: '🎨',
     gradient: 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)',
     dbCategory: 'culture',
-    foursquareCategoryIds: ['10027', '10028', '10029', '16026'],
+    foursquareCategoryIds: ['4d4b7104d754a06370d81259'],
   },
   {
     slug: 'historic',
@@ -62,7 +62,7 @@ export const EXPLORE_CATEGORIES: ExploreCategoryMeta[] = [
     emoji: '🏛️',
     gradient: 'linear-gradient(135deg, #c79081 0%, #dfa579 100%)',
     dbCategory: 'historic',
-    foursquareCategoryIds: ['16000', '16020', '16032', '16046'],
+    foursquareCategoryIds: ['4d4b7105d754a06377d81259'],
   },
 ];
 
