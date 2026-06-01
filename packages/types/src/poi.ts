@@ -18,8 +18,10 @@ export interface RawFoursquareVenue {
     fsq_id: string;
     name: string;
     geocodes: { main: { latitude: number; longitude: number } };
-    location: { address?: string };
+    location: { address?: string; formatted_address?: string };
     categories: { name: string }[];
+    rating?: number;
+    price?: number;
 }
 
 export interface RawGTFSStop {
@@ -57,8 +59,11 @@ export interface NormalizedPOI {
     sourceId: string;
     provider: 'google' | 'foursquare' | 'gtfs' | 'osm';
     name: string;
-    category: PoiCategory;
+    category: PoiCategory | string;
     address: string | null;
     lat: number;
     lng: number;
+    rating?: number | null;
+    priceLevel?: number | null;
+    subtype?: string | null;
 }

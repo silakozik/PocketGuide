@@ -871,6 +871,115 @@ nav {
   }
 }
 
+/* ─── PLACES EXPLORE ─── */
+.places-explore-wrap {
+  padding: 0 48px 100px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+.places-explore-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+.places-explore-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.places-explore-title {
+  font-family: "Fraunces", serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+}
+.places-explore-sub {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.places-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+.place-card {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+}
+.place-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(15, 31, 61, 0.12);
+}
+.place-card-img {
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.place-card-emoji {
+  font-size: 48px;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.18));
+}
+.place-card-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.place-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.place-card-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.places-explore-attribution {
+  margin: -16px 0 0;
+}
+
+@media (max-width: 1024px) {
+  .places-explore-wrap {
+    padding: 0 24px 80px;
+  }
+  .places-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .places-explore-wrap {
+    padding: 0 16px 64px;
+  }
+  .places-explore-title {
+    font-size: 26px;
+  }
+  .places-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .places-grid {
+    grid-template-columns: 1fr;
+  }
+  .place-card-img {
+    height: 110px;
+  }
+  .place-card-emoji {
+    font-size: 38px;
+  }
+}
+
 /* â”€â”€â”€ DASHBOARD â”€â”€â”€ */
 .preview-section {
   padding: 0 48px 100px;

@@ -1,4 +1,6 @@
-import { Controller, Get, Query, Param, ParseFloatPipe, DefaultValuePipe, ParseIntPipe, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Query, Param, ParseFloatPipe, DefaultValuePipe, ParseIntPipe, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { getExploreCategory, isExplorePlaceCategory } from '../constants/explore-categories';
+import { getHomepageCity } from '../constants/homepage-cities';
 import { UseRedisCache } from '../../common/decorators/redis-cache.decorator';
 import { RedisCacheInterceptor } from '../../common/interceptors/redis-cache.interceptor';
 import { GeospatialService, PoiWithDistance } from '../services/geospatial.service';
@@ -125,5 +127,46 @@ export class PoisController {
   ): Promise<{ data: PoiWithDistance[] }> {
     const data = await this.geospatialService.findByCitySlug(slug, category);
     return { data };
+  }
+
+  /**
+   * GET /pois/explore?city=istanbul&placeCategory=food&limit=30&offset=0
+   * Mekanları Keşfet ara liste sayfası.
+   */
+  @Get('explore')
+  async getExplore(
+    @Query('city') city: string,
+    @Query('placeCategory') placeCategory: string,
+    @Query('limit', new DefaultValuePipe(30), ParseIntPipe) limit: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
+  ) {
+    if (!city?.trim()) {
+      throw new BadRequestException('city query parameter is required');
+    }
+    if (!isExplorePlaceCategory(placeCategory)) {
+      throw new BadRequestException(`Unknown placeCategory: ${placeCategory}`);
+    }
+
+    const cityMeta = getHomepageCity(city);
+    const categoryMeta = getExploreCategory(placeCategory)!;
+    const { data, total } = await this.geospatialService.findExplorePlaces(
+      city,
+      placeCategory,
+      limit,
+      offset,
+    );
+
+    return {
+      data,
+      meta: {
+        total,
+        limit,
+        offset,
+        city: cityMeta?.slug ?? city,
+        cityName: cityMeta?.nameTr ?? city,
+        placeCategory,
+        categoryTitle: categoryMeta.titleTr,
+      },
+    };
   }
 }

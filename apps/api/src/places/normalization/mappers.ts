@@ -34,15 +34,21 @@ export function mapGoogleToPOI(raw: RawGooglePlace): NormalizedPOI {
     };
 }
 
-export function mapFoursquareToPOI(raw: RawFoursquareVenue): NormalizedPOI {
+export function mapFoursquareToPOI(
+    raw: RawFoursquareVenue,
+    categoryOverride?: string,
+): NormalizedPOI {
     return {
         sourceId: raw.fsq_id,
         provider: 'foursquare',
         name: raw.name || 'Unknown',
-        category: mapFoursquareCategory(raw.categories),
-        address: raw.location?.address || null,
+        category: categoryOverride ?? mapFoursquareCategory(raw.categories),
+        address: raw.location?.formatted_address ?? raw.location?.address ?? null,
         lat: raw.geocodes?.main?.latitude || 0,
         lng: raw.geocodes?.main?.longitude || 0,
+        rating: raw.rating ?? null,
+        priceLevel: raw.price ?? null,
+        subtype: raw.categories?.[0]?.name ?? null,
     };
 }
 

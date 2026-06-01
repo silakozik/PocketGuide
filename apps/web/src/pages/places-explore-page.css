@@ -1,0 +1,271 @@
+.places-list-root {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 32px;
+}
+
+.places-list-hero {
+  position: relative;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 24px 24px 28px;
+  overflow: hidden;
+}
+
+.places-list-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(15, 31, 61, 0.75) 0%,
+    rgba(15, 31, 61, 0.3) 60%,
+    rgba(15, 31, 61, 0.1) 100%
+  );
+  pointer-events: none;
+}
+
+.places-list-back {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 3;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.places-list-hero-emoji {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  font-size: 56px;
+  z-index: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.2));
+}
+
+.places-list-hero-info {
+  position: relative;
+  z-index: 2;
+}
+
+.places-list-hero-title {
+  font-family: "Fraunces", serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 6px;
+}
+
+.places-list-hero-meta {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 12px;
+}
+
+.places-list-city-select {
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.places-list-content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 20px 0;
+}
+
+.places-list-status,
+.places-list-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 32px 16px;
+  font-size: 15px;
+}
+
+.places-list-error {
+  text-align: center;
+  padding: 24px 16px;
+  color: #e11d48;
+  font-size: 14px;
+}
+
+.places-list-error-hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.places-list-retry {
+  margin-top: 16px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  background: var(--ink);
+  color: #fff;
+  font-family: "DM Sans", sans-serif;
+  cursor: pointer;
+}
+
+.places-list-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.places-list-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--white);
+  cursor: pointer;
+  text-align: left;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.places-list-row:hover {
+  box-shadow: 0 8px 24px rgba(15, 31, 61, 0.08);
+  transform: translateY(-1px);
+}
+
+.places-list-row-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.places-list-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.places-list-row-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.places-list-row-meta {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.places-list-row-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.places-list-rating {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.places-list-price {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+.places-list-more {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.places-list-footer {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.places-list-map-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 360px;
+  padding: 14px 24px;
+  border-radius: 14px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  transition: background 0.18s ease;
+}
+
+.places-list-map-cta:hover {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.places-list-map-link {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.places-list-attribution,
+.places-explore-attribution {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.places-list-attribution a,
+.places-explore-attribution a {
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

@@ -1,50 +1,90 @@
-import { Injectable } from '@nestjs/common';
-import { NormalizedPOI, RawFoursquareVenue, RawGooglePlace, RawGTFSStop } from '@pocketguide/types';
-import { mapFoursquareToPOI, mapGoogleToPOI, mapGtfsToPOI } from './mappers';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { NormalizedPOI, RawFoursquareVenue } from '@pocketguide/types';
+import { pois } from '@pocketguide/database';
+import { eq, inArray } from 'drizzle-orm';
+import { mapFoursquareToPOI } from './mappers';
 import { filterDuplicates } from './deduplicator';
-
-// Eğer Drizzle DB'si provider olarak projede ayarlandıysa inject edilebilir:
-// import { pois } from '@pocketguide/database';
 
 @Injectable()
 export class IngestionService {
-    // constructor(@Inject('DB_CONNECTION') private readonly db: any) {}
+  private readonly logger = new Logger(IngestionService.name);
 
-    public processFoursquare(rawItems: RawFoursquareVenue[], existingDbPois: NormalizedPOI[] = []): NormalizedPOI[] {
-        const mapped = rawItems.map(mapFoursquareToPOI);
-        return filterDuplicates(mapped, existingDbPois);
-    }
+  constructor(@Inject('DB_CONNECTION') private readonly db: any) {}
 
-    public processGoogle(rawItems: RawGooglePlace[], existingDbPois: NormalizedPOI[] = []): NormalizedPOI[] {
-        const mapped = rawItems.map(mapGoogleToPOI);
-        return filterDuplicates(mapped, existingDbPois);
-    }
+  processFoursquare(
+    rawItems: RawFoursquareVenue[],
+    existingDbPois: NormalizedPOI[] = [],
+    categoryOverride?: string,
+  ): NormalizedPOI[] {
+    const mapped = rawItems.map((raw) => mapFoursquareToPOI(raw, categoryOverride));
+    return filterDuplicates(mapped, existingDbPois);
+  }
 
-    public processGtfs(rawItems: RawGTFSStop[], existingDbPois: NormalizedPOI[] = []): NormalizedPOI[] {
-        const mapped = rawItems.map(mapGtfsToPOI);
-        return filterDuplicates(mapped, existingDbPois);
-    }
+  async loadExistingForCity(cityId: string): Promise<NormalizedPOI[]> {
+    const rows = await this.db
+      .select({
+        sourceId: pois.sourceId,
+        name: pois.name,
+        category: pois.category,
+        location: pois.location,
+      })
+      .from(pois)
+      .where(eq(pois.cityId as any, cityId));
 
-    /**
-     * Takes fully cleaned and deduplicated POIs and saves them to PostgreSQL via Drizzle.
-     * @param uniquePois - Array of NormalizedPOIs ready for insertion
-     */
-    public async bulkInsertToDb(uniquePois: NormalizedPOI[]): Promise<void> {
-        if (uniquePois.length === 0) {
-            console.log('No new unique POIs to insert.');
-            return;
-        }
+    return rows
+      .filter((r: { sourceId: string | null }) => r.sourceId)
+      .map(
+        (r: {
+          sourceId: string;
+          name: string;
+          category: string;
+          location: { lat: number; lng: number };
+        }) => ({
+          sourceId: r.sourceId,
+          provider: 'foursquare' as const,
+          name: r.name,
+          category: r.category,
+          address: null,
+          lat: r.location?.lat ?? 0,
+          lng: r.location?.lng ?? 0,
+        }),
+      );
+  }
 
-        /*
-        Example Drizzle Insertion Logic:
-        
-        await this.db
-            .insert(pois)
-            .values(uniquePois)
-            .onConflictDoNothing({ target: pois.sourceId }); // Prevent DB level duplicates if any
-            
-        console.log(`Successfully inserted ${uniquePois.length} new POIs into Database.`);
-        */
-        console.log(`[DRY RUN] Veritabanına ${uniquePois.length} adet yeni (benzersiz) POI kaydedildi.`);
-    }
+  async bulkInsertToDb(uniquePois: NormalizedPOI[], cityId: string): Promise<number> {
+    if (uniquePois.length === 0) return 0;
+
+    const sourceIds = uniquePois.map((p) => p.sourceId);
+    const existing = await this.db
+      .select({ sourceId: pois.sourceId })
+      .from(pois)
+      .where(inArray(pois.sourceId as any, sourceIds));
+
+    const existingSet = new Set(
+      (existing as { sourceId: string | null }[])
+        .map((r) => r.sourceId)
+        .filter(Boolean),
+    );
+
+    const toInsert = uniquePois.filter((p) => !existingSet.has(p.sourceId));
+    if (toInsert.length === 0) return 0;
+
+    await this.db.insert(pois).values(
+      toInsert.map((p) => ({
+        sourceId: p.sourceId,
+        provider: p.provider,
+        name: p.name,
+        cityId,
+        category: String(p.category),
+        address: p.address,
+        description: p.subtype ?? null,
+        rating: p.rating ?? null,
+        priceLevel: p.priceLevel ?? null,
+        location: { lng: p.lng, lat: p.lat },
+      })),
+    );
+
+    this.logger.log(`Inserted ${toInsert.length} POIs for city ${cityId}`);
+    return toInsert.length;
+  }
 }

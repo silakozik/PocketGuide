@@ -2,6 +2,7 @@ import { Nav } from "../components/Nav";
 import { Hero } from "../components/Hero";
 import { DashboardPreview } from "../components/DashboardPreview";
 import { CitiesExplore } from "../components/CitiesExplore";
+import { PlacesExplore } from "../components/PlacesExplore";
 import { Ticker } from "../components/Ticker";
 import { Features } from "../components/Features";
 import { SocialProof } from "../components/SocialProof";
@@ -18,6 +19,7 @@ export default function LandingPage() {
       <Hero />
       <DashboardPreview />
       <CitiesExplore />
+      <PlacesExplore />
       <Ticker />
       <Features />
       <SocialProof />

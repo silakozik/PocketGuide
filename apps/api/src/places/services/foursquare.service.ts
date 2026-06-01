@@ -1,32 +1,69 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { RawFoursquareVenue } from '@pocketguide/types';
-import axios from 'axios';
+import { searchFoursquarePlaces } from '../utils/foursquare-client';
 
 @Injectable()
 export class FoursquareService {
-    async searchNearby(lat: number, lng: number, radius = 1500): Promise<RawFoursquareVenue[]> {
-        try {
-            const res = await axios.get(
-                'https://api.foursquare.com/v3/places/search',
-                {
-                    params: {
-                        ll: `${lat},${lng}`,
-                        radius,
-                        limit: 20
-                    },
-                    headers: {
-                        Authorization: process.env.FOURSQUARE_API_KEY!,
-                        Accept: 'application/json',
-                    },
-                    timeout: 10000, // 10 saniye zaman aşımı
-                }
-            );
+  private readonly logger = new Logger(FoursquareService.name);
 
-            console.log('FSQ response:', JSON.stringify(res.data).slice(0, 300));
-            return res.data.results ?? [];
-        } catch (err) {
-            console.error('Foursquare error:', err.message);
-            return [];
-        }
+  async searchNearby(
+    lat: number,
+    lng: number,
+    radius = 1500,
+    limit = 20,
+  ): Promise<RawFoursquareVenue[]> {
+    return this.search({
+      lat,
+      lng,
+      radius,
+      limit,
+    });
+  }
+
+  async searchByCategories(
+    lat: number,
+    lng: number,
+    categoryIds: string[],
+    options?: { radius?: number; limit?: number },
+  ): Promise<RawFoursquareVenue[]> {
+    if (!categoryIds.length) return [];
+    return this.search({
+      lat,
+      lng,
+      radius: options?.radius ?? 8000,
+      limit: options?.limit ?? 50,
+      categories: categoryIds.join(','),
+    });
+  }
+
+  private async search(params: {
+    lat: number;
+    lng: number;
+    radius: number;
+    limit: number;
+    categories?: string;
+  }): Promise<RawFoursquareVenue[]> {
+    if (!process.env.FOURSQUARE_API_KEY?.trim()) {
+      this.logger.warn('FOURSQUARE_API_KEY is not set');
+      return [];
     }
+
+    try {
+      const categoryIds = params.categories
+        ? params.categories.split(',').filter(Boolean)
+        : [];
+
+      return await searchFoursquarePlaces({
+        lat: params.lat,
+        lng: params.lng,
+        radius: params.radius,
+        limit: params.limit,
+        categoryIds,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Foursquare search failed: ${message}`);
+      return [];
+    }
+  }
 }

@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { sql } from 'drizzle-orm';
 import { resolveCitySlug } from '../../utils/city-slug';
+import { detectPoiCoordMode, latLngSelectSql, type PoiCoordMode } from '../utils/poi-coords';
 
 /**
  * GeospatialService
@@ -59,6 +60,7 @@ export interface DistanceMatrixEntry {
 export class GeospatialService {
   private readonly logger = new Logger(GeospatialService.name);
   private openingHoursColumnExists: boolean | null = null;
+  private poiCoordMode: PoiCoordMode | null = null;
 
   constructor(
     @Inject('DB_CONNECTION') private readonly db: any,
@@ -353,6 +355,70 @@ export class GeospatialService {
     `);
 
     return this.rowsFromExecute(result);
+  }
+
+  private async getPoiCoordMode(): Promise<PoiCoordMode> {
+    if (this.poiCoordMode === null) {
+      this.poiCoordMode = await detectPoiCoordMode(this.db);
+    }
+    return this.poiCoordMode;
+  }
+
+  /**
+   * Explore list: city + mekan kategorisi, sayfalama ve toplam adet.
+   */
+  async findExplorePlaces(
+    citySlug: string,
+    placeCategory: string,
+    limit = 30,
+    offset = 0,
+  ): Promise<{ data: PoiWithDistance[]; total: number }> {
+    citySlug = resolveCitySlug(citySlug);
+    const cacheKey = `pois:explore:${citySlug}:${placeCategory}:${limit}:${offset}`;
+
+    const cached = await this.cacheManager.get<{ data: PoiWithDistance[]; total: number }>(cacheKey);
+    if (cached) return cached;
+
+    const openingHoursProjection = await this.getOpeningHoursProjection('p');
+    const coordMode = await this.getPoiCoordMode();
+    const latLngCols = latLngSelectSql('p', coordMode);
+
+    const countResult = await this.db.execute(sql`
+      SELECT count(*)::int AS total
+      FROM pois p
+      JOIN cities c ON p."cityId" = c.id
+      WHERE c.slug = ${citySlug} AND p.category = ${placeCategory}
+    `);
+    const countRows = this.rowsFromExecute(countResult);
+    const total = Number((countRows[0] as { total?: number })?.total ?? 0);
+
+    const result = await this.db.execute(sql`
+      SELECT
+        p.id,
+        p.name,
+        p.category,
+        p.address,
+        p.description,
+        p.rating,
+        p."priceLevel",
+        ${openingHoursProjection},
+        ${latLngCols},
+        0 AS "distanceMeters",
+        (SELECT count(*)::int FROM reviews r WHERE r."placeId" = p.id) AS "reviewCount",
+        (SELECT count(*)::int FROM favorites f WHERE f."placeId" = p.id) AS "favoriteCount"
+      FROM pois p
+      JOIN cities c ON p."cityId" = c.id
+      WHERE c.slug = ${citySlug} AND p.category = ${placeCategory}
+      ORDER BY p.rating DESC NULLS LAST, p.name ASC
+      LIMIT ${limit} OFFSET ${offset}
+    `);
+
+    const payload = {
+      data: this.poiRowsFromExecute(result),
+      total,
+    };
+    await this.cacheManager.set(cacheKey, payload, 60);
+    return payload;
   }
 
   /**

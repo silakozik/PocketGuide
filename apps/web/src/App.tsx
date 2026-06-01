@@ -16,6 +16,7 @@ import { AIAssistantProvider } from "./context/AIAssistantContext";
 import { AIAssistantPanel } from "./components/AIAssistantPanel";
 import FirstDayPage from "./pages/FirstDayPage";
 import CityHubPage from "./pages/CityHubPage";
+import PlacesExplorePage from "./pages/PlacesExplorePage";
 import TransfersPage from "./pages/TransfersPage";
 
 
@@ -27,7 +28,8 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
     if (location.pathname.startsWith("/admin")) return;
     if (
       location.pathname === "/login" ||
-      location.pathname === "/register"
+      location.pathname === "/register" ||
+      location.pathname.startsWith("/explore")
     ) {
       return;
     }
@@ -54,6 +56,7 @@ export default function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/map" element={<MapPage />} />
+            <Route path="/explore/:placeCategory" element={<PlacesExplorePage />} />
             <Route
               path="/profile"
               element={
