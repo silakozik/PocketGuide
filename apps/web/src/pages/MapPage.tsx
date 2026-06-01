@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import { getCityStaticData } from "../data/cityStaticData";
 import { Nav } from "../components/Nav";
 import { PocketGuideMap } from "../components/map/PocketGuideMap";
 import { RouteProvider } from "../context/RouteContext";
@@ -79,6 +80,18 @@ function MapPageContent() {
   const { isOnline } = useNetworkStatus();
   const params = useParams<{ citySlug?: string }>();
   const citySlug = params.citySlug ?? "istanbul";
+  const [searchParams] = useSearchParams();
+
+  // Ana sayfa aramasından gelen ?city=istanbul
+  useEffect(() => {
+    const city = searchParams.get("city");
+    if (!city) return;
+    const data = getCityStaticData(city);
+    if (!data) return;
+    const [lat, lng] = data.center;
+    navigateMapTo(lat, lng);
+    setSearchQuery(data.nameTr);
+  }, [searchParams]);
 
   // Arama debounce
   useEffect(() => {
