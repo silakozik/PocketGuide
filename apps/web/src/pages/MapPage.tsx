@@ -25,6 +25,35 @@ interface RouteStop {
   address?: string;
 }
 
+function readMapLocationFromParams(params: URLSearchParams): {
+  center?: { lat: number; lng: number };
+  label?: string;
+} {
+  const latParam = params.get("lat");
+  const lngParam = params.get("lng");
+  if (latParam && lngParam) {
+    const lat = parseFloat(latParam);
+    const lng = parseFloat(lngParam);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      return {
+        center: { lat, lng },
+        label: params.get("name") ?? undefined,
+      };
+    }
+  }
+
+  const city = params.get("city");
+  if (city) {
+    const data = getCityStaticData(city);
+    if (data) {
+      const [lat, lng] = data.center;
+      return { center: { lat, lng }, label: data.nameTr };
+    }
+  }
+
+  return {};
+}
+
 function mapNominatimTypeToCategory(type: string): POICategory {
   const normalized = type.toLowerCase();
   if (["restaurant", "cafe", "fast_food", "bar", "pub"].includes(normalized)) return "restaurant";
@@ -42,17 +71,21 @@ function MapPageContent() {
   const [savingTrip, setSavingTrip] = useState(false);
 
   // Arama
-  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<NominatimResult | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
+  const [searchParams] = useSearchParams();
+  const urlMapLocation = readMapLocationFromParams(searchParams);
+
   // Harita merkezi (AI asistan) — flyTarget yalnızca arama/konumda flyTo tetikler
-  const [mapCenter, setMapCenter] = useState({ lat: MAP_INITIAL_LAT, lng: MAP_INITIAL_LNG });
+  const [mapCenter, setMapCenter] = useState(
+    () => urlMapLocation.center ?? { lat: MAP_INITIAL_LAT, lng: MAP_INITIAL_LNG },
+  );
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | undefined>(
-    undefined,
+    () => urlMapLocation.center,
   );
 
   const navigateMapTo = (lat: number, lng: number) => {
@@ -76,32 +109,25 @@ function MapPageContent() {
   const { isOnline } = useNetworkStatus();
   const params = useParams<{ citySlug?: string }>();
   const citySlug = params.citySlug ?? "istanbul";
-  const [searchParams] = useSearchParams();
 
-  // Ana sayfa: ?city=istanbul veya ?lat=&lng=&name=Adana
+  const [deepLinkMarker, setDeepLinkMarker] = useState<{ lat: number; lng: number } | undefined>(
+    () =>
+      searchParams.get("lat") && searchParams.get("lng")
+        ? urlMapLocation.center
+        : undefined,
+  );
+  const [searchQuery, setSearchQuery] = useState(() => urlMapLocation.label ?? "");
+
+  // ?lat=&lng=&name= (mekan) öncelikli; yalnızca ?city= ise şehir merkezi
   useEffect(() => {
-    const city = searchParams.get("city");
-    if (city) {
-      const data = getCityStaticData(city);
-      if (data) {
-        const [lat, lng] = data.center;
-        navigateMapTo(lat, lng);
-        setSearchQuery(data.nameTr);
-      }
-      return;
-    }
+    const { center, label } = readMapLocationFromParams(searchParams);
+    if (!center) return;
 
-    const latParam = searchParams.get("lat");
-    const lngParam = searchParams.get("lng");
-    const nameParam = searchParams.get("name");
-    if (latParam && lngParam) {
-      const lat = parseFloat(latParam);
-      const lng = parseFloat(lngParam);
-      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-        navigateMapTo(lat, lng);
-        if (nameParam) setSearchQuery(nameParam);
-      }
-    }
+    navigateMapTo(center.lat, center.lng);
+    setDeepLinkMarker(
+      searchParams.get("lat") && searchParams.get("lng") ? center : undefined,
+    );
+    if (label) setSearchQuery(label);
   }, [searchParams]);
 
   // Profilden kayıtlı seyahat aç
@@ -209,6 +235,7 @@ function MapPageContent() {
   const handleSelectResult = (result: NominatimResult) => {
     setSearchQuery(result.display_name.split(",")[0]);
     setSelectedResult(result);
+    setDeepLinkMarker(undefined);
     setShowResults(false);
     navigateMapTo(parseFloat(result.lat), parseFloat(result.lon));
   };
@@ -410,7 +437,7 @@ function MapPageContent() {
                       lat: parseFloat(selectedResult.lat),
                       lng: parseFloat(selectedResult.lon),
                     }
-                  : undefined
+                  : deepLinkMarker
               }
               onMapCenterChange={(lat, lng) => setMapCenter({ lat, lng })}
             />

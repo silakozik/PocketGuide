@@ -56,6 +56,8 @@ export interface MapViewProps {
   searchMarker?: { lat: number; lng: number };
   /** Görünür harita merkezi (Gezi Asistanı vb. için). */
   onMapCenterChange?: (lat: number, lng: number) => void;
+  onMapReady?: () => void;
+  initialCenter?: { lat: number; lng: number; zoom?: number };
 }
 
 export function MapView({
@@ -70,6 +72,8 @@ export function MapView({
   selectedPoiId,
   searchMarker,
   onMapCenterChange,
+  onMapReady,
+  initialCenter,
 }: MapViewProps) {
   const lastZoomRef = useRef<number>(MAP_INITIAL_ZOOM);
   const burstTimerRef = useRef<number | undefined>(undefined);
@@ -122,9 +126,9 @@ export function MapView({
       reuseMaps
       mapStyle={OSM_STYLE}
       initialViewState={{
-        longitude: MAP_INITIAL_LNG,
-        latitude: MAP_INITIAL_LAT,
-        zoom: MAP_INITIAL_ZOOM,
+        longitude: initialCenter?.lng ?? MAP_INITIAL_LNG,
+        latitude: initialCenter?.lat ?? MAP_INITIAL_LAT,
+        zoom: initialCenter?.zoom ?? MAP_INITIAL_ZOOM,
       }}
       attributionControl={{ compact: true }}
       onLoad={() => {
@@ -157,6 +161,8 @@ export function MapView({
           const centerLng = (bb.getEast() + bb.getWest()) / 2;
           onMapCenterChange(centerLat, centerLng);
         }
+
+        onMapReady?.();
       }}
       onMove={() => handleMapMovement()}
       style={{

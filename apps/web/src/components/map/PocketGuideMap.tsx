@@ -107,7 +107,7 @@ export function PocketGuideMap({
     setLayers((prev) => ({ ...prev, pins: showPins }));
   }, [showPins]);
 
-  useEffect(() => {
+  const flyToForcedCenter = useCallback(() => {
     if (!forcedCenter) return;
     const map = mapRef.current?.getMap?.() as
       | { flyTo: (opts: Record<string, unknown>) => void }
@@ -119,6 +119,10 @@ export function PocketGuideMap({
       duration: 800,
     });
   }, [forcedCenter]);
+
+  useEffect(() => {
+    flyToForcedCenter();
+  }, [flyToForcedCenter]);
 
   useEffect(() => {
     let isMounted = true;
@@ -245,6 +249,10 @@ export function PocketGuideMap({
         selectedPoiId={selectedPOI?.id ?? null}
         searchMarker={searchMarker}
         onMapCenterChange={onMapCenterChange}
+        onMapReady={flyToForcedCenter}
+        initialCenter={
+          forcedCenter ? { lat: forcedCenter.lat, lng: forcedCenter.lng, zoom: 15 } : undefined
+        }
       />
 
       {showLayerToggle && <LayerToggle layers={layers} onChange={handleLayerChange} />}
