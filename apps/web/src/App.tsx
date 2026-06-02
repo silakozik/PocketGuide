@@ -13,6 +13,7 @@ import AdminGuard from "./components/admin/AdminGuard";
 import AuthGuard from "./components/AuthGuard";
 import { AuthProvider } from "./context/AuthContext";
 import { AIAssistantProvider } from "./context/AIAssistantContext";
+import { RouteProvider } from "./context/RouteContext";
 import { AIAssistantPanel } from "./components/AIAssistantPanel";
 import FirstDayPage from "./pages/FirstDayPage";
 import CityHubPage from "./pages/CityHubPage";
@@ -47,6 +48,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <RouteProvider>
         <AIAssistantProvider>
         <OnboardingGuard>
           <AIAssistantPanel />
@@ -83,6 +85,7 @@ export default function App() {
           </Routes>
         </OnboardingGuard>
         </AIAssistantProvider>
+        </RouteProvider>
       </AuthProvider>
     </BrowserRouter>
   );

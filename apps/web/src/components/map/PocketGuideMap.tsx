@@ -26,7 +26,7 @@ async function fetchPoisFromApi(cityId: string): Promise<POI[]> {
     return MOCK_POIS;
   }
 
-  const response = await fetch(`${apiBase}/cities/${cityId}/pois`);
+  const response = await fetch(`${apiBase}/pois/city/${encodeURIComponent(cityId)}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch POIs: ${response.status}`);
   }
@@ -125,6 +125,10 @@ export function PocketGuideMap({
   }, [flyToForcedCenter]);
 
   useEffect(() => {
+    if (!showPins) {
+      return;
+    }
+
     let isMounted = true;
 
     const bootstrapPois = async () => {
@@ -165,7 +169,7 @@ export function PocketGuideMap({
     return () => {
       isMounted = false;
     };
-  }, [isOnline, clearOldData, getPOIsByCity, saveCity, savePOIs]);
+  }, [showPins, isOnline, clearOldData, getPOIsByCity, saveCity, savePOIs]);
 
   const filteredPOIs = useMemo(
     () =>

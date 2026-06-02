@@ -91,6 +91,48 @@ export class RoutingService {
    * - Brute-force permutation for <= 8 points.
    * - Nearest Neighbor heuristic for > 8 points.
    */
+  /**
+   * Turn-by-turn driving directions for an ordered list of [lng, lat] coordinates.
+   * Used by the web map "Rotayı Başlat" flow (ORS key stays on server).
+   */
+  async fetchDrivingDirections(
+    coordinates: [number, number][],
+  ): Promise<Record<string, unknown>> {
+    if (!coordinates || coordinates.length < 2) {
+      throw new Error('At least 2 coordinates are required for directions.');
+    }
+    if (!this.orsApiKey) {
+      throw new Error('ORS_API_KEY is not configured on the server.');
+    }
+
+    try {
+      const response = await axios.post(
+        'https://api.openrouteservice.org/v2/directions/driving-car',
+        {
+          coordinates,
+          instructions: true,
+          language: 'tr',
+          preference: 'recommended',
+          units: 'km',
+        },
+        {
+          headers: {
+            Authorization: this.orsApiKey,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      return response.data as Record<string, unknown>;
+    } catch (error) {
+      const axiosErr = error as { response?: { data?: unknown }; message?: string };
+      this.logger.error(
+        'OpenRouteService directions failed',
+        axiosErr.response?.data ?? axiosErr.message,
+      );
+      throw new Error('OpenRouteService yön tarifi alınamadı.');
+    }
+  }
+
   async optimizeRoute(pois: OptimizedPoi[]): Promise<OptimizedRouteResponse> {
     if (!pois || pois.length < 2) {
       throw new Error('At least 2 POIs are required for optimization.');

@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { saveTrip, getSavedTrip, type SavedTripStop } from "../lib/savedTripsApi";
 import { getCityStaticData } from "../data/cityStaticData";
 import { Nav } from "../components/Nav";
 import { PocketGuideMap } from "../components/map/PocketGuideMap";
-import { RouteProvider } from "../context/RouteContext";
 import { useAIAssistant } from "../context/AIAssistantContext";
 import { useRoute } from "../context/RouteContext";
 import { SyncManagerProvider } from "../context/SyncManagerContext";
@@ -94,16 +93,29 @@ function MapPageContent() {
   };
 
   // Rota durumu
-  const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
   const [activeSheet, setActiveSheet] = useState<"route" | "nearby" | "firstday">("route");
   const {
+    draftPOIs,
     addToRouteDraft,
     removeFromRouteDraft,
+    setRouteDraft,
     startRoute,
     isFetching,
     error,
     routeData,
   } = useRoute();
+
+  const routeStops = useMemo<RouteStop[]>(
+    () =>
+      draftPOIs.map((poi) => ({
+        id: poi.id,
+        name: poi.name,
+        lat: poi.coordinate.lat,
+        lng: poi.coordinate.lng,
+        address: poi.description,
+      })),
+    [draftPOIs],
+  );
   const { setCoords: setAssistantCoords } = useAIAssistant();
 
   const { isOnline } = useNetworkStatus();
@@ -140,16 +152,15 @@ function MapPageContent() {
       .then((trip) => {
         if (cancelled) return;
         const stops = trip.stops as SavedTripStop[];
-        setRouteStops(stops);
-        stops.forEach((stop) => {
-          addToRouteDraft({
+        setRouteDraft(
+          stops.map((stop) => ({
             id: stop.id,
             name: stop.name,
             category: "event",
             coordinate: { lat: stop.lat, lng: stop.lng },
             description: stop.address,
-          });
-        });
+          })),
+        );
         if (trip.cityName) setSearchQuery(trip.cityName);
         setActiveSheet("route");
       })
@@ -160,7 +171,7 @@ function MapPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, addToRouteDraft]);
+  }, [searchParams, setRouteDraft]);
 
   const handleSaveToTrips = async () => {
     if (routeStops.length < 2) return;
@@ -257,7 +268,6 @@ function MapPageContent() {
       lng: parseFloat(result.lon),
       address: result.display_name.split(",").slice(1, 3).join(",").trim(),
     };
-    setRouteStops((prev) => [...prev, stop]);
     const poiDraft: POI = {
       id: stop.id,
       name: stop.name,
@@ -276,7 +286,6 @@ function MapPageContent() {
   };
 
   const removeFromRoute = (id: string) => {
-    setRouteStops((prev) => prev.filter((s) => s.id !== id));
     removeFromRouteDraft(id);
   };
 
@@ -588,10 +597,8 @@ function MapPageContent() {
 
 export default function MapPage() {
   return (
-    <RouteProvider>
-      <SyncManagerProvider>
-        <MapPageContent />
-      </SyncManagerProvider>
-    </RouteProvider>
+    <SyncManagerProvider>
+      <MapPageContent />
+    </SyncManagerProvider>
   );
 }

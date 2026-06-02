@@ -1,7 +1,12 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { RouteState } from '../types/route';
 import { POI } from '../types/poi';
 import { fetchDirections } from '../lib/ors';
+import {
+  clearRouteDraftSession,
+  loadRouteDraftFromSession,
+  saveRouteDraftToSession,
+} from '../lib/routeDraftStorage';
 import { useNetworkStatus, useOfflineStorage } from '@pocketguide/hooks';
 import { DEFAULT_ROUTE_CITY_ID } from '../constants/syncConfig';
 import type { OfflineRoute } from '@pocketguide/types';
@@ -14,6 +19,7 @@ interface RouteContextProps extends RouteState {
   setActiveStep: (legIndex: number, stepIndex: number) => void;
   addToRouteDraft: (poi: POI) => void;
   removeFromRouteDraft: (poiId: string) => void;
+  setRouteDraft: (pois: POI[]) => void;
 }
 
 const RouteContext = createContext<RouteContextProps | undefined>(undefined);
@@ -24,15 +30,19 @@ const buildRouteId = (pois: POI[]): string => pois.map((poi) => poi.id).join("__
 export const RouteProvider = ({ children }: { children: ReactNode }) => {
   const { isOnline } = useNetworkStatus();
   const { saveRoute, getRoute } = useOfflineStorage();
-  const [state, setState] = useState<RouteState>({
+  const [state, setState] = useState<RouteState>(() => ({
     isActive: false,
     isFetching: false,
     routeData: null,
     activeLegIndex: 0,
     activeStepIndex: 0,
     error: null,
-    draftPOIs: [],
-  });
+    draftPOIs: loadRouteDraftFromSession(),
+  }));
+
+  useEffect(() => {
+    saveRouteDraftToSession(state.draftPOIs);
+  }, [state.draftPOIs]);
 
   const startRoute = async () => {
     if (state.draftPOIs.length < 2) return;
@@ -98,6 +108,7 @@ export const RouteProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const resetRoute = () => {
+    clearRouteDraftSession();
     setState({
       isActive: false,
       isFetching: false,
@@ -120,6 +131,19 @@ export const RouteProvider = ({ children }: { children: ReactNode }) => {
     setState(prev => ({
       ...prev,
       draftPOIs: prev.draftPOIs.filter(p => p.id !== poiId)
+    }));
+  };
+
+  const setRouteDraft = (pois: POI[]) => {
+    setState(prev => ({
+      ...prev,
+      draftPOIs: pois,
+      isActive: false,
+      isFetching: false,
+      routeData: null,
+      activeLegIndex: 0,
+      activeStepIndex: 0,
+      error: null,
     }));
   };
 
@@ -156,7 +180,19 @@ export const RouteProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <RouteContext.Provider value={{ ...state, startRoute, resetRoute, nextStep, prevStep, setActiveStep, addToRouteDraft, removeFromRouteDraft }}>
+    <RouteContext.Provider
+      value={{
+        ...state,
+        startRoute,
+        resetRoute,
+        nextStep,
+        prevStep,
+        setActiveStep,
+        addToRouteDraft,
+        removeFromRouteDraft,
+        setRouteDraft,
+      }}
+    >
       {children}
     </RouteContext.Provider>
   );
