@@ -6,6 +6,7 @@ import type { MapRef } from "react-map-gl/maplibre";
 
 import type { MarkerClusterFeature } from "../../hooks/useMarkerCluster";
 import type { POIGeoJsonProperties } from "../../lib/poiGeoJson";
+import type { AIAssistantPin } from "../../context/AIAssistantContext";
 
 import { ClusterMarker } from "./ClusterMarker";
 import styles from "./PocketGuideMap.module.css";
@@ -54,6 +55,7 @@ export interface MapViewProps {
   onPoiClick: (props: POIGeoJsonProperties) => void;
   selectedPoiId: string | null;
   searchMarker?: { lat: number; lng: number };
+  aiRecommendationPins?: AIAssistantPin[];
   /** Görünür harita merkezi (Gezi Asistanı vb. için). */
   onMapCenterChange?: (lat: number, lng: number) => void;
   onMapReady?: () => void;
@@ -71,6 +73,7 @@ export function MapView({
   onPoiClick,
   selectedPoiId,
   searchMarker,
+  aiRecommendationPins,
   onMapCenterChange,
   onMapReady,
   initialCenter,
@@ -206,6 +209,14 @@ export function MapView({
           />
         </Marker>
       )}
+
+      {(aiRecommendationPins ?? []).map((pin) => (
+        <Marker key={`ai-${pin.id}`} longitude={pin.lng} latitude={pin.lat} anchor="bottom">
+          <div className={styles.aiSuggestionPin} title={`AI onerisi: ${pin.name}`}>
+            <span className={styles.aiSuggestionPinDot}>✨</span>
+          </div>
+        </Marker>
+      ))}
 
       <div className={styles.customMapControls}>
         <button

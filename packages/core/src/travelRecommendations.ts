@@ -27,6 +27,8 @@ export type TravelRecommendation = {
   reason: string;
   estimatedVisitMinutes: number;
   walkingDistanceMeters: number;
+  lat?: number;
+  lng?: number;
 };
 
 export type FetchTravelRecommendationsOptions = {
@@ -271,8 +273,17 @@ export async function fetchTravelRecommendationsFromGroq(
   const text = completion.choices[0]?.message?.content ?? "";
   try {
     const recs = parseRecommendationsJson(text);
-    const allowed = new Set(nearbyPois.map((p) => p.id));
-    return recs.filter((r) => allowed.has(r.placeId));
+    const poiById = new Map(nearbyPois.map((p) => [p.id, p]));
+    return recs
+      .filter((r) => poiById.has(r.placeId))
+      .map((r) => {
+        const poi = poiById.get(r.placeId)!;
+        return {
+          ...r,
+          lat: poi.lat,
+          lng: poi.lng,
+        };
+      });
   } catch {
     console.error("Groq raw response:", text);
     throw new Error("Groq response was not valid JSON array format.");

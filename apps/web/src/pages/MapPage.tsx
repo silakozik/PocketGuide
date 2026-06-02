@@ -116,7 +116,7 @@ function MapPageContent() {
       })),
     [draftPOIs],
   );
-  const { setCoords: setAssistantCoords } = useAIAssistant();
+  const { setCoords: setAssistantCoords, recommendationPins } = useAIAssistant();
 
   const { isOnline } = useNetworkStatus();
   const params = useParams<{ citySlug?: string }>();
@@ -439,6 +439,7 @@ function MapPageContent() {
               searchQuery=""
               showPins={false}
               showLayerToggle={false}
+              aiRecommendationPins={recommendationPins}
               forcedCenter={flyTarget}
               searchMarker={
                 selectedResult

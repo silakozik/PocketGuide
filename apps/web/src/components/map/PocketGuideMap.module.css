@@ -56,3 +56,20 @@
   box-shadow: none;
 }
 
+.aiSuggestionPin {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  background: linear-gradient(135deg, #e8c547, #c9a82a);
+  box-shadow: 0 4px 12px rgba(15, 31, 61, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aiSuggestionPinDot {
+  font-size: 13px;
+  line-height: 1;
+}
+

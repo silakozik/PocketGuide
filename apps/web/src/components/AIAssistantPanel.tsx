@@ -14,7 +14,7 @@ import { geocodeCity } from "../lib/geocode";
  * Yakındaki POI'lar `/api/pois/nearby`; metin Groq ile üretilir (`VITE_GROQ_API_KEY`).
  */
 export function AIAssistantPanel() {
-  const { isOpen, close, coords } = useAIAssistant();
+  const { isOpen, close, coords, setRecommendationPins, clearRecommendationPins } = useAIAssistant();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<TravelRecommendation[] | null>(null);
@@ -71,10 +71,6 @@ export function AIAssistantPanel() {
           targetCoords = { lat: resolvedGeocode.lat, lng: resolvedGeocode.lng };
           setEffectiveCoords(targetCoords);
         }
-        const reply = await askGroqTravelAssistant(normalizedQuestion, targetCoords);
-        setAssistantReply(reply || null);
-      } else {
-        setAssistantReply(null);
       }
       const data = await fetchTravelRecommendationsFromGroq(
         targetCoords.lat,
@@ -82,7 +78,23 @@ export function AIAssistantPanel() {
         normalizedQuestion,
       );
       setRecommendations(data);
+      setRecommendationPins(
+        data
+          .filter((rec) => typeof rec.lat === "number" && typeof rec.lng === "number")
+          .map((rec) => ({
+            id: rec.placeId,
+            name: rec.name,
+            lat: rec.lat as number,
+            lng: rec.lng as number,
+          })),
+      );
       setLastQuestion(normalizedQuestion ?? null);
+      if (normalizedQuestion) {
+        const reply = await askGroqTravelAssistant(normalizedQuestion, targetCoords, data);
+        setAssistantReply(reply || null);
+      } else {
+        setAssistantReply(null);
+      }
     } catch (err: unknown) {
       console.error("Failed to fetch AI recommendations", err);
       const rawMessage = err instanceof Error ? err.message : "Öneriler getirilirken bir hata oluştu.";
@@ -91,6 +103,7 @@ export function AIAssistantPanel() {
       } else {
         setError(rawMessage);
       }
+      clearRecommendationPins();
     } finally {
       setLoading(false);
     }

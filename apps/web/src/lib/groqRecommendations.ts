@@ -35,6 +35,7 @@ export async function fetchTravelRecommendationsFromGroq(
 export async function askGroqTravelAssistant(
   userPrompt: string,
   coords?: { lat: number; lng: number },
+  candidates?: TravelRecommendation[],
 ): Promise<string> {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY?.trim();
   if (!apiKey) {
@@ -49,6 +50,16 @@ export async function askGroqTravelAssistant(
   const locationText = coords
     ? `Kullanici konumu: (${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)})`
     : "Kullanici konumu bilinmiyor.";
+  const candidateLines =
+    candidates && candidates.length > 0
+      ? candidates
+          .slice(0, 8)
+          .map(
+            (c, idx) =>
+              `${idx + 1}) ${c.name} | kategori: ${c.category} | mesafe: ${Math.round(c.walkingDistanceMeters)}m | neden: ${c.reason}`,
+          )
+          .join("\n")
+      : "Aday mekan yok.";
 
   const groq = new Groq({
     apiKey,
@@ -62,11 +73,11 @@ export async function askGroqTravelAssistant(
       {
         role: "system",
         content:
-          "Sen PocketGuide gezi asistansin. Cevaplari Turkce, kisa ve net ver. Kullanici sorusuna gore sehir/bolge odakli pratik oneriler sun. Gereksiz uzunluk ve markdown kullanma.",
+          "Sen PocketGuide gezi asistansin. Sadece verilen ADAY MEKANLAR listesindeki isimleri kullan; listede olmayan mekan/mahalle/cadde UYDURMA. Cevaplari Turkce, kisa ve net ver. Eger aday yoksa bunu acikca soyle.",
       },
       {
         role: "user",
-        content: `${locationText}\nSoru: ${prompt}`,
+        content: `${locationText}\nSoru: ${prompt}\n\nADAY MEKANLAR:\n${candidateLines}\n\nGorev: Soruya en uygun 3-5 adayi sec ve her biri icin cok kisa neden yaz.`,
       },
     ],
   });

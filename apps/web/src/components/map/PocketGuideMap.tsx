@@ -12,6 +12,7 @@ import type { POIGeoJsonProperties } from "../../lib/poiGeoJson";
 import { MOCK_POIS } from "../../data/mockPOIs";
 import { POI } from "../../types/poi";
 import { useRoute } from "../../context/RouteContext";
+import type { AIAssistantPin } from "../../context/AIAssistantContext";
 import type { LayerState } from "./LayerToggle";
 import { LayerToggle } from "./LayerToggle";
 import { POICard } from "./POICard";
@@ -73,6 +74,7 @@ interface PocketGuideMapProps {
   searchQuery?: string;
   showPins?: boolean;
   showLayerToggle?: boolean;
+  aiRecommendationPins?: AIAssistantPin[];
   forcedCenter?: { lat: number; lng: number };
   searchMarker?: { lat: number; lng: number };
   onMapCenterChange?: (lat: number, lng: number) => void;
@@ -83,6 +85,7 @@ export function PocketGuideMap({
   searchQuery = "",
   showPins = true,
   showLayerToggle = true,
+  aiRecommendationPins = [],
   forcedCenter,
   searchMarker,
   onMapCenterChange,
@@ -257,6 +260,7 @@ export function PocketGuideMap({
         onPoiClick={handlePoiMarkerClick}
         selectedPoiId={selectedPOI?.id ?? null}
         searchMarker={searchMarker}
+        aiRecommendationPins={aiRecommendationPins}
         onMapCenterChange={onMapCenterChange}
         onMapReady={flyToForcedCenter}
         initialCenter={
