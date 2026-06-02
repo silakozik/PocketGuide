@@ -20,7 +20,6 @@ import CityHubPage from "./pages/CityHubPage";
 import PlacesExplorePage from "./pages/PlacesExplorePage";
 import TransfersPage from "./pages/TransfersPage";
 
-
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,42 +48,41 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <RouteProvider>
-        <AIAssistantProvider>
-        <OnboardingGuard>
-          <AIAssistantPanel />
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/map" element={<MapPage />} />
-            <Route path="/explore/:placeCategory" element={<PlacesExplorePage />} />
-            <Route
-              path="/profile"
-              element={
-                <AuthGuard>
-                  <ProfilePage />
-                </AuthGuard>
-              }
-            />
-          <Route path="/:citySlug/first-day" element={<FirstDayPage />} />
-          <Route path="/:citySlug" element={<CityHubPage />} />
-          <Route path="/transfer" element={<TransfersPage />} />
+          <AIAssistantProvider>
+            <OnboardingGuard>
+              <AIAssistantPanel />
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/onboarding" element={<OnboardingPage />} />
+                <Route path="/map" element={<MapPage />} />
+                <Route path="/explore/:placeCategory" element={<PlacesExplorePage />} />
+                <Route
+                  path="/profile"
+                  element={
+                    <AuthGuard>
+                      <ProfilePage />
+                    </AuthGuard>
+                  }
+                />
+                <Route path="/:citySlug/first-day" element={<FirstDayPage />} />
+                <Route path="/:citySlug" element={<CityHubPage />} />
+                <Route path="/transfer" element={<TransfersPage />} />
 
-
-          {/* Admin routes */}
-          <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route
-            path="/admin/cities"
-            element={
-              <AdminGuard>
-                <AdminCitiesPage />
-              </AdminGuard>
-            }
-          />
-          </Routes>
-        </OnboardingGuard>
-        </AIAssistantProvider>
+                {/* Admin routes */}
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+                <Route
+                  path="/admin/cities"
+                  element={
+                    <AdminGuard>
+                      <AdminCitiesPage />
+                    </AdminGuard>
+                  }
+                />
+              </Routes>
+            </OnboardingGuard>
+          </AIAssistantProvider>
         </RouteProvider>
       </AuthProvider>
     </BrowserRouter>

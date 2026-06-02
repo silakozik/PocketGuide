@@ -1,5 +1,6 @@
 export {
   fetchTravelRecommendationsFromGroq,
+  askGroqTravelAssistant,
   buildRecommendationPrompt,
   getTimeOfDay,
   parseRecommendationsJson,
@@ -9,4 +10,5 @@ export type {
   NearbyPoiRow,
   TravelRecommendation,
   FetchTravelRecommendationsOptions,
+  AskGroqTravelAssistantOptions,
 } from "./travelRecommendations";

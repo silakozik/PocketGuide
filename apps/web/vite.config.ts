@@ -6,6 +6,7 @@ export default defineConfig({
   root: ".",
   optimizeDeps: {
     include: ["mapbox-gl"],
+    exclude: ["@pocketguide/core"],
   },
   server: {
     proxy: {

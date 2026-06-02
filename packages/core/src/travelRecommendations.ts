@@ -39,6 +39,14 @@ export type FetchTravelRecommendationsOptions = {
   dangerouslyAllowBrowser?: boolean;
   userInterests?: string[];
   budget?: string;
+  userPrompt?: string;
+};
+
+export type AskGroqTravelAssistantOptions = {
+  groqApiKey: string;
+  userPrompt: string;
+  userLocation?: { lat: number; lng: number };
+  dangerouslyAllowBrowser?: boolean;
 };
 
 export function getTimeOfDay(hour = new Date().getHours()): string {
@@ -57,8 +65,9 @@ export function buildRecommendationPrompt(context: {
   nearbyPois: NearbyPoiRow[];
   userInterests?: string[];
   budget?: string;
+  userPrompt?: string;
 }): string {
-  const { userLocation, timeOfDay, nearbyPois, userInterests, budget } = context;
+  const { userLocation, timeOfDay, nearbyPois, userInterests, budget, userPrompt } = context;
 
   const currentTime = new Date().toLocaleString("tr-TR", {
     weekday: "long",
@@ -73,6 +82,7 @@ export function buildRecommendationPrompt(context: {
     `Current Time: ${currentTime}`,
     userInterests?.length ? `Interests: ${userInterests.join(", ")}` : null,
     budget ? `Budget: ${budget}` : null,
+    userPrompt?.trim() ? `User Request: ${userPrompt.trim()}` : null,
     "",
   ]
     .filter(Boolean)
@@ -98,6 +108,7 @@ export function buildRecommendationPrompt(context: {
     "3. EXCLUDE any place that is closed during the estimated visit window (Current Time + Travel Time).",
     "4. Sort places using nearest-neighbor logic to form an efficient walking route. MINIMIZE total walking distance and avoid zigzagging.",
     "5. Apply categorical diversity: do not repeat the same category more than twice.",
+    "6. If User Request exists, prioritize matching venues and reasons to that request while still following distance/opening constraints.",
     "",
     "# SCORING & BADGING RULES",
     'Assign exactly one "badge" string to each recommendation based on these priorities:',
@@ -147,11 +158,11 @@ function isValidRecommendation(x: unknown): x is TravelRecommendation {
   );
 }
 
-function nearbyPoisUrl(apiBaseUrl: string, lat: number, lng: number): string {
+function nearbyPoisUrl(apiBaseUrl: string, lat: number, lng: number, radiusMeters = 2000): string {
   const qs = new URLSearchParams({
     lat: String(lat),
     lng: String(lng),
-    radius: "2000",
+    radius: String(radiusMeters),
     limit: "15",
   });
   const path = `/api/pois/nearby?${qs.toString()}`;
@@ -166,58 +177,66 @@ function nearbyPoisUrl(apiBaseUrl: string, lat: number, lng: number): string {
 export async function fetchTravelRecommendationsFromGroq(
   options: FetchTravelRecommendationsOptions,
 ): Promise<TravelRecommendation[]> {
-  const { lat, lng, apiBaseUrl, groqApiKey, dangerouslyAllowBrowser, userInterests, budget } = options;
-
-  const url = nearbyPoisUrl(apiBaseUrl, lat, lng);
-  let poiRes: Response;
-  try {
-    poiRes = await fetch(url);
-  } catch {
-    throw new Error(
-      apiBaseUrl
-        ? `Network error calling ${url}. Is the API running and EXPO_PUBLIC_API_BASE_URL correct? (Android emulator often uses http://10.0.2.2:3000)`
-        : "Network error: `/api` request failed. Start the Nest API (e.g. port 3000) and ensure the Vite dev proxy targets it.",
-    );
-  }
-
-  if (!poiRes.ok) {
-    let backendDetail = "";
+  const { lat, lng, apiBaseUrl, groqApiKey, dangerouslyAllowBrowser, userInterests, budget, userPrompt } = options;
+  const candidateRadiiMeters = userPrompt?.trim()
+    ? [2000, 5000, 10000, 25000, 50000]
+    : [2000, 5000, 10000];
+  let nearbyPois: NearbyPoiRow[] = [];
+  for (const radiusMeters of candidateRadiiMeters) {
+    const url = nearbyPoisUrl(apiBaseUrl, lat, lng, radiusMeters);
+    let poiRes: Response;
     try {
-      const raw = await poiRes.text();
-      if (raw) {
-        try {
-          const j = JSON.parse(raw) as { message?: string; error?: string };
-          backendDetail = (j.message || j.error || "").trim();
-        } catch {
-          backendDetail = raw.slice(0, 240).trim();
-        }
-      }
+      poiRes = await fetch(url);
     } catch {
-      /* ignore */
-    }
-
-    const hints: string[] = [];
-    if (!apiBaseUrl && poiRes.status >= 502 && poiRes.status <= 504) {
-      hints.push("The dev proxy cannot reach localhost:3000 (API off or wrong port).");
-    }
-    if (!apiBaseUrl && poiRes.status === 500) {
-      hints.push(
-        "Server error: is PostgreSQL/PostGIS up? Restart the API after code changes; keep a single Nest instance on port 3000.",
+      throw new Error(
+        apiBaseUrl
+          ? `Network error calling ${url}. Is the API running and EXPO_PUBLIC_API_BASE_URL correct? (Android emulator often uses http://10.0.2.2:3000)`
+          : "Network error: `/api` request failed. Start the Nest API (e.g. port 3000) and ensure the Vite dev proxy targets it.",
       );
     }
 
-    const msg = [
-      `Could not load nearby places (HTTP ${poiRes.status}).`,
-      backendDetail && `Detail: ${backendDetail}`,
-      ...hints,
-    ]
-      .filter(Boolean)
-      .join(" ");
-    throw new Error(msg);
-  }
+    if (!poiRes.ok) {
+      let backendDetail = "";
+      try {
+        const raw = await poiRes.text();
+        if (raw) {
+          try {
+            const j = JSON.parse(raw) as { message?: string; error?: string };
+            backendDetail = (j.message || j.error || "").trim();
+          } catch {
+            backendDetail = raw.slice(0, 240).trim();
+          }
+        }
+      } catch {
+        /* ignore */
+      }
 
-  const poiBody = (await poiRes.json()) as { data?: NearbyPoiRow[] };
-  const nearbyPois = poiBody.data ?? [];
+      const hints: string[] = [];
+      if (!apiBaseUrl && poiRes.status >= 502 && poiRes.status <= 504) {
+        hints.push("The dev proxy cannot reach localhost:3000 (API off or wrong port).");
+      }
+      if (!apiBaseUrl && poiRes.status === 500) {
+        hints.push(
+          "Server error: is PostgreSQL/PostGIS up? Restart the API after code changes; keep a single Nest instance on port 3000.",
+        );
+      }
+
+      const msg = [
+        `Could not load nearby places (HTTP ${poiRes.status}).`,
+        backendDetail && `Detail: ${backendDetail}`,
+        ...hints,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      throw new Error(msg);
+    }
+
+    const poiBody = (await poiRes.json()) as { data?: NearbyPoiRow[] };
+    nearbyPois = poiBody.data ?? [];
+    if (nearbyPois.length > 0) {
+      break;
+    }
+  }
   if (!nearbyPois.length) {
     return [];
   }
@@ -228,6 +247,7 @@ export async function fetchTravelRecommendationsFromGroq(
     nearbyPois,
     userInterests: userInterests ?? ["Culture", "History", "Gastronomy", "Walking"],
     budget: budget ?? "medium",
+    userPrompt,
   });
 
   const groq = new Groq({
@@ -257,4 +277,42 @@ export async function fetchTravelRecommendationsFromGroq(
     console.error("Groq raw response:", text);
     throw new Error("Groq response was not valid JSON array format.");
   }
+}
+
+/**
+ * Free-form assistant reply for conversational Q&A style.
+ */
+export async function askGroqTravelAssistant(
+  options: AskGroqTravelAssistantOptions,
+): Promise<string> {
+  const { groqApiKey, userPrompt, userLocation, dangerouslyAllowBrowser } = options;
+  const prompt = userPrompt.trim();
+  if (!prompt) return "";
+
+  const locationText = userLocation
+    ? `Kullanici konumu: (${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)})`
+    : "Kullanici konumu bilinmiyor.";
+
+  const groq = new Groq({
+    apiKey: groqApiKey,
+    ...(dangerouslyAllowBrowser ? { dangerouslyAllowBrowser: true } : {}),
+  });
+
+  const completion = await groq.chat.completions.create({
+    model: GROQ_TRAVEL_MODEL,
+    temperature: 0.55,
+    messages: [
+      {
+        role: "system",
+        content:
+          "Sen PocketGuide gezi asistansin. Cevaplari Turkce, kisa ve net ver. Kullanici sorusuna gore sehir/bolge odakli pratik oneriler sun. Gereksiz uzunluk ve markdown kullanma.",
+      },
+      {
+        role: "user",
+        content: `${locationText}\nSoru: ${prompt}`,
+      },
+    ],
+  });
+
+  return (completion.choices[0]?.message?.content ?? "").trim();
 }

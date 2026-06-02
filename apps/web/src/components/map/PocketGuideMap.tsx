@@ -32,11 +32,16 @@ async function fetchPoisFromApi(cityId: string): Promise<POI[]> {
   }
 
   const payload = (await response.json()) as unknown;
-  if (!Array.isArray(payload)) {
+  const normalized = Array.isArray(payload)
+    ? payload
+    : payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown }).data)
+      ? (payload as { data: unknown[] }).data
+      : null;
+  if (!normalized) {
     throw new Error("POI payload is not an array");
   }
 
-  return payload as POI[];
+  return normalized as POI[];
 }
 
 function toOfflinePoi(poi: POI, cityId: string): OfflinePOI {
