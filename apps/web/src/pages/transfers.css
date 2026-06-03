@@ -405,6 +405,141 @@
   color: var(--muted);
 }
 
+/* ─── Metro diagram ─── */
+.metro-diagram {
+  background: #0d1829;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 32px;
+  border: 1px solid rgba(232, 197, 71, 0.12);
+  box-shadow: 0 8px 32px rgba(15, 31, 61, 0.12);
+}
+
+.metro-diagram-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.metro-diagram-title {
+  font-family: "Fraunces", serif;
+  font-size: 20px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.metro-diagram-sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 4px;
+}
+
+.metro-diagram-live {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.metro-diagram-live::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2ecc8a;
+}
+
+.metro-diagram-canvas {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.metro-diagram-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.metro-diagram-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.metro-diagram-legend-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metro-legend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.metro-legend-btn:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.metro-legend-btn.active {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--gold);
+  color: #fff;
+}
+
+.metro-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.metro-diagram-tip {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.metro-diagram-tip-icon {
+  flex-shrink: 0;
+}
+
+.metro-diagram-tip p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.metro-diagram--compact .metro-diagram-svg {
+  max-height: 200px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .transfers-container {

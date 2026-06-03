@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
-import { TRANSFER_CITIES, TRANSPORT_CARDS, TRANSFER_ROUTES } from "../data/transfers";
+import { TRANSFER_CITIES, TRANSPORT_CARDS, TRANSFER_ROUTES, getMetroMapByCityName } from "../data/transfers";
 import { TransferType, TransferMode } from "../types/transfer";
+import { MetroMapDiagram } from "../components/MetroMapDiagram";
 import "./transfers.css";
 
 export default function TransfersPage() {
@@ -32,6 +33,8 @@ export default function TransfersPage() {
   }, [filteredRoutes]);
 
   const transportCard = TRANSPORT_CARDS.find((c) => c.city === selectedCity);
+  const metroMap = getMetroMapByCityName(selectedCity);
+  const showMetroMap = activeMode === "metro" && metroMap != null;
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
@@ -144,6 +147,8 @@ export default function TransfersPage() {
             </div>
           </div>
         </section>
+
+        {showMetroMap && <MetroMapDiagram map={metroMap} />}
 
         {/* Transport Card Info */}
         {transportCard && (
