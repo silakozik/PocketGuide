@@ -374,7 +374,7 @@ export class GeospatialService {
     offset = 0,
   ): Promise<{ data: PoiWithDistance[]; total: number }> {
     citySlug = resolveCitySlug(citySlug);
-    const cacheKey = `pois:explore:${citySlug}:${placeCategory}:${limit}:${offset}`;
+    const cacheKey = `pois:explore:v2:${citySlug}:${placeCategory}:${limit}:${offset}`;
 
     const cached = await this.cacheManager.get<{ data: PoiWithDistance[]; total: number }>(cacheKey);
     if (cached) return cached;

@@ -18,7 +18,12 @@ const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 const CATEGORY_FILTERS: Record<ExplorePlaceCategory, string[]> = {
   food: ['node["amenity"="restaurant"]', 'node["amenity"="cafe"]', 'node["amenity"="fast_food"]'],
   shopping: ['node["shop"="mall"]', 'way["shop"="mall"]', 'node["shop"="department_store"]'],
-  entertainment: ['node["amenity"="cinema"]', 'node["amenity"="nightclub"]', 'node["amenity"="theatre"]'],
+  entertainment: [
+    'node["amenity"="cinema"]',
+    'node["amenity"="nightclub"]',
+    'node["amenity"="theatre"]',
+    'node["amenity"="music_venue"]',
+  ],
   culture: ['node["tourism"="museum"]', 'node["amenity"="arts_centre"]', 'node["tourism"="gallery"]'],
   historic: ['node["historic"]', 'node["tourism"="attraction"]', 'way["historic"]'],
 };

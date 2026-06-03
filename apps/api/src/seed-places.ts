@@ -18,6 +18,9 @@ import { filterDuplicates } from './places/normalization/deduplicator';
 import type { NormalizedPOI } from '@pocketguide/types';
 import { ensurePoisTable, type PoiCoordMode } from './places/utils/poi-coords';
 import { searchFoursquarePlaces, verifyFoursquareApiKey } from './places/utils/foursquare-client';
+import { classifyFoursquareVenueCategory } from './places/utils/explore-category-classifier';
+import type { ExplorePlaceCategory } from './places/constants/explore-categories';
+import type { RawFoursquareVenue } from '@pocketguide/types';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -71,7 +74,10 @@ async function bulkInsert(
       `SELECT 1 FROM pois WHERE source_id = $1 LIMIT 1`,
       [p.sourceId],
     );
-    if (dup.rowCount && dup.rowCount > 0) continue;
+    if (dup.rowCount && dup.rowCount > 0) {
+      await pool.query(`UPDATE pois SET category = $2 WHERE source_id = $1`, [p.sourceId, String(p.category)]);
+      continue;
+    }
 
     if (mode === 'postgis') {
       await pool.query(
@@ -128,6 +134,19 @@ async function bulkInsert(
   return inserted;
 }
 
+function mapFoursquareForExploreCategory(
+  raw: RawFoursquareVenue[],
+  targetCategory: ExplorePlaceCategory,
+) {
+  const mapped: ReturnType<typeof mapFoursquareToPOI>[] = [];
+  for (const venue of raw) {
+    const classified = classifyFoursquareVenueCategory(venue.categories) ?? targetCategory;
+    if (classified !== targetCategory) continue;
+    mapped.push(mapFoursquareToPOI(venue, targetCategory));
+  }
+  return mapped;
+}
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is not set');
@@ -176,7 +195,7 @@ async function main() {
           limit: 50,
           categoryIds: cat.foursquareCategoryIds,
         });
-        const mapped = raw.map((r) => mapFoursquareToPOI(r, cat.dbCategory));
+        const mapped = mapFoursquareForExploreCategory(raw, cat.dbCategory);
         const unique = filterDuplicates(mapped, existing);
         const inserted = await bulkInsert(pool, unique, cityId, coordMode);
         totalInserted += inserted;

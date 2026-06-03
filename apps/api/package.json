@@ -10,7 +10,8 @@
     "seed:cities": "pnpm dlx tsx@4.19.3 src/seed-cities.ts",
     "seed:places": "pnpm dlx tsx@4.19.3 src/seed-places.ts",
     "seed:places:osm": "pnpm dlx tsx@4.19.3 src/seed-places-osm.ts",
-    "seed:places:demo": "pnpm dlx tsx@4.19.3 src/seed-places-demo.ts"
+    "seed:places:demo": "pnpm dlx tsx@4.19.3 src/seed-places-demo.ts",
+    "reclassify:poi-categories": "pnpm dlx tsx@4.19.3 src/reclassify-poi-categories.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

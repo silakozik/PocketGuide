@@ -44,7 +44,16 @@ export const EXPLORE_CATEGORIES: ExploreCategoryMeta[] = [
     emoji: '🎭',
     gradient: 'linear-gradient(135deg, #f5576c 0%, #c0392b 100%)',
     dbCategory: 'entertainment',
-    foursquareCategoryIds: ['4d4b7104d754a06370d81259'],
+    foursquareCategoryIds: [
+      '4bf58dd8d48988d17f941735', // Movie Theater
+      '4bf58dd8d48988d1e0931735', // Night Club
+      '4bf58dd8d48988d1fa931735', // Music Venue
+      '4bf58dd8d48988d188941735', // Comedy Club
+      '4bf58dd8d48988d12e541735', // Karaoke Bar
+      '4bf58dd8d48988d1db931735', // Performing Arts Venue
+      '4bf58dd8d48988d12e441735', // Bowling Alley
+      '4bf58dd8d48988d1aaff51735', // Arcade
+    ],
   },
   {
     slug: 'culture',
@@ -53,7 +62,12 @@ export const EXPLORE_CATEGORIES: ExploreCategoryMeta[] = [
     emoji: '🎨',
     gradient: 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)',
     dbCategory: 'culture',
-    foursquareCategoryIds: ['4d4b7104d754a06370d81259'],
+    foursquareCategoryIds: [
+      '4bf58dd8d48988d181941735', // Museum
+      '4bf58dd8d48988d1e2931735', // Art Gallery
+      '4bf58dd8d48988d1a4f51735', // Art Museum
+      '4bf58dd8d48988d1a3f51735', // Cultural Center
+    ],
   },
   {
     slug: 'historic',
