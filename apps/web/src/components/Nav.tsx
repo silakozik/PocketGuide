@@ -46,6 +46,11 @@ export function Nav() {
           </Link>
         </li>
         <li>
+          <Link to="/plan" className={navItemClass("/plan")} onClick={closeMenu}>
+            Rota Planlayıcı
+          </Link>
+        </li>
+        <li>
           <Link to="/map" className={navItemClass("/map")} onClick={closeMenu}>
             {t("nav.search")}
           </Link>

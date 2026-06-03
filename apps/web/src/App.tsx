@@ -19,6 +19,7 @@ import FirstDayPage from "./pages/FirstDayPage";
 import CityHubPage from "./pages/CityHubPage";
 import PlacesExplorePage from "./pages/PlacesExplorePage";
 import TransfersPage from "./pages/TransfersPage";
+import RoutePlannerPage from "./pages/RoutePlannerPage";
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -29,7 +30,8 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
     if (
       location.pathname === "/login" ||
       location.pathname === "/register" ||
-      location.pathname.startsWith("/explore")
+      location.pathname.startsWith("/explore") ||
+      location.pathname === "/plan"
     ) {
       return;
     }
@@ -69,6 +71,7 @@ export default function App() {
                 <Route path="/:citySlug/first-day" element={<FirstDayPage />} />
                 <Route path="/:citySlug" element={<CityHubPage />} />
                 <Route path="/transfer" element={<TransfersPage />} />
+                <Route path="/plan" element={<RoutePlannerPage />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />

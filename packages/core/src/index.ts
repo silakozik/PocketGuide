@@ -12,3 +12,11 @@ export type {
   FetchTravelRecommendationsOptions,
   AskGroqTravelAssistantOptions,
 } from "./travelRecommendations";
+export { generateRoute, GROQ_ROUTE_MODEL } from "./routePlanner";
+export type {
+  GeneratedRoute,
+  RouteDay,
+  RouteDayStop,
+  RouteTheme,
+  RoutePlannerOptions,
+} from "./routePlanner";
