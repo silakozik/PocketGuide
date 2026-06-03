@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
-import { TRANSPORT_CARDS, TRANSFER_ROUTES } from "../data/transfers";
+import { TRANSFER_CITIES, TRANSPORT_CARDS, TRANSFER_ROUTES } from "../data/transfers";
 import { TransferType, TransferMode } from "../types/transfer";
 import "./transfers.css";
 
@@ -32,6 +32,13 @@ export default function TransfersPage() {
   }, [filteredRoutes]);
 
   const transportCard = TRANSPORT_CARDS.find((c) => c.city === selectedCity);
+
+  const handleCityChange = (city: string) => {
+    setSelectedCity(city);
+    setExpandedRoutes(new Set());
+    setFromQuery("");
+    setToQuery("");
+  };
 
   const toggleRoute = (id: string) => {
     const next = new Set(expandedRoutes);
@@ -64,13 +71,16 @@ export default function TransfersPage() {
           <div className="filter-row">
             <div className="filter-group">
               <label className="filter-label">Şehir Seçin</label>
-              <select 
+              <select
                 className="city-select"
                 value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
+                onChange={(e) => handleCityChange(e.target.value)}
               >
-                <option value="İstanbul">İstanbul</option>
-                <option value="London">London</option>
+                {TRANSFER_CITIES.map((city) => (
+                  <option key={city.id} value={city.nameTr}>
+                    {city.emoji} {city.nameTr}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -178,7 +188,9 @@ export default function TransfersPage() {
                 </div>
                 <div className="route-tags">
                   {route.duration < 40 && <span className="tag tag-speed">Hızlı</span>}
-                  {route.fee.includes("₺22") && <span className="tag tag-economy">Ekonomik</span>}
+                  {(route.duration <= 25 || /€1\.|€2\.|₺15|Ücretsiz|\$2\.90|AED 4/.test(route.fee)) && (
+                    <span className="tag tag-economy">Ekonomik</span>
+                  )}
                   {route.hours.includes("24") && <span className="tag tag-night">Gece Seferi</span>}
                 </div>
               </div>
