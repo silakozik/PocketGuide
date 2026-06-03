@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import { useAIAssistant } from "../context/AIAssistantContext";
+import { resolveCityFromPrompt } from "@pocketguide/core";
 import {
   askGroqTravelAssistant,
   fetchTravelRecommendationsFromGroq,
   type TravelRecommendation,
 } from "../lib/groqRecommendations";
-import { geocodeCity } from "../lib/geocode";
 
 /**
  * Gezi Asistanı paneli — Nav üzerinden açılır.
@@ -23,25 +23,6 @@ export function AIAssistantPanel() {
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
   const [assistantReply, setAssistantReply] = useState<string | null>(null);
   const [effectiveCoords, setEffectiveCoords] = useState(coords);
-
-  const normalizeTurkishChars = (value: string) =>
-    value
-      .toLowerCase()
-      .replace(/ç/g, "c")
-      .replace(/ğ/g, "g")
-      .replace(/ı/g, "i")
-      .replace(/ö/g, "o")
-      .replace(/ş/g, "s")
-      .replace(/ü/g, "u");
-
-  const inferCityFromQuestion = (askedQuestion?: string): string | null => {
-    const text = askedQuestion?.trim();
-    if (!text) return null;
-    const normalized = normalizeTurkishChars(text);
-    const match = normalized.match(/\b([a-z]{3,})(?:d[ae]|t[ae])\b/);
-    if (match?.[1]) return match[1];
-    return null;
-  };
 
   const buildAnswerText = (recs: TravelRecommendation[], askedQuestion: string | null) => {
     if (!recs.length) return "";
@@ -62,20 +43,16 @@ export function AIAssistantPanel() {
     try {
       const normalizedQuestion = askedQuestion?.trim() || undefined;
       let targetCoords = effectiveCoords;
-      if (normalizedQuestion) {
-        const inferredCity = inferCityFromQuestion(normalizedQuestion);
-        const geocodedFromCity = inferredCity ? await geocodeCity(inferredCity) : null;
-        const geocodedFromQuestion = geocodedFromCity ? null : await geocodeCity(normalizedQuestion);
-        const resolvedGeocode = geocodedFromCity ?? geocodedFromQuestion;
-        if (resolvedGeocode) {
-          targetCoords = { lat: resolvedGeocode.lat, lng: resolvedGeocode.lng };
-          setEffectiveCoords(targetCoords);
-        }
+      const cityRef = normalizedQuestion ? resolveCityFromPrompt(normalizedQuestion) : null;
+      if (cityRef) {
+        targetCoords = { lat: cityRef.lat, lng: cityRef.lng };
+        setEffectiveCoords(targetCoords);
       }
       const data = await fetchTravelRecommendationsFromGroq(
         targetCoords.lat,
         targetCoords.lng,
         normalizedQuestion,
+        cityRef?.slug,
       );
       setRecommendations(data);
       setRecommendationPins(
@@ -90,7 +67,11 @@ export function AIAssistantPanel() {
       );
       setLastQuestion(normalizedQuestion ?? null);
       if (normalizedQuestion) {
-        const reply = await askGroqTravelAssistant(normalizedQuestion, targetCoords, data);
+        const reply = await askGroqTravelAssistant(
+          normalizedQuestion,
+          targetCoords,
+          data.length > 0 ? data : undefined,
+        );
         setAssistantReply(reply || null);
       } else {
         setAssistantReply(null);
@@ -257,9 +238,11 @@ export function AIAssistantPanel() {
           <div className="ai-empty-state">
             <span className="ai-empty-icon">🏜️</span>
             <p>
-              {lastQuestion
-                ? "Sorun alindi ancak bu bolgede uygun mekan bulunamadi. Haritayi merkez/kalabalik bir bolgeye kaydirip tekrar sor."
-                : "Bu harita merkezinin yakininda uygun yer bulunamadi veya asistan oneri uretemedi. Haritayi pinlerin yogun oldugu bir alana kaydirip yeniden deneyin."}
+              {lastQuestion && resolveCityFromPrompt(lastQuestion)
+                ? `${resolveCityFromPrompt(lastQuestion)!.nameTr} için veritabanında mekan bulunamadı. API'nin çalıştığından emin olun; ardından \`apps/api\` içinde \`pnpm seed:places\` ile 10 şehir verisini yükleyin.`
+                : lastQuestion
+                  ? "Sorun alındı ancak bu bölgede uygun mekan bulunamadı. Haritayı merkez/kalabalık bir bölgeye kaydırıp tekrar sor."
+                  : "Bu harita merkezinin yakınında uygun yer bulunamadı. Haritayı pinlerin yoğun olduğu bir alana kaydırıp yeniden deneyin."}
             </p>
             <button type="button" className="ai-btn-primary" onClick={() => void fetchRecommendations(question)}>
               Yenile

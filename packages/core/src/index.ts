@@ -12,6 +12,8 @@ export type {
   FetchTravelRecommendationsOptions,
   AskGroqTravelAssistantOptions,
 } from "./travelRecommendations";
+export { HOMEPAGE_CITIES, resolveCityFromPrompt } from "./homepageCities";
+export type { HomepageCityRef } from "./homepageCities";
 export { generateRoute, GROQ_ROUTE_MODEL } from "./routePlanner";
 export type {
   GeneratedRoute,

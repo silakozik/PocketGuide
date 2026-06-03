@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { resolveCityFromPrompt } from "./homepageCities";
 
 export const GROQ_TRAVEL_MODEL = "llama-3.1-8b-instant";
 
@@ -42,12 +43,15 @@ export type FetchTravelRecommendationsOptions = {
   userInterests?: string[];
   budget?: string;
   userPrompt?: string;
+  /** Örn. soruda "Romada" geçince `roma` — yakın POI boşsa explore listesine düşer */
+  citySlug?: string;
 };
 
 export type AskGroqTravelAssistantOptions = {
   groqApiKey: string;
   userPrompt: string;
   userLocation?: { lat: number; lng: number };
+  candidates?: TravelRecommendation[];
   dangerouslyAllowBrowser?: boolean;
 };
 
@@ -68,8 +72,11 @@ export function buildRecommendationPrompt(context: {
   userInterests?: string[];
   budget?: string;
   userPrompt?: string;
+  /** Şehir geneli liste (explore); mesafe/açılış kuralları gevşetilir */
+  cityWideMode?: boolean;
 }): string {
-  const { userLocation, timeOfDay, nearbyPois, userInterests, budget, userPrompt } = context;
+  const { userLocation, timeOfDay, nearbyPois, userInterests, budget, userPrompt, cityWideMode } =
+    context;
 
   const currentTime = new Date().toLocaleString("tr-TR", {
     weekday: "long",
@@ -102,15 +109,27 @@ export function buildRecommendationPrompt(context: {
     })
     .join("\n");
 
+  const distanceRules = cityWideMode
+    ? [
+        "1. User is asking about a whole city. Recommend MAX 5-8 standout places from the candidate list (mix categories).",
+        "2. openingHours MISSING is OK — still include the place.",
+        "3. Ignore strict walking-distance limits; use logical grouping by neighborhood if possible.",
+        "4. Apply categorical diversity: culture, food, and sights spread.",
+        "5. Match User Request themes (e.g. must-see, food, family).",
+      ]
+    : [
+        "1. Start from userLocation. Recommend MAX 5 places within 1km walking distance.",
+        "2. EXCLUDE any place where openingHours is MISSING or invalid.",
+        "3. EXCLUDE any place that is closed during the estimated visit window (Current Time + Travel Time).",
+        "4. Sort places using nearest-neighbor logic to form an efficient walking route. MINIMIZE total walking distance and avoid zigzagging.",
+        "5. Apply categorical diversity: do not repeat the same category more than twice.",
+        "6. If User Request exists, prioritize matching venues and reasons to that request while still following distance/opening constraints.",
+      ];
+
   const instructions = [
     "",
     "# LOGISTICAL ENGINE RULES (STRICT)",
-    "1. Start from userLocation. Recommend MAX 5 places within 1km walking distance.",
-    "2. EXCLUDE any place where openingHours is MISSING or invalid.",
-    "3. EXCLUDE any place that is closed during the estimated visit window (Current Time + Travel Time).",
-    "4. Sort places using nearest-neighbor logic to form an efficient walking route. MINIMIZE total walking distance and avoid zigzagging.",
-    "5. Apply categorical diversity: do not repeat the same category more than twice.",
-    "6. If User Request exists, prioritize matching venues and reasons to that request while still following distance/opening constraints.",
+    ...distanceRules,
     "",
     "# SCORING & BADGING RULES",
     'Assign exactly one "badge" string to each recommendation based on these priorities:',
@@ -160,6 +179,42 @@ function isValidRecommendation(x: unknown): x is TravelRecommendation {
   );
 }
 
+const EXPLORE_CATEGORIES = ["culture", "food", "entertainment", "hotel", "park"] as const;
+
+async function fetchCityExplorePois(
+  apiBaseUrl: string,
+  citySlug: string,
+): Promise<NearbyPoiRow[]> {
+  const seen = new Set<string>();
+  const merged: NearbyPoiRow[] = [];
+
+  for (const placeCategory of EXPLORE_CATEGORIES) {
+    const qs = new URLSearchParams({
+      city: citySlug,
+      placeCategory,
+      limit: "12",
+      offset: "0",
+    });
+    const path = `/api/pois/explore?${qs.toString()}`;
+    const url = apiBaseUrl ? `${apiBaseUrl.replace(/\/$/, "")}${path}` : path;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const body = (await res.json()) as { data?: NearbyPoiRow[] };
+      for (const poi of body.data ?? []) {
+        if (seen.has(poi.id)) continue;
+        seen.add(poi.id);
+        merged.push({ ...poi, distanceMeters: poi.distanceMeters ?? 0 });
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return merged.slice(0, 24);
+}
+
 function nearbyPoisUrl(apiBaseUrl: string, lat: number, lng: number, radiusMeters = 2000): string {
   const qs = new URLSearchParams({
     lat: String(lat),
@@ -179,7 +234,19 @@ function nearbyPoisUrl(apiBaseUrl: string, lat: number, lng: number, radiusMeter
 export async function fetchTravelRecommendationsFromGroq(
   options: FetchTravelRecommendationsOptions,
 ): Promise<TravelRecommendation[]> {
-  const { lat, lng, apiBaseUrl, groqApiKey, dangerouslyAllowBrowser, userInterests, budget, userPrompt } = options;
+  const {
+    lat,
+    lng,
+    apiBaseUrl,
+    groqApiKey,
+    dangerouslyAllowBrowser,
+    userInterests,
+    budget,
+    userPrompt,
+    citySlug: citySlugOption,
+  } = options;
+  const resolvedCitySlug =
+    citySlugOption ?? (userPrompt?.trim() ? resolveCityFromPrompt(userPrompt) : null)?.slug;
   const candidateRadiiMeters = userPrompt?.trim()
     ? [2000, 5000, 10000, 25000, 50000]
     : [2000, 5000, 10000];
@@ -239,6 +306,12 @@ export async function fetchTravelRecommendationsFromGroq(
       break;
     }
   }
+  let cityWideMode = false;
+  if (!nearbyPois.length && resolvedCitySlug) {
+    nearbyPois = await fetchCityExplorePois(apiBaseUrl, resolvedCitySlug);
+    cityWideMode = nearbyPois.length > 0;
+  }
+
   if (!nearbyPois.length) {
     return [];
   }
@@ -250,6 +323,7 @@ export async function fetchTravelRecommendationsFromGroq(
     userInterests: userInterests ?? ["Culture", "History", "Gastronomy", "Walking"],
     budget: budget ?? "medium",
     userPrompt,
+    cityWideMode,
   });
 
   const groq = new Groq({
@@ -296,7 +370,7 @@ export async function fetchTravelRecommendationsFromGroq(
 export async function askGroqTravelAssistant(
   options: AskGroqTravelAssistantOptions,
 ): Promise<string> {
-  const { groqApiKey, userPrompt, userLocation, dangerouslyAllowBrowser } = options;
+  const { groqApiKey, userPrompt, userLocation, candidates, dangerouslyAllowBrowser } = options;
   const prompt = userPrompt.trim();
   if (!prompt) return "";
 
@@ -304,10 +378,26 @@ export async function askGroqTravelAssistant(
     ? `Kullanici konumu: (${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)})`
     : "Kullanici konumu bilinmiyor.";
 
+  const cityRef = resolveCityFromPrompt(prompt);
+  const cityLine = cityRef ? `Hedef sehir: ${cityRef.nameTr} (${cityRef.nameEn})` : "";
+
+  const candidateLines =
+    candidates && candidates.length > 0
+      ? candidates
+          .slice(0, 10)
+          .map(
+            (c, idx) =>
+              `${idx + 1}) ${c.name} | ${c.category} | ${c.reason}`,
+          )
+          .join("\n")
+      : "";
+
   const groq = new Groq({
     apiKey: groqApiKey,
     ...(dangerouslyAllowBrowser ? { dangerouslyAllowBrowser: true } : {}),
   });
+
+  const hasCandidates = candidateLines.length > 0;
 
   const completion = await groq.chat.completions.create({
     model: GROQ_TRAVEL_MODEL,
@@ -315,12 +405,15 @@ export async function askGroqTravelAssistant(
     messages: [
       {
         role: "system",
-        content:
-          "Sen PocketGuide gezi asistansin. Cevaplari Turkce, kisa ve net ver. Kullanici sorusuna gore sehir/bolge odakli pratik oneriler sun. Gereksiz uzunluk ve markdown kullanma.",
+        content: hasCandidates
+          ? "Sen PocketGuide gezi asistansin. Sadece ADAY MEKANLAR listesindeki isimleri kullan; listede olmayan mekan UYDURMA. Cevaplari Turkce, samimi ve net ver."
+          : "Sen PocketGuide gezi asistansin. Cevaplari Turkce, kisa ve net ver. Aday mekan listesi bos; genel seyahat tavsiyesi ver ama hayali isletme adi uydurma.",
       },
       {
         role: "user",
-        content: `${locationText}\nSoru: ${prompt}`,
+        content: hasCandidates
+          ? `${locationText}\n${cityLine}\nSoru: ${prompt}\n\nADAY MEKANLAR:\n${candidateLines}\n\nGorev: Soruya uygun 4-6 mekani sec, her biri icin 1 cumle neden yaz.`
+          : `${locationText}\n${cityLine}\nSoru: ${prompt}\n\nGorev: Sehirde gezilecek yer turleri ve bolgeler hakkinda genel rehberlik ver (4-6 madde).`,
       },
     ],
   });
