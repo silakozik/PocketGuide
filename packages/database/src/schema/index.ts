@@ -322,6 +322,9 @@ export const travelPhotos = pgTable("travel_photos", {
   cityName: text("cityName"),
   locationName: text("locationName"),
   isPublic: boolean("isPublic").default(true),
+  likeCount: integer("likeCount").default(0),
+  saveCount: integer("saveCount").default(0),
+  deletedAt: timestamp("deletedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });

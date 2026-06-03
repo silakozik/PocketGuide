@@ -51,7 +51,7 @@ export function Nav() {
           </Link>
         </li>
         <li>
-          <Link to="/map" className={navItemClass("/map")} onClick={closeMenu}>
+          <Link to="/search" className={navItemClass("/search")} onClick={closeMenu}>
             {t("nav.search")}
           </Link>
         </li>

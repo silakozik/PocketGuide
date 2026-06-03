@@ -21,6 +21,7 @@ import PlacesExplorePage from "./pages/PlacesExplorePage";
 import TransfersPage from "./pages/TransfersPage";
 import RoutePlannerPage from "./pages/RoutePlannerPage";
 import SavedRoutePlanPage from "./pages/SavedRoutePlanPage";
+import SearchPage from "./pages/SearchPage";
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -33,7 +34,8 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
       location.pathname === "/register" ||
       location.pathname.startsWith("/explore") ||
       location.pathname === "/plan" ||
-      location.pathname.startsWith("/plan/saved")
+      location.pathname.startsWith("/plan/saved") ||
+      location.pathname === "/search"
     ) {
       return;
     }
@@ -61,6 +63,7 @@ export default function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/map" element={<MapPage />} />
+                <Route path="/search" element={<SearchPage />} />
                 <Route path="/explore/:placeCategory" element={<PlacesExplorePage />} />
                 <Route
                   path="/profile"

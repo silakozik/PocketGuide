@@ -174,8 +174,16 @@ export default function ProfilePage() {
   };
 
   const handlePhotoDelete = async (id: string) => {
-    await deletePhoto(id);
-    setPhotos((prev) => prev.filter((p) => p.id !== id));
+    if (!window.confirm('Bu fotoğrafı silmek istediğine emin misin?')) return;
+    try {
+      await deletePhoto(id);
+      setPhotos((prev) => prev.filter((p) => p.id !== id));
+      window.dispatchEvent(new CustomEvent('pg-photos-changed'));
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Fotoğraf silinemedi';
+      setPhotoError(message);
+    }
   };
 
   const handleDeleteTrip = async (id: string) => {

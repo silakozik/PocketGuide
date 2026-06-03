@@ -52,8 +52,14 @@ export async function uploadPhoto(payload: {
 }
 
 export async function deletePhoto(id: string): Promise<void> {
-  await fetch(`${API}/api/photos/${id}`, {
+  const res = await fetch(`${API}/api/photos/${id}`, {
     method: 'DELETE',
     credentials: 'include',
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Fotoğraf silinemedi',
+    );
+  }
 }

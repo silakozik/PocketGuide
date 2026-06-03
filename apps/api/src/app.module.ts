@@ -16,6 +16,7 @@ import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { ProfileModule } from './profile/profile.module';
 import { PhotosModule } from './photos/photos.module';
+import { SearchModule } from './search/search.module';
 import { SavedTripsModule } from './saved-trips/saved-trips.module';
 import { RedisCacheModule } from './config/redis.module';
 import { DatabaseModule } from './config/database.module';
@@ -87,6 +88,7 @@ import { RouteQueueModule } from './routes/queue/route-queue.module';
     AuthModule,
     ProfileModule,
     PhotosModule,
+    SearchModule,
     SavedTripsModule,
     TransfersModule,
     SyncModule,
