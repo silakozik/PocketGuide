@@ -48,6 +48,7 @@ export default function TabLayout() {
         options={{
           title: t("nav.home"),
           tabBarLabel: t("nav.home"),
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: "house.fill", android: "home", web: "home" }}
