@@ -4537,6 +4537,10 @@ footer {
 }
 
 .photo-detail-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   flex-shrink: 0;
   border-top: 1px solid #efefef;
   padding: 4px 20px 16px;
@@ -4547,7 +4551,8 @@ footer {
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 14px 0 10px;
+  padding: 14px 0 4px;
+  width: 100%;
 }
 
 .photo-detail-action {
@@ -4559,6 +4564,7 @@ footer {
   cursor: pointer;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .photo-detail-action.liked {
@@ -4568,8 +4574,10 @@ footer {
 .photo-detail-meta {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-bottom: 14px;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 0 0 12px;
 }
 
 .photo-detail-likes {
@@ -4607,9 +4615,10 @@ footer {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   border-top: 1px solid #efefef;
-  margin: 0 -20px;
-  padding: 14px 20px 0;
+  margin: 0;
+  padding: 14px 0 0;
   min-height: 52px;
 }
 
