@@ -20,6 +20,7 @@ import CityHubPage from "./pages/CityHubPage";
 import PlacesExplorePage from "./pages/PlacesExplorePage";
 import TransfersPage from "./pages/TransfersPage";
 import RoutePlannerPage from "./pages/RoutePlannerPage";
+import SavedRoutePlanPage from "./pages/SavedRoutePlanPage";
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -31,7 +32,8 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
       location.pathname === "/login" ||
       location.pathname === "/register" ||
       location.pathname.startsWith("/explore") ||
-      location.pathname === "/plan"
+      location.pathname === "/plan" ||
+      location.pathname.startsWith("/plan/saved")
     ) {
       return;
     }
@@ -72,6 +74,14 @@ export default function App() {
                 <Route path="/:citySlug" element={<CityHubPage />} />
                 <Route path="/transfer" element={<TransfersPage />} />
                 <Route path="/plan" element={<RoutePlannerPage />} />
+                <Route
+                  path="/plan/saved/:tripId"
+                  element={
+                    <AuthGuard>
+                      <SavedRoutePlanPage />
+                    </AuthGuard>
+                  }
+                />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />

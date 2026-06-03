@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
+import { RoutePlanDisplay } from "../components/RoutePlanDisplay";
 import { generateRoute } from "@pocketguide/core";
 import type { GeneratedRoute, RouteTheme } from "@pocketguide/core";
 import { saveTrip } from "../lib/savedTripsApi";
@@ -33,20 +34,6 @@ const THEMES: { id: RouteTheme; label: string; emoji: string; desc: string }[] =
 
 const DAYS_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 
-const CATEGORY_COLORS: Record<string, string> = {
-  culture: "#8b5cf6",
-  food: "#10b981",
-  transport: "#3b82f6",
-  other: "#f59e0b",
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  culture: "🏛️ Kültür",
-  food: "🍽️ Yemek",
-  transport: "🚇 Ulaşım",
-  other: "📍 Diğer",
-};
-
 function routeToStops(route: GeneratedRoute) {
   return route.plan.flatMap((day) =>
     day.stops.map((stop) => ({
@@ -60,6 +47,7 @@ function routeToStops(route: GeneratedRoute) {
 }
 
 export default function RoutePlannerPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedCity, setSelectedCity] = useState<(typeof CITIES)[0] | null>(null);
@@ -76,21 +64,11 @@ export default function RoutePlannerPage() {
     });
   };
 
-  const formatRouteThemes = (r: GeneratedRoute) => {
-    const ids = r.themes?.length ? r.themes : r.theme ? [r.theme] : [];
-    return ids
-      .map((id) => {
-        const t = THEMES.find((x) => x.id === id);
-        return t ? `${t.emoji} ${t.label}` : id;
-      })
-      .join(" · ");
-  };
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [route, setRoute] = useState<GeneratedRoute | null>(null);
-  const [activeDay, setActiveDay] = useState(1);
 
   const apiKey = import.meta.env.VITE_GROQ_API_KEY?.trim();
 
@@ -113,7 +91,6 @@ export default function RoutePlannerPage() {
         dangerouslyAllowBrowser: true,
       });
       setRoute(result);
-      setActiveDay(1);
       setStep(3);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Rota oluşturulurken hata oluştu.";
@@ -132,13 +109,13 @@ export default function RoutePlannerPage() {
     setSaving(true);
     setSaveMessage(null);
     try {
-      await saveTrip({
+      const saved = await saveTrip({
         title: route.title,
         cityName: route.city,
         stops: routeToStops(route),
         routeData: { type: "ai-route-planner", ...route },
       });
-      setSaveMessage("Rota seyahatlerine kaydedildi.");
+      navigate(`/plan/saved/${saved.id}`);
     } catch (err: unknown) {
       const message =
         err instanceof Error && err.message === "LOGIN_REQUIRED"
@@ -292,91 +269,7 @@ export default function RoutePlannerPage() {
                 ← Yeniden Oluştur
               </button>
 
-              <div className="rp-route-header">
-                <h2 className="rp-route-title">{route.title}</h2>
-                <p className="rp-route-summary">{route.summary}</p>
-                <div className="rp-route-meta">
-                  <span>📍 {route.city}</span>
-                  <span>📅 {route.days} Gün</span>
-                  <span>{formatRouteThemes(route)}</span>
-                </div>
-              </div>
-
-              <div className="rp-day-tabs">
-                {route.plan.map((day) => (
-                  <button
-                    key={day.day}
-                    type="button"
-                    className={`rp-day-tab ${activeDay === day.day ? "active" : ""}`}
-                    onClick={() => setActiveDay(day.day)}
-                  >
-                    <span className="rp-day-tab-num">{day.day}. Gün</span>
-                    <span className="rp-day-tab-title">{day.title}</span>
-                  </button>
-                ))}
-              </div>
-
-              {route.plan
-                .filter((d) => d.day === activeDay)
-                .map((day) => (
-                  <div key={day.day} className="rp-day-plan">
-                    <div className="rp-day-theme">{day.theme}</div>
-                    <div className="rp-stops">
-                      {day.stops.map((stop, i) => (
-                        <div key={stop.order} className="rp-stop">
-                          <div className="rp-stop-timeline">
-                            <div className="rp-stop-time">{stop.time}</div>
-                            <div
-                              className="rp-stop-dot"
-                              style={{
-                                backgroundColor:
-                                  CATEGORY_COLORS[stop.category] ?? "#6b7a99",
-                              }}
-                            />
-                            {i < day.stops.length - 1 && <div className="rp-stop-line" />}
-                          </div>
-
-                          <div className="rp-stop-body">
-                            <div className="rp-stop-header">
-                              <div className="rp-stop-name">{stop.name}</div>
-                              <span
-                                className="rp-stop-cat"
-                                style={{
-                                  background:
-                                    (CATEGORY_COLORS[stop.category] ?? "#6b7a99") + "18",
-                                  color: CATEGORY_COLORS[stop.category] ?? "#6b7a99",
-                                }}
-                              >
-                                {CATEGORY_LABELS[stop.category] ?? "📍 Diğer"}
-                              </span>
-                            </div>
-                            <div className="rp-stop-type">
-                              {stop.type} · {stop.duration}
-                            </div>
-                            <p className="rp-stop-desc">{stop.description}</p>
-                            {stop.address && (
-                              <div className="rp-stop-address">📍 {stop.address}</div>
-                            )}
-                            <div className="rp-stop-tip">💡 {stop.tip}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-
-              {route.tips.length > 0 && (
-                <div className="rp-tips-section">
-                  <h3 className="rp-tips-title">✈️ Genel Seyahat İpuçları</h3>
-                  <ul className="rp-tips-list">
-                    {route.tips.map((tip, i) => (
-                      <li key={i} className="rp-tip-item">
-                        {tip}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <RoutePlanDisplay route={route} />
 
               {saveMessage && (
                 <div className={saveMessage.includes("kaydedildi") ? "rp-save-ok" : "rp-error"}>

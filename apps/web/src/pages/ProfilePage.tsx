@@ -16,6 +16,7 @@ import {
   deleteSavedTrip,
   type SavedTrip,
 } from "../lib/savedTripsApi";
+import { isAiPlannerTrip } from "../lib/aiRoutePlanner";
 
 const SAVED_PLACES = [
   { id: 101, name: "Louvre Müzesi", type: "Müze · Paris", rating: 4.8, icon: "🏛" },
@@ -331,7 +332,11 @@ export default function ProfilePage() {
                       </div>
                       <div className="trip-card-actions">
                         <Link
-                          to={`/map?savedTrip=${trip.id}`}
+                          to={
+                            isAiPlannerTrip(trip)
+                              ? `/plan/saved/${trip.id}`
+                              : `/map?savedTrip=${trip.id}`
+                          }
                           className="trip-btn"
                         >
                           Planı Görüntüle →
