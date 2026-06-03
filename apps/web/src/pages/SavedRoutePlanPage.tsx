@@ -86,7 +86,7 @@ export default function SavedRoutePlanPage() {
 
           {route && (
             <div className="rp-section rp-fade-in">
-              <RoutePlanDisplay route={route} />
+              <RoutePlanDisplay route={route} tripId={tripId} />
               <div className="rp-action-row">
                 {citySlug && (
                   <Link to={`/${citySlug}/first-day`} className="rp-btn-secondary">

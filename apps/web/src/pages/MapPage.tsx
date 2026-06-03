@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { saveTrip, getSavedTrip, type SavedTripStop } from "../lib/savedTripsApi";
@@ -11,7 +11,14 @@ import { SyncManagerProvider } from "../context/SyncManagerContext";
 import { DirectionsPanel } from "../components/navigation/DirectionsPanel";
 import { useNetworkStatus } from "@pocketguide/hooks";
 import { MAP_INITIAL_LAT, MAP_INITIAL_LNG } from "../components/map/MapView";
-import { searchPlaces, type NominatimPlace } from "../lib/geocode";
+import { searchPlaces, geocodeVenue, type NominatimPlace } from "../lib/geocode";
+import {
+  loadAiRouteMapDraft,
+  clearAiRouteMapDraft,
+  loadAiRouteMapPois,
+  clearAiRouteMapPois,
+  geocodeDraftStopsToPois,
+} from "../lib/aiRouteMap";
 import type { POI, POICategory } from "../types/poi";
 
 type NominatimResult = NominatimPlace;
@@ -129,6 +136,20 @@ function MapPageContent() {
         : undefined,
   );
   const [searchQuery, setSearchQuery] = useState(() => urlMapLocation.label ?? "");
+  const [aiRouteLoading, setAiRouteLoading] = useState(false);
+  const aiRouteLoadRef = useRef(false);
+
+  const applyAiRoutePois = useCallback(
+    (pois: POI[], label: string) => {
+      setRouteDraft(pois);
+      setActiveSheet("route");
+      setSearchQuery(label);
+      setShowResults(false);
+      navigateMapTo(pois[0].coordinate.lat, pois[0].coordinate.lng);
+      if (pois.length >= 2) void startRoute();
+    },
+    [setRouteDraft, startRoute],
+  );
 
   // ?lat=&lng=&name= (mekan) öncelikli; yalnızca ?city= ise şehir merkezi
   useEffect(() => {
@@ -140,6 +161,86 @@ function MapPageContent() {
       searchParams.get("lat") && searchParams.get("lng") ? center : undefined,
     );
     if (label) setSearchQuery(label);
+  }, [searchParams]);
+
+  // AI rota planlayıcı — günlük rota haritada (POI listesi plan sayfasında hazırlanır)
+  useEffect(() => {
+    if (searchParams.get("loadAiRoute") !== "1") {
+      aiRouteLoadRef.current = false;
+      return;
+    }
+    if (aiRouteLoadRef.current) return;
+    aiRouteLoadRef.current = true;
+
+    const draft = loadAiRouteMapDraft();
+    const preloaded = loadAiRouteMapPois();
+
+    if (preloaded?.length) {
+      const label = draft
+        ? `${draft.city} · ${draft.day}. Gün (${preloaded.length} durak)`
+        : `AI Rota (${preloaded.length} durak)`;
+      applyAiRoutePois(preloaded, label);
+      clearAiRouteMapDraft();
+      clearAiRouteMapPois();
+      return;
+    }
+
+    if (!draft?.stops.length) {
+      setSaveTripMsg("Günlük rota verisi bulunamadı. Plan sayfasından tekrar deneyin.");
+      return;
+    }
+
+    let cancelled = false;
+    setAiRouteLoading(true);
+    setSaveTripMsg(null);
+
+    void geocodeDraftStopsToPois(
+      draft.stops,
+      draft.city,
+      draft.day,
+      draft.cityNameEn,
+    )
+      .then((pois) => {
+        if (cancelled) return;
+        if (pois.length === 0) {
+          setSaveTripMsg("Mekanlar haritada bulunamadı.");
+          return;
+        }
+        applyAiRoutePois(
+          pois,
+          `${draft.city} · ${draft.day}. Gün (${pois.length}/${draft.stops.length} durak)`,
+        );
+        clearAiRouteMapDraft();
+        clearAiRouteMapPois();
+      })
+      .catch(() => {
+        if (!cancelled) setSaveTripMsg("Günlük rota haritaya yüklenemedi.");
+      })
+      .finally(() => {
+        if (!cancelled) setAiRouteLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, applyAiRoutePois]);
+
+  // Tek mekan — ?q= arama
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (!q?.trim() || searchParams.get("loadAiRoute") === "1") return;
+
+    let cancelled = false;
+    void geocodeVenue(q.trim()).then((geo) => {
+      if (cancelled || !geo) return;
+      navigateMapTo(geo.lat, geo.lng);
+      setDeepLinkMarker({ lat: geo.lat, lng: geo.lng });
+      setSearchQuery(geo.displayName);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   // Profilden kayıtlı seyahat aç
@@ -530,7 +631,12 @@ function MapPageContent() {
                         </button>
                       </div>
                     )}
-                    {saveTripMsg && (
+                    {aiRouteLoading && (
+                      <p className="map-route-hint" style={{ color: "var(--muted)" }}>
+                        Günlük rota haritaya yükleniyor…
+                      </p>
+                    )}
+                    {saveTripMsg && !aiRouteLoading && (
                       <p
                         className="map-route-hint"
                         style={{
