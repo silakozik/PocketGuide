@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback, useRef, type MouseEvent } from 'react
 import { Link, useSearchParams } from 'react-router-dom';
 import { Nav } from '../components/Nav';
 import { Footer } from '../components/Footer';
+import {
+  PhotoDetailModal,
+  type PhotoDetailInitial,
+} from '../components/PhotoDetailModal';
+import { likePhoto as apiLikePhoto } from '../lib/photosApi';
 const API = 'http://localhost:3001';
 
 function exploreTileVariant(index: number): string {
@@ -32,10 +37,7 @@ async function getDiscover(interests: string[], city: string, offset = 0) {
 }
 
 async function likePhoto(id: string) {
-  await fetch(`${API}/api/photos/${id}/like`, {
-    method: 'POST',
-    credentials: 'include',
-  });
+  await apiLikePhoto(id);
 }
 
 const CITY_EMOJIS: Record<string, string> = {
@@ -68,6 +70,9 @@ export default function SearchPage() {
   const [cityFilter, setCityFilter] = useState('');
   const [likedPhotos, setLikedPhotos] = useState<Set<string>>(new Set());
   const [discoverError, setDiscoverError] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<PhotoDetailInitial | null>(
+    null,
+  );
 
   const userInterests: string[] = JSON.parse(
     localStorage.getItem('pg_user_interests') ?? '[]',
@@ -160,6 +165,25 @@ export default function SearchPage() {
     e.stopPropagation();
     await likePhoto(photoId);
     setLikedPhotos((prev) => new Set([...prev, photoId]));
+  };
+
+  const handlePhotoLikeChange = (photoId: string, likeCount: number) => {
+    setLikedPhotos((prev) => new Set([...prev, photoId]));
+    setDiscoverPhotos((prev) =>
+      prev.map((p) => (p.id === photoId ? { ...p, likeCount } : p)),
+    );
+    if (searchResults?.photos) {
+      setSearchResults((prev: any) => ({
+        ...prev,
+        photos: prev.photos.map((p: any) =>
+          p.id === photoId ? { ...p, likeCount } : p,
+        ),
+      }));
+    }
+  };
+
+  const openPhoto = (photo: PhotoDetailInitial) => {
+    setSelectedPhoto(photo);
   };
 
   const switchTab = (tab: 'search' | 'discover') => {
@@ -354,12 +378,25 @@ export default function SearchPage() {
                       <div className="sp-result-group-title">📸 Fotoğraflar</div>
                       <div className="sp-photo-row">
                         {searchResults.photos.map((photo: any) => (
-                          <div key={photo.id} className="sp-photo-thumb">
+                          <button
+                            key={photo.id}
+                            type="button"
+                            className="sp-photo-thumb"
+                            onClick={() =>
+                              openPhoto({
+                                id: photo.id,
+                                imageUrl: photo.imageUrl,
+                                caption: photo.caption,
+                                cityName: photo.cityName,
+                                userId: photo.userId,
+                              })
+                            }
+                          >
                             <img src={photo.imageUrl} alt={photo.caption ?? ''} />
                             {photo.cityName && (
                               <div className="sp-photo-city">{photo.cityName}</div>
                             )}
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -430,6 +467,19 @@ export default function SearchPage() {
                           photo.cityName ||
                           'Seyahat fotoğrafı'
                         }
+                        onClick={() =>
+                          openPhoto({
+                            id: photo.id,
+                            imageUrl: photo.imageUrl,
+                            caption: photo.caption,
+                            cityName: photo.cityName,
+                            locationName: photo.locationName,
+                            createdAt: photo.createdAt,
+                            userId: photo.userId,
+                            userName: photo.userName,
+                            likeCount: photo.likeCount,
+                          })
+                        }
                       >
                         <img
                           src={photo.imageUrl}
@@ -480,6 +530,14 @@ export default function SearchPage() {
         </div>
       </div>
       {activeTab !== 'discover' && <Footer />}
+      {selectedPhoto && (
+        <PhotoDetailModal
+          photoId={selectedPhoto.id}
+          initialPhoto={selectedPhoto}
+          onClose={() => setSelectedPhoto(null)}
+          onLikeChange={handlePhotoLikeChange}
+        />
+      )}
     </>
   );
 }

@@ -329,4 +329,16 @@ export const travelPhotos = pgTable("travel_photos", {
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
+export const photoComments = pgTable("photo_comments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  photoId: uuid("photoId")
+    .references(() => travelPhotos.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: uuid("userId")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export * from "./poi.schema";

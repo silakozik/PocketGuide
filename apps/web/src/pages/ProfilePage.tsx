@@ -12,6 +12,10 @@ import {
   type TravelPhoto,
 } from "../lib/photosApi";
 import {
+  PhotoDetailModal,
+  type PhotoDetailInitial,
+} from "../components/PhotoDetailModal";
+import {
   getMySavedTrips,
   deleteSavedTrip,
   type SavedTrip,
@@ -47,6 +51,9 @@ export default function ProfilePage() {
   const photoFileRef = useRef<HTMLInputElement>(null);
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
   const [tripsLoading, setTripsLoading] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<PhotoDetailInitial | null>(
+    null,
+  );
 
   const displayName = user?.userName ?? "Gezgin";
   const avatarLetter = displayName.charAt(0).toUpperCase();
@@ -506,7 +513,40 @@ export default function ProfilePage() {
                 <div className="photos-grid">
                   {photos.map((photo) => (
                     <div key={photo.id} className="photo-card">
-                      <div className="photo-card-img-wrap">
+                      <div
+                        className="photo-card-img-wrap photo-card-open"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() =>
+                          setSelectedPhoto({
+                            id: photo.id,
+                            imageUrl: photo.imageUrl,
+                            caption: photo.caption,
+                            cityName: photo.cityName,
+                            locationName: photo.locationName,
+                            createdAt: photo.createdAt,
+                            userId: photo.userId,
+                            userName: displayName,
+                            isPublic: photo.isPublic,
+                          })
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedPhoto({
+                              id: photo.id,
+                              imageUrl: photo.imageUrl,
+                              caption: photo.caption,
+                              cityName: photo.cityName,
+                              locationName: photo.locationName,
+                              createdAt: photo.createdAt,
+                              userId: photo.userId,
+                              userName: displayName,
+                              isPublic: photo.isPublic,
+                            });
+                          }
+                        }}
+                      >
                         <img
                           src={photo.imageUrl}
                           alt={photo.caption ?? "Seyahat fotoğrafı"}
@@ -515,7 +555,10 @@ export default function ProfilePage() {
                         <button
                           type="button"
                           className="photo-card-delete"
-                          onClick={() => handlePhotoDelete(photo.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePhotoDelete(photo.id);
+                          }}
                           title="Sil"
                         >
                           ×
@@ -640,6 +683,13 @@ export default function ProfilePage() {
         </main>
       </div>
       <Footer />
+      {selectedPhoto && (
+        <PhotoDetailModal
+          photoId={selectedPhoto.id}
+          initialPhoto={selectedPhoto}
+          onClose={() => setSelectedPhoto(null)}
+        />
+      )}
     </>
   );
 }

@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
-import { travelPhotos, users } from '@pocketguide/database';
+import { travelPhotos, users, photoComments } from '@pocketguide/database';
 import { eq, and, desc, sql, isNull } from 'drizzle-orm';
 
 /** Keşfet / feed / arama — silinmemiş ve herkese açık */
@@ -119,13 +119,132 @@ export class PhotosController {
   @Post(':id/like')
   @UseGuards(JwtAuthGuard)
   async likePhoto(@Param('id') id: string) {
+    const [photo] = await this.db
+      .select({ likeCount: travelPhotos.likeCount })
+      .from(travelPhotos)
+      .where(and(eq(travelPhotos.id as any, id), notDeletedWhere()))
+      .limit(1);
+
+    if (!photo) throw new NotFoundException('Fotoğraf bulunamadı');
+
+    const nextCount = (photo.likeCount ?? 0) + 1;
     await this.db
       .update(travelPhotos)
-      .set({ likeCount: sql`${(travelPhotos as any).likeCount} + 1` } as any)
+      .set({ likeCount: nextCount } as any)
+      .where(eq(travelPhotos.id as any, id));
+
+    return { success: true, likeCount: nextCount };
+  }
+
+  @Get(':id/comments')
+  async getComments(@Param('id') id: string) {
+    const [photo] = await this.db
+      .select({ id: travelPhotos.id })
+      .from(travelPhotos)
       .where(
-        and(eq(travelPhotos.id as any, id), notDeletedWhere()),
-      );
-    return { success: true };
+        and(
+          eq(travelPhotos.id as any, id),
+          notDeletedWhere(),
+          eq(travelPhotos.isPublic as any, true),
+        ),
+      )
+      .limit(1);
+
+    if (!photo) throw new NotFoundException('Fotoğraf bulunamadı');
+
+    const rows = await this.db
+      .select({
+        id: photoComments.id,
+        body: photoComments.body,
+        createdAt: photoComments.createdAt,
+        userId: photoComments.userId,
+        userName: users.userName,
+      })
+      .from(photoComments)
+      .leftJoin(users, eq(photoComments.userId as any, users.id))
+      .where(eq(photoComments.photoId as any, id))
+      .orderBy(desc(photoComments.createdAt as any));
+
+    return { data: rows.reverse() };
+  }
+
+  @Post(':id/comments')
+  @UseGuards(JwtAuthGuard)
+  async addComment(
+    @Param('id') id: string,
+    @Body('body') body: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const text = body?.trim();
+    if (!text) throw new BadRequestException('Yorum boş olamaz');
+
+    const [photo] = await this.db
+      .select({ id: travelPhotos.id })
+      .from(travelPhotos)
+      .where(
+        and(
+          eq(travelPhotos.id as any, id),
+          notDeletedWhere(),
+          eq(travelPhotos.isPublic as any, true),
+        ),
+      )
+      .limit(1);
+
+    if (!photo) throw new NotFoundException('Fotoğraf bulunamadı');
+
+    const [comment] = await this.db
+      .insert(photoComments)
+      .values({
+        photoId: id,
+        userId: req.userId,
+        body: text,
+      } as any)
+      .returning();
+
+    const [user] = await this.db
+      .select({ userName: users.userName })
+      .from(users)
+      .where(eq(users.id as any, req.userId))
+      .limit(1);
+
+    return {
+      success: true,
+      data: {
+        ...comment,
+        userName: user?.userName ?? 'Kullanıcı',
+      },
+    };
+  }
+
+  @Get(':id')
+  async getPhoto(@Param('id') id: string) {
+    const [row] = await this.db
+      .select({
+        id: travelPhotos.id,
+        imageUrl: travelPhotos.imageUrl,
+        caption: travelPhotos.caption,
+        cityName: travelPhotos.cityName,
+        locationName: travelPhotos.locationName,
+        createdAt: travelPhotos.createdAt,
+        userId: travelPhotos.userId,
+        userName: users.userName,
+        likeCount: sql<number>`COALESCE("travel_photos"."likeCount", 0)`.as(
+          'likeCount',
+        ),
+      })
+      .from(travelPhotos)
+      .leftJoin(users, eq(travelPhotos.userId as any, users.id))
+      .where(
+        and(
+          eq(travelPhotos.id as any, id),
+          notDeletedWhere(),
+          eq(travelPhotos.isPublic as any, true),
+        ),
+      )
+      .limit(1);
+
+    if (!row) throw new NotFoundException('Fotoğraf bulunamadı');
+    return { data: row };
   }
 
   @Get('feed')
