@@ -1,13 +1,13 @@
-const API = 'http://localhost:3001';
+import { apiUrl } from './api';
 
 export async function getMyProfile() {
-  const res = await fetch(`${API}/api/profile/me`, { credentials: 'include' });
+  const res = await fetch(apiUrl('/profile/me'), { credentials: 'include' });
   if (!res.ok) throw new Error('Profile fetch failed');
   return res.json();
 }
 
 export async function updateAvatar(avatarUrl: string) {
-  const res = await fetch(`${API}/api/profile/avatar`, {
+  const res = await fetch(apiUrl('/profile/avatar'), {
     method: 'PUT',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },

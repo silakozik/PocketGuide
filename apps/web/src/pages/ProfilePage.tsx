@@ -29,7 +29,7 @@ const SAVED_PLACES = [
 ];
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("trips");
   const [userInterests, setUserInterests] = useState<string[]>([]);
@@ -90,13 +90,19 @@ export default function ProfilePage() {
   }, [activeTab, user]);
 
   useEffect(() => {
-    if (activeTab !== "photos") return;
+    if (activeTab !== "photos" || authLoading || !user) return;
     setPhotosLoading(true);
+    setPhotoError(null);
     getMyPhotos()
       .then(setPhotos)
-      .catch(() => {})
+      .catch((err: unknown) => {
+        setPhotos([]);
+        const message =
+          err instanceof Error ? err.message : "Fotoğraflar yüklenemedi";
+        setPhotoError(message);
+      })
       .finally(() => setPhotosLoading(false));
-  }, [activeTab]);
+  }, [activeTab, user, authLoading]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,6 +173,7 @@ export default function ProfilePage() {
       });
       setPhotos((prev) => [newPhoto, ...prev]);
       setShowUploadModal(false);
+      window.dispatchEvent(new CustomEvent('pg-photos-changed'));
       setUploadPreview(null);
       setUploadCaption("");
       setUploadCity("");
@@ -504,6 +511,11 @@ export default function ProfilePage() {
 
               {photosLoading ? (
                 <div className="p-loading">Yükleniyor...</div>
+              ) : photoError ? (
+                <div className="p-empty-state">
+                  <span>⚠️</span>
+                  <p>{photoError}</p>
+                </div>
               ) : photos.length === 0 ? (
                 <div className="p-empty-state">
                   <span>📸</span>

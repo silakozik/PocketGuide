@@ -4385,10 +4385,10 @@ footer {
 .photo-detail-modal {
   position: relative;
   display: flex;
-  width: min(100%, 920px);
-  max-height: min(90vh, 720px);
+  width: min(100%, 1080px);
+  max-height: min(92vh, 780px);
   background: #fff;
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
 }
@@ -4429,7 +4429,7 @@ footer {
 }
 
 .photo-detail-image {
-  flex: 1 1 55%;
+  flex: 1 1 58%;
   min-width: 0;
   background: #000;
   display: flex;
@@ -4441,12 +4441,13 @@ footer {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  max-height: min(90vh, 720px);
+  max-height: min(92vh, 780px);
 }
 
 .photo-detail-panel {
-  flex: 0 0 340px;
-  max-width: 340px;
+  flex: 0 0 400px;
+  width: 400px;
+  min-width: 360px;
   display: flex;
   flex-direction: column;
   border-left: 1px solid #efefef;
@@ -4456,14 +4457,15 @@ footer {
 .photo-detail-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 14px;
+  padding: 16px 20px;
   border-bottom: 1px solid #efefef;
+  flex-shrink: 0;
 }
 
 .photo-detail-avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--ink);
   color: #fff;
@@ -4498,15 +4500,16 @@ footer {
 .photo-detail-comments {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  min-height: 120px;
 }
 
 .photo-detail-comment {
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: #262626;
 }
 
@@ -4521,35 +4524,37 @@ footer {
 
 .photo-detail-comment-time {
   display: block;
-  margin-top: 4px;
-  font-size: 11px;
+  margin-top: 6px;
+  font-size: 12px;
   color: #8e8e8e;
-  text-transform: lowercase;
 }
 
 .photo-detail-empty {
   margin: auto 0;
   text-align: center;
   color: #8e8e8e;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .photo-detail-footer {
+  flex-shrink: 0;
   border-top: 1px solid #efefef;
-  padding: 0 16px 12px;
+  padding: 4px 20px 16px;
+  background: #fff;
 }
 
 .photo-detail-actions {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 0 8px;
+  gap: 18px;
+  padding: 14px 0 10px;
 }
 
 .photo-detail-action {
   border: none;
   background: none;
-  padding: 0;
+  padding: 4px;
+  margin: -4px;
   color: #262626;
   cursor: pointer;
   display: flex;
@@ -4560,50 +4565,62 @@ footer {
   color: #ed4956;
 }
 
+.photo-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 14px;
+}
+
 .photo-detail-likes {
-  margin: 0 0 6px;
-  font-size: 14px;
+  margin: 0;
+  font-size: 15px;
   font-weight: 600;
   color: #262626;
+  line-height: 1.3;
 }
 
 .photo-detail-date {
   display: block;
-  margin-bottom: 10px;
-  font-size: 10px;
+  margin: 0;
+  font-size: 11px;
   color: #8e8e8e;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
 }
 
 .photo-detail-error {
-  margin: 0 0 8px;
-  font-size: 12px;
+  margin: 0 0 10px;
+  font-size: 13px;
   color: #b42318;
 }
 
 .photo-detail-private-note {
   margin: 0;
-  padding: 10px 0 4px;
-  font-size: 12px;
+  padding: 12px 0 4px;
+  font-size: 13px;
   color: #8e8e8e;
 }
 
 .photo-detail-comment-form {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   border-top: 1px solid #efefef;
-  padding-top: 12px;
+  margin: 0 -20px;
+  padding: 14px 20px 0;
+  min-height: 52px;
 }
 
 .photo-detail-comment-form input {
   flex: 1;
   border: none;
   outline: none;
-  font-size: 14px;
+  font-size: 15px;
   color: #262626;
   background: transparent;
+  min-width: 0;
 }
 
 .photo-detail-comment-form input::placeholder {
@@ -4614,10 +4631,11 @@ footer {
   border: none;
   background: none;
   color: #0095f6;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  padding: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
 }
 
 .photo-detail-comment-form button:disabled {

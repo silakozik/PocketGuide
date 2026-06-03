@@ -1,4 +1,4 @@
-const API = 'http://localhost:3001';
+import { apiUrl } from './api';
 
 export interface SavedTripStop {
   id: string;
@@ -21,7 +21,7 @@ export interface SavedTrip {
 }
 
 export async function getMySavedTrips(): Promise<SavedTrip[]> {
-  const res = await fetch(`${API}/api/saved-trips/my`, {
+  const res = await fetch(apiUrl('/saved-trips/my'), {
     credentials: 'include',
   });
   if (res.status === 401) throw new Error('LOGIN_REQUIRED');
@@ -31,7 +31,7 @@ export async function getMySavedTrips(): Promise<SavedTrip[]> {
 }
 
 export async function getSavedTrip(id: string): Promise<SavedTrip> {
-  const res = await fetch(`${API}/api/saved-trips/${id}`, {
+  const res = await fetch(apiUrl(`/saved-trips/${id}`), {
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Seyahat bulunamadı');
@@ -47,7 +47,7 @@ export async function saveTrip(payload: {
   durationMinutes?: number;
   distanceKm?: number;
 }): Promise<SavedTrip> {
-  const res = await fetch(`${API}/api/saved-trips`, {
+  const res = await fetch(apiUrl('/saved-trips'), {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -63,7 +63,7 @@ export async function saveTrip(payload: {
 }
 
 export async function deleteSavedTrip(id: string): Promise<void> {
-  await fetch(`${API}/api/saved-trips/${id}`, {
+  await fetch(apiUrl(`/saved-trips/${id}`), {
     method: 'DELETE',
     credentials: 'include',
   });

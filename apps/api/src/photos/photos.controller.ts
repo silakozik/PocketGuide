@@ -116,6 +116,56 @@ export class PhotosController {
     return { data: paginated, total: scored.length };
   }
 
+  @Get('feed')
+  async getFeed(@Query('limit') limit = '20') {
+    const rows = await this.db
+      .select({
+        id: travelPhotos.id,
+        imageUrl: travelPhotos.imageUrl,
+        caption: travelPhotos.caption,
+        cityName: travelPhotos.cityName,
+        locationName: travelPhotos.locationName,
+        createdAt: travelPhotos.createdAt,
+        userId: travelPhotos.userId,
+        userName: users.userName,
+      })
+      .from(travelPhotos)
+      .leftJoin(users, eq(travelPhotos.userId as any, users.id))
+      .where(visiblePublicPhotosWhere())
+      .orderBy(desc(travelPhotos.createdAt as any))
+      .limit(Number(limit));
+    return { data: rows };
+  }
+
+  @Get('my')
+  @UseGuards(JwtAuthGuard)
+  async getMyPhotos(@Req() req: AuthenticatedRequest) {
+    const rows = await this.db
+      .select()
+      .from(travelPhotos)
+      .where(
+        and(eq(travelPhotos.userId as any, req.userId), notDeletedWhere()),
+      )
+      .orderBy(desc(travelPhotos.createdAt as any));
+    return { data: rows };
+  }
+
+  @Get('user/:userId')
+  async getUserPhotos(@Param('userId') userId: string) {
+    const rows = await this.db
+      .select()
+      .from(travelPhotos)
+      .where(
+        and(
+          eq(travelPhotos.userId as any, userId),
+          eq(travelPhotos.isPublic as any, true),
+          notDeletedWhere(),
+        ),
+      )
+      .orderBy(desc(travelPhotos.createdAt as any));
+    return { data: rows };
+  }
+
   @Post(':id/like')
   @UseGuards(JwtAuthGuard)
   async likePhoto(@Param('id') id: string) {
@@ -245,56 +295,6 @@ export class PhotosController {
 
     if (!row) throw new NotFoundException('Fotoğraf bulunamadı');
     return { data: row };
-  }
-
-  @Get('feed')
-  async getFeed(@Query('limit') limit = '20') {
-    const rows = await this.db
-      .select({
-        id: travelPhotos.id,
-        imageUrl: travelPhotos.imageUrl,
-        caption: travelPhotos.caption,
-        cityName: travelPhotos.cityName,
-        locationName: travelPhotos.locationName,
-        createdAt: travelPhotos.createdAt,
-        userId: travelPhotos.userId,
-        userName: users.userName,
-      })
-      .from(travelPhotos)
-      .leftJoin(users, eq(travelPhotos.userId as any, users.id))
-      .where(visiblePublicPhotosWhere())
-      .orderBy(desc(travelPhotos.createdAt as any))
-      .limit(Number(limit));
-    return { data: rows };
-  }
-
-  @Get('user/:userId')
-  async getUserPhotos(@Param('userId') userId: string) {
-    const rows = await this.db
-      .select()
-      .from(travelPhotos)
-      .where(
-        and(
-          eq(travelPhotos.userId as any, userId),
-          eq(travelPhotos.isPublic as any, true),
-          notDeletedWhere(),
-        ),
-      )
-      .orderBy(desc(travelPhotos.createdAt as any));
-    return { data: rows };
-  }
-
-  @Get('my')
-  @UseGuards(JwtAuthGuard)
-  async getMyPhotos(@Req() req: AuthenticatedRequest) {
-    const rows = await this.db
-      .select()
-      .from(travelPhotos)
-      .where(
-        and(eq(travelPhotos.userId as any, req.userId), notDeletedWhere()),
-      )
-      .orderBy(desc(travelPhotos.createdAt as any));
-    return { data: rows };
   }
 
   @Post()

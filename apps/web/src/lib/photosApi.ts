@@ -1,4 +1,4 @@
-const API = 'http://localhost:3001';
+import { apiUrl } from './api';
 
 export interface TravelPhoto {
   id: string;
@@ -33,25 +33,31 @@ export interface PhotoComment {
 }
 
 export async function getFeed(limit = 20): Promise<TravelPhoto[]> {
-  const res = await fetch(`${API}/api/photos/feed?limit=${limit}`);
+  const res = await fetch(apiUrl(`/photos/feed?limit=${limit}`));
   const json = await res.json();
   return json.data ?? [];
 }
 
 export async function getUserPhotos(userId: string): Promise<TravelPhoto[]> {
-  const res = await fetch(`${API}/api/photos/user/${userId}`);
+  const res = await fetch(apiUrl(`/photos/user/${userId}`));
   const json = await res.json();
   return json.data ?? [];
 }
 
 export async function getMyPhotos(): Promise<TravelPhoto[]> {
-  const res = await fetch(`${API}/api/photos/my`, { credentials: 'include' });
+  const res = await fetch(apiUrl('/photos/my'), { credentials: 'include' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Fotoğraflar yüklenemedi',
+    );
+  }
   const json = await res.json();
   return json.data ?? [];
 }
 
 export async function getPhotoDetail(id: string): Promise<{ data: PhotoDetail }> {
-  const res = await fetch(`${API}/api/photos/${id}`);
+  const res = await fetch(apiUrl(`/photos/${id}`));
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { message?: string }).message ?? 'Fotoğraf bulunamadı');
@@ -60,7 +66,7 @@ export async function getPhotoDetail(id: string): Promise<{ data: PhotoDetail }>
 }
 
 export async function getPhotoComments(id: string): Promise<{ data: PhotoComment[] }> {
-  const res = await fetch(`${API}/api/photos/${id}/comments`);
+  const res = await fetch(apiUrl(`/photos/${id}/comments`));
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { message?: string }).message ?? 'Yorumlar yüklenemedi');
@@ -69,7 +75,7 @@ export async function getPhotoComments(id: string): Promise<{ data: PhotoComment
 }
 
 export async function likePhoto(id: string): Promise<{ likeCount: number }> {
-  const res = await fetch(`${API}/api/photos/${id}/like`, {
+  const res = await fetch(apiUrl(`/photos/${id}/like`), {
     method: 'POST',
     credentials: 'include',
   });
@@ -85,7 +91,7 @@ export async function addPhotoComment(
   id: string,
   body: string,
 ): Promise<{ data: PhotoComment }> {
-  const res = await fetch(`${API}/api/photos/${id}/comments`, {
+  const res = await fetch(apiUrl(`/photos/${id}/comments`), {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -105,7 +111,7 @@ export async function uploadPhoto(payload: {
   locationName?: string;
   isPublic?: boolean;
 }): Promise<TravelPhoto> {
-  const res = await fetch(`${API}/api/photos`, {
+  const res = await fetch(apiUrl('/photos'), {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -120,7 +126,7 @@ export async function uploadPhoto(payload: {
 }
 
 export async function deletePhoto(id: string): Promise<void> {
-  const res = await fetch(`${API}/api/photos/${id}`, {
+  const res = await fetch(apiUrl(`/photos/${id}`), {
     method: 'DELETE',
     credentials: 'include',
   });

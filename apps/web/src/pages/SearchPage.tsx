@@ -7,7 +7,7 @@ import {
   type PhotoDetailInitial,
 } from '../components/PhotoDetailModal';
 import { likePhoto as apiLikePhoto } from '../lib/photosApi';
-const API = 'http://localhost:3001';
+import { apiUrl } from '../lib/api';
 
 function exploreTileVariant(index: number): string {
   const mod = index % 11;
@@ -18,7 +18,7 @@ function exploreTileVariant(index: number): string {
 
 async function searchAll(q: string) {
   if (q.trim().length < 2) return { cities: [], users: [], photos: [] };
-  const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`);
+  const res = await fetch(apiUrl(`/search?q=${encodeURIComponent(q)}`));
   return res.json();
 }
 
@@ -29,7 +29,7 @@ async function getDiscover(interests: string[], city: string, offset = 0) {
   });
   if (interests.length) params.set('interests', interests.join(','));
   if (city) params.set('city', city);
-  const res = await fetch(`${API}/api/photos/discover?${params}`);
+  const res = await fetch(apiUrl(`/photos/discover?${params}`));
   if (!res.ok) {
     throw new Error(`Keşfet yüklenemedi (${res.status})`);
   }
