@@ -6,16 +6,9 @@ import { useTranslation } from "react-i18next";
 
 import { Text } from "@/components/Themed";
 
-const INTERESTS = [
-  { id: "art", label: "Sanat", icon: "🎨" },
-  { id: "gastronomy", label: "Gastronomi", icon: "🍽️" },
-  { id: "history", label: "Tarih", icon: "🏛️" },
-  { id: "nature", label: "Doğa", icon: "🌲" },
-  { id: "nightlife", label: "Gece Hayatı", icon: "🍸" },
-  { id: "shopping", label: "Alışveriş", icon: "🛍️" },
-  { id: "architecture", label: "Mimari", icon: "🏢" },
-  { id: "music_events", label: "Müzik & Etkinlik", icon: "🎵" },
-];
+import { INTERESTS_STORAGE_KEY, PROFILE_INTERESTS } from "@/src/constants/interests";
+
+const INTERESTS = PROFILE_INTERESTS;
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -49,7 +42,7 @@ export default function OnboardingScreen() {
     setSubmitting(true);
     try {
       await AsyncStorage.setItem("pg_has_onboarded", "true");
-      await AsyncStorage.setItem("pg_user_interests", JSON.stringify(selected));
+      await AsyncStorage.setItem(INTERESTS_STORAGE_KEY, JSON.stringify(selected));
       router.replace("/");
     } finally {
       setSubmitting(false);
