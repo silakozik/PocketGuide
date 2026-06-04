@@ -1,17 +1,60 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-/** Web ile aynı OSM karoları — react-native-maps (MapLibre paketi gerekmez) */
-import MapView, { Marker, Polyline, UrlTile, PROVIDER_DEFAULT } from "react-native-maps";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { WebView, type WebViewMessageEvent } from "react-native-webview";
 
-import {
-  MAP_INITIAL_LAT,
-  MAP_INITIAL_LNG,
-  OSM_TILE_URL,
-} from "@/src/constants/osmMapStyle";
+import { MAP_INITIAL_LAT, MAP_INITIAL_LNG } from "@/src/constants/osmMapStyle";
 import type { POI } from "@/src/types/poi";
 import { useRoute } from "@/src/context/RouteContext";
 import { POIBottomSheet } from "@/src/components/map/POIBottomSheet";
 import { LayerToggle } from "@/src/components/map/LayerToggle";
+
+const buildMapHtml = (lat: number, lng: number) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; }
+    #map { width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map').setView([${lat}, ${lng}], 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    document.addEventListener('message', function(e) {
+      var data = JSON.parse(e.data);
+      if (data.type === 'flyTo') {
+        map.flyTo([data.lat, data.lng], 14);
+      }
+      if (data.type === 'addMarker') {
+        var m = L.marker([data.lat, data.lng]).addTo(map).bindPopup(data.name);
+        if (data.id) {
+          m.on('click', function() {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'markerClick', id: data.id }));
+          });
+        }
+      }
+      if (data.type === 'clearMarkers') {
+        map.eachLayer(function(layer) {
+          if (layer instanceof L.Marker) map.removeLayer(layer);
+        });
+      }
+    });
+    window.addEventListener('message', function(e) {
+      document.dispatchEvent(new MessageEvent('message', { data: e.data }));
+    });
+  </script>
+</body>
+</html>
+`;
 
 type PocketGuideMapProps = {
   categoryFilter?: string;
@@ -26,16 +69,13 @@ type PocketGuideMapProps = {
 };
 
 export function PocketGuideMap({
-  searchQuery = "",
   savedPoiIds,
   onToggleSave,
-  showPins = false,
   showLayerToggle = false,
   forcedCenter,
   searchMarker,
-  onMapCenterChange,
 }: PocketGuideMapProps) {
-  const mapRef = useRef<MapView>(null);
+  const webViewRef = useRef<WebView>(null);
 
   const {
     routeData,
@@ -47,115 +87,102 @@ export function PocketGuideMap({
     removeFromRouteDraft,
   } = useRoute();
 
-  const [region, setRegion] = useState({
-    latitude: MAP_INITIAL_LAT,
-    longitude: MAP_INITIAL_LNG,
-    latitudeDelta: 0.08,
-    longitudeDelta: 0.08,
-  });
-
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [layers, setLayers] = useState({ pins: false, route: true, heatmap: false });
+  const [mapReady, setMapReady] = useState(false);
 
-  const routeCoords = useMemo(() => {
-    if (!routeData?.geometry?.length) return [];
-    return routeData.geometry.map(([latitude, longitude]) => ({ latitude, longitude }));
-  }, [routeData]);
-
-  const flyTo = useCallback((lat: number, lng: number, delta = 0.01) => {
-    const next = {
-      latitude: lat,
-      longitude: lng,
-      latitudeDelta: delta,
-      longitudeDelta: delta,
-    };
-    setRegion(next);
-    mapRef.current?.animateToRegion(next, 800);
+  const postToMap = useCallback((payload: object) => {
+    webViewRef.current?.postMessage(JSON.stringify(payload));
   }, []);
 
-  useEffect(() => {
-    if (!forcedCenter) return;
-    flyTo(forcedCenter.lat, forcedCenter.lng);
-  }, [forcedCenter?.lat, forcedCenter?.lng, flyTo]);
+  const flyTo = useCallback(
+    (lat: number, lng: number) => {
+      postToMap({ type: "flyTo", lat, lng });
+    },
+    [postToMap],
+  );
+
+  const syncMarkers = useCallback(() => {
+    postToMap({ type: "clearMarkers" });
+    if (searchMarker) {
+      postToMap({
+        type: "addMarker",
+        lat: searchMarker.lat,
+        lng: searchMarker.lng,
+        name: "Arama",
+      });
+    }
+    draftPOIs.forEach((poi, index) => {
+      postToMap({
+        type: "addMarker",
+        lat: poi.coordinate.latitude,
+        lng: poi.coordinate.longitude,
+        name: `${index + 1}. ${poi.name}`,
+        id: poi.id,
+      });
+    });
+  }, [postToMap, searchMarker, draftPOIs]);
 
   useEffect(() => {
-    if (!isActive || !routeData) return;
+    if (!mapReady) return;
+    if (!forcedCenter) return;
+    flyTo(forcedCenter.lat, forcedCenter.lng);
+  }, [forcedCenter?.lat, forcedCenter?.lng, flyTo, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    syncMarkers();
+  }, [syncMarkers, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !isActive || !routeData) return;
     const step = routeData.legs[activeLegIndex]?.steps[activeStepIndex];
     const idx = step?.way_points?.[0];
     const point = idx != null ? routeData.geometry[idx] : null;
     if (!point) return;
-    flyTo(point[0], point[1], 0.008);
-  }, [activeLegIndex, activeStepIndex, routeData, isActive, flyTo]);
+    flyTo(point[0], point[1]);
+  }, [activeLegIndex, activeStepIndex, routeData, isActive, flyTo, mapReady]);
 
   useEffect(() => {
     setLayers((prev) => ({ ...prev, route: isActive }));
   }, [isActive]);
 
-  const onRegionChange = useCallback(
-    (next: typeof region) => {
-      setRegion(next);
-      onMapCenterChange?.(next.latitude, next.longitude);
-    },
-    [onMapCenterChange],
+  const mapHtml = useMemo(
+    () => buildMapHtml(MAP_INITIAL_LAT, MAP_INITIAL_LNG),
+    [],
   );
-
-  const shouldShowRoute = layers.route && isActive && routeCoords.length > 0;
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
+      <WebView
+        ref={webViewRef}
+        source={{ html: mapHtml }}
         style={styles.map}
-        provider={PROVIDER_DEFAULT}
-        region={region}
-        onRegionChangeComplete={onRegionChange}
-        showsUserLocation
-        showsMyLocationButton={false}
-        showsCompass={false}
-        toolbarEnabled={false}
-      >
-        <UrlTile
-          urlTemplate={OSM_TILE_URL}
-          maximumZ={19}
-          flipY={false}
-          tileSize={256}
-        />
-
-        {shouldShowRoute && (
-          <Polyline
-            coordinates={routeCoords}
-            strokeColor="#3B82F6"
-            strokeWidth={4}
-            lineDashPattern={[8, 4]}
-          />
-        )}
-
-        {searchMarker ? (
-          <Marker
-            coordinate={{ latitude: searchMarker.lat, longitude: searchMarker.lng }}
-            pinColor="#E11D48"
-          />
-        ) : null}
-
-        {draftPOIs.map((poi, index) => (
-          <Marker
-            key={`draft-${poi.id}`}
-            coordinate={{
-              latitude: poi.coordinate.latitude,
-              longitude: poi.coordinate.longitude,
-            }}
-            onPress={() => {
-              setSelectedPOI(poi);
-              setIsSheetOpen(true);
-            }}
-          >
-            <View style={styles.draftMarker}>
-              <Text style={styles.draftMarkerText}>{index + 1}</Text>
-            </View>
-          </Marker>
-        ))}
-      </MapView>
+        javaScriptEnabled
+        domStorageEnabled
+        originWhitelist={["*"]}
+        onLoadEnd={() => setMapReady(true)}
+        onMessage={(event: WebViewMessageEvent) => {
+          try {
+            const data = JSON.parse(event.nativeEvent.data) as {
+              type: string;
+              lat?: number;
+              lng?: number;
+              id?: string;
+            };
+            if (data.type === "markerClick" && data.id) {
+              const poi = draftPOIs.find((p) => p.id === data.id);
+              if (poi) {
+                setSelectedPOI(poi);
+                setIsSheetOpen(true);
+              }
+            }
+          } catch {
+            /* ignore */
+          }
+        }}
+      />
 
       {showLayerToggle ? (
         <View pointerEvents="box-none" style={styles.overlay}>
@@ -191,17 +218,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 60,
   },
-  draftMarker: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#0F1F3D",
-    borderWidth: 2,
-    borderColor: "#E0B84D",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  draftMarkerText: { color: "#fff", fontSize: 12, fontWeight: "800" },
 });
 
 export default PocketGuideMap;
