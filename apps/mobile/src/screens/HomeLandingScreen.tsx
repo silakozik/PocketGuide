@@ -14,7 +14,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/context/AuthContext";
-import { HOME_CITIES, LAST_CITY_STORAGE_KEY, TICKER_CITIES } from "@/src/constants/homeCities";
+import {
+  DEFAULT_EXPLORE_CITY,
+  HOME_CITIES,
+  LAST_CITY_STORAGE_KEY,
+  resolveExploreCitySlug,
+  TICKER_CITIES,
+} from "@/src/constants/homeCities";
 import { PLACE_CATEGORIES } from "@/src/constants/placeCategories";
 import { resolveCitySlug } from "@/src/lib/citySlug";
 import { geocodeCity } from "@/src/lib/geocode";
@@ -236,9 +242,10 @@ export function HomeLandingScreen({ embeddedInTabs = false }: HomeLandingScreenP
 
   const goPlaceCategory = async (slug: string) => {
     const stored = await AsyncStorage.getItem(LAST_CITY_STORAGE_KEY);
+    const city = resolveExploreCitySlug(stored ?? DEFAULT_EXPLORE_CITY);
     router.push({
-      pathname: "/search",
-      params: { q: slug, city: stored ?? "istanbul" },
+      pathname: "/explore/[placeCategory]",
+      params: { placeCategory: slug, city },
     } as never);
   };
 
