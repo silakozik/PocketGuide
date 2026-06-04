@@ -259,8 +259,8 @@ export async function fetchTravelRecommendationsFromGroq(
     } catch {
       throw new Error(
         apiBaseUrl
-          ? `Network error calling ${url}. Is the API running and EXPO_PUBLIC_API_BASE_URL correct? (Android emulator often uses http://10.0.2.2:3000)`
-          : "Network error: `/api` request failed. Start the Nest API (e.g. port 3000) and ensure the Vite dev proxy targets it.",
+          ? `Network error calling ${url}. Is the API running and EXPO_PUBLIC_API_BASE_URL correct? (Android emulator: http://10.0.2.2:3001; physical device: your PC LAN IP, e.g. http://192.168.1.42:3001)`
+          : "Network error: `/api` request failed. Start the Nest API (port 3001) and ensure the Vite dev proxy targets it.",
       );
     }
 

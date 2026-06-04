@@ -23,7 +23,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   
   const port = Number(process.env.PORT) || 3001;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`Application is running on: ${await app.getUrl()}`);
   console.log('=== ENV KONTROL ===');
   console.log('FOURSQUARE_API_KEY:', process.env.FOURSQUARE_API_KEY ? 'BAŞARIYLA OKUNDU' : 'UNDEFINED!');

@@ -5,6 +5,7 @@ import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { MAP_INITIAL_LAT, MAP_INITIAL_LNG } from "@/src/constants/osmMapStyle";
 import type { POI } from "@/src/types/poi";
 import { useRoute } from "@/src/context/RouteContext";
+import type { AIAssistantPin } from "@/src/components/AIAssistant";
 import { POIBottomSheet } from "@/src/components/map/POIBottomSheet";
 import { LayerToggle } from "@/src/components/map/LayerToggle";
 
@@ -65,6 +66,7 @@ type PocketGuideMapProps = {
   showLayerToggle?: boolean;
   forcedCenter?: { lat: number; lng: number };
   searchMarker?: { lat: number; lng: number };
+  aiRecommendationPins?: AIAssistantPin[];
   onMapCenterChange?: (lat: number, lng: number) => void;
 };
 
@@ -74,6 +76,7 @@ export function PocketGuideMap({
   showLayerToggle = false,
   forcedCenter,
   searchMarker,
+  aiRecommendationPins = [],
 }: PocketGuideMapProps) {
   const webViewRef = useRef<WebView>(null);
 
@@ -122,7 +125,16 @@ export function PocketGuideMap({
         id: poi.id,
       });
     });
-  }, [postToMap, searchMarker, draftPOIs]);
+    aiRecommendationPins.forEach((pin) => {
+      postToMap({
+        type: "addMarker",
+        lat: pin.lat,
+        lng: pin.lng,
+        name: `✨ ${pin.name}`,
+        id: `ai-${pin.id}`,
+      });
+    });
+  }, [postToMap, searchMarker, draftPOIs, aiRecommendationPins]);
 
   useEffect(() => {
     if (!mapReady) return;

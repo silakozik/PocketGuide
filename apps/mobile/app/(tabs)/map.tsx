@@ -17,7 +17,7 @@ import * as Location from "expo-location";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PocketGuideMap } from "@/src/components/map/PocketGuideMap";
-import { AIAssistant } from "@/src/components/AIAssistant";
+import { AIAssistant, type AIAssistantPin } from "@/src/components/AIAssistant";
 import { getSavedTrip, saveTrip, type SavedTripStop } from "@/src/lib/savedTripsApi";
 import { DirectionsPanel } from "@/src/components/navigation/DirectionsPanel";
 import { RouteControls } from "@/src/components/navigation/RouteControls";
@@ -85,6 +85,7 @@ function MapScreenContent() {
   const [savingTrip, setSavingTrip] = useState(false);
   const [saveTripMsg, setSaveTripMsg] = useState<string | null>(null);
   const [aiRouteLoading, setAiRouteLoading] = useState(false);
+  const [aiRecommendationPins, setAiRecommendationPins] = useState<AIAssistantPin[]>([]);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const aiRouteLoadRef = useRef(false);
@@ -351,6 +352,7 @@ function MapScreenContent() {
         showLayerToggle={false}
         forcedCenter={mapCenter}
         searchMarker={searchMarker}
+        aiRecommendationPins={aiRecommendationPins}
         onMapCenterChange={(lat, lng) => setMapCenter({ lat, lng })}
       />
 
@@ -544,7 +546,15 @@ function MapScreenContent() {
 
       <DirectionsPanel />
       <RouteControls />
-      <AIAssistant lat={mapCenter?.lat} lng={mapCenter?.lng} />
+      <AIAssistant
+        lat={mapCenter?.lat}
+        lng={mapCenter?.lng}
+        onPinsChange={setAiRecommendationPins}
+        onFlyTo={(flyLat, flyLng) => {
+          setMapCenter({ lat: flyLat, lng: flyLng });
+          setSearchMarker(undefined);
+        }}
+      />
       <StatusBar hidden />
     </View>
   );
