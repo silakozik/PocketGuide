@@ -60,6 +60,7 @@ function RootLayoutNav() {
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="landing" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={{ headerShown: false }} />
+          <Stack.Screen name="plan/saved/[tripId]" options={{ headerShown: false }} />
         <Stack.Screen name="[citySlug]/index" options={{ headerShown: false }} />
         <Stack.Screen name="[citySlug]/first-day" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />

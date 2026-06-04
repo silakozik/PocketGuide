@@ -23,6 +23,7 @@ import { useAuth } from "@/src/context/AuthContext";
 import { setAppLanguage } from "@/src/i18n";
 import { MOCK_POIS } from "@/src/data/mockPOIs";
 import { getMyProfile, updateAvatar } from "@/src/lib/profileApi";
+import { PhotoDetailModal, type PhotoDetailInitial } from "@/src/components/photos/PhotoDetailModal";
 import {
   deletePhoto,
   getMyPhotos,
@@ -85,6 +86,7 @@ export function ProfileScreen() {
   const [uploadLocation, setUploadLocation] = useState("");
   const [uploadIsPublic, setUploadIsPublic] = useState(true);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<PhotoDetailInitial | null>(null);
 
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [isEditingInterests, setIsEditingInterests] = useState(false);
@@ -263,10 +265,13 @@ export function ProfileScreen() {
   };
 
   const openTrip = (trip: SavedTrip) => {
-    const city = trip.cityName ?? trip.title;
+    if (isAiPlannerTrip(trip)) {
+      router.push(`/plan/saved/${trip.id}` as never);
+      return;
+    }
     router.push({
       pathname: "/(tabs)/map",
-      params: { q: city, savedTrip: trip.id },
+      params: { savedTrip: trip.id, q: trip.cityName ?? trip.title },
     } as never);
   };
 
@@ -391,8 +396,15 @@ export function ProfileScreen() {
                         <Text style={styles.tripAiTag}>✨ AI Rota</Text>
                       ) : null}
                       <View style={styles.tripActions}>
-                        <Pressable style={styles.tripBtn} onPress={() => openTrip(trip)}>
-                          <Text style={styles.tripBtnText}>Planı Görüntüle →</Text>
+                        <Pressable
+                          style={styles.tripBtn}
+                          onPress={() => openTrip(trip)}
+                        >
+                          <Text style={styles.tripBtnText}>
+                            {isAiPlannerTrip(trip)
+                              ? "Planı Görüntüle →"
+                              : "Haritada aç →"}
+                          </Text>
                         </Pressable>
                         <Pressable
                           style={styles.tripBtnOutline}
@@ -480,7 +492,23 @@ export function ProfileScreen() {
                 <View style={styles.photoGrid}>
                   {photos.map((photo) => (
                     <View key={photo.id} style={styles.photoCard}>
-                      <Image source={{ uri: photo.imageUrl }} style={styles.photoImg} />
+                      <Pressable
+                        onPress={() =>
+                          setSelectedPhoto({
+                            id: photo.id,
+                            imageUrl: photo.imageUrl,
+                            caption: photo.caption,
+                            cityName: photo.cityName,
+                            locationName: photo.locationName,
+                            createdAt: photo.createdAt,
+                            userId: photo.userId,
+                            userName: displayName,
+                            isPublic: photo.isPublic,
+                          })
+                        }
+                      >
+                        <Image source={{ uri: photo.imageUrl }} style={styles.photoImg} />
+                      </Pressable>
                       <Pressable
                         style={styles.photoDelete}
                         onPress={() => {
@@ -678,6 +706,14 @@ export function ProfileScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {selectedPhoto ? (
+        <PhotoDetailModal
+          photoId={selectedPhoto.id}
+          initialPhoto={selectedPhoto}
+          onClose={() => setSelectedPhoto(null)}
+        />
+      ) : null}
     </View>
   );
 }

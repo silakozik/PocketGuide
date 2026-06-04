@@ -28,6 +28,13 @@ export async function getMySavedTrips(): Promise<SavedTrip[]> {
   return json.data ?? [];
 }
 
+export async function getSavedTrip(id: string): Promise<SavedTrip> {
+  const res = await apiFetch(`/saved-trips/${id}`);
+  if (!res.ok) throw new Error(await parseApiError(res));
+  const json = (await res.json()) as { data: SavedTrip };
+  return json.data;
+}
+
 export async function deleteSavedTrip(id: string): Promise<void> {
   const res = await apiFetch(`/saved-trips/${id}`, { method: "DELETE" });
   if (!res.ok && res.status !== 204) {

@@ -109,3 +109,62 @@ async function geocodePlaceWithMapbox(
     return null;
   }
 }
+
+export interface GeocodeVenueOptions {
+  countrycodes?: string;
+}
+
+export async function searchPlaces(
+  query: string,
+  options?: { countrycodes?: string; limit?: number },
+): Promise<NominatimPlace[]> {
+  if (!query.trim() || query.length < 2) return [];
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("q", query.trim());
+  url.searchParams.set("format", "json");
+  url.searchParams.set("limit", String(options?.limit ?? 5));
+  url.searchParams.set("accept-language", "tr");
+  if (options?.countrycodes) {
+    url.searchParams.set("countrycodes", options.countrycodes);
+  }
+  try {
+    const res = await fetch(url.toString(), { headers: NOMINATIM_HEADERS });
+    return res.ok ? ((await res.json()) as NominatimPlace[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function geocodeVenue(
+  query: string,
+  options?: GeocodeVenueOptions,
+): Promise<GeocodeResult | null> {
+  const q = query.trim();
+  if (!q) return null;
+
+  const mapboxToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  if (mapboxToken) {
+    const fromMapbox = await geocodePlaceWithMapbox(q, mapboxToken);
+    if (fromMapbox) return fromMapbox;
+  }
+
+  const places = await searchPlaces(q, {
+    countrycodes: options?.countrycodes,
+    limit: 8,
+  });
+  if (!places.length) return null;
+
+  const sorted = [...places].sort((a, b) => {
+    const aCity = CITY_TYPES.has(a.type) ? 0 : 1;
+    const bCity = CITY_TYPES.has(b.type) ? 0 : 1;
+    if (bCity !== aCity) return bCity - aCity;
+    return (b.importance ?? 0) - (a.importance ?? 0);
+  });
+  const best = sorted[0];
+  return {
+    lat: parseFloat(best.lat),
+    lng: parseFloat(best.lon),
+    displayName: best.display_name.split(",")[0]?.trim() || query,
+    placeId: String(best.place_id),
+  };
+}

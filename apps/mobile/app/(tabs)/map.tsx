@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-
 import { useTranslation } from "react-i18next";
 
 import { AIAssistant } from "@/src/components/AIAssistant";
+import { getSavedTrip } from "@/src/lib/savedTripsApi";
 import { ProfileHeaderButton } from "@/src/components/navigation/ProfileHeaderButton";
 import { DirectionsPanel } from "@/src/components/navigation/DirectionsPanel";
 import { RouteControls } from "@/src/components/navigation/RouteControls";
@@ -59,7 +60,14 @@ const PocketGuideMapLazy = lazy<ComponentType<MapLazyProps>>(() =>
 
 export default function PocketGuideMapScreen() {
   const router = useRouter();
-  const { q } = useLocalSearchParams<{ q?: string }>();
+  const { q, savedTrip, loadAiRoute, lat, lng, name } = useLocalSearchParams<{
+    q?: string;
+    savedTrip?: string;
+    loadAiRoute?: string;
+    lat?: string;
+    lng?: string;
+    name?: string;
+  }>();
   const { t } = useTranslation();
   const [ready, setReady] = useState(false);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
@@ -92,6 +100,41 @@ export default function PocketGuideMapScreen() {
     const initial = typeof q === "string" ? q : Array.isArray(q) ? q[0] : "";
     if (initial) setSearchQuery(initial);
   }, [q]);
+
+  useEffect(() => {
+    const tripId =
+      typeof savedTrip === "string" ? savedTrip : Array.isArray(savedTrip) ? savedTrip[0] : "";
+    if (!tripId) return;
+    let cancelled = false;
+    void getSavedTrip(tripId)
+      .then((trip) => {
+        if (cancelled) return;
+        if (trip.cityName) setSearchQuery(trip.cityName);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [savedTrip]);
+
+  useEffect(() => {
+    const load =
+      typeof loadAiRoute === "string"
+        ? loadAiRoute
+        : Array.isArray(loadAiRoute)
+          ? loadAiRoute[0]
+          : "";
+    if (load !== "1") return;
+    const cityQ = typeof q === "string" ? q : Array.isArray(q) ? q[0] : "";
+    if (cityQ) setSearchQuery(cityQ);
+  }, [loadAiRoute, q]);
+
+  useEffect(() => {
+    const latStr = typeof lat === "string" ? lat : Array.isArray(lat) ? lat[0] : "";
+    const lngStr = typeof lng === "string" ? lng : Array.isArray(lng) ? lng[0] : "";
+    const label = typeof name === "string" ? name : Array.isArray(name) ? name[0] : "";
+    if (latStr && lngStr && label) setSearchQuery(label);
+  }, [lat, lng, name]);
 
   useEffect(() => {
     (async () => {
