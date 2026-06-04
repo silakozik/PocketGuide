@@ -107,7 +107,12 @@ export function SavedRoutePlanScreen() {
               ) : null}
               <Pressable
                 style={styles.btnSecondary}
-                onPress={() => router.push("/(tabs)/map" as never)}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(tabs)/map",
+                    params: { mapFrom: "saved-route", tripId: String(tripId) },
+                  } as never)
+                }
               >
                 <Text style={styles.btnSecondaryText}>🗺 Haritaya Git</Text>
               </Pressable>

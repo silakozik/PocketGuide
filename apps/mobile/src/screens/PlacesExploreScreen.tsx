@@ -121,6 +121,8 @@ export function PlacesExploreScreen({ placeCategory, initialCity, onBack }: Prop
         lat: String(place.lat),
         lng: String(place.lng),
         name: place.name,
+        mapFrom: "explore",
+        placeCategory,
       },
     } as never);
   };
@@ -128,7 +130,7 @@ export function PlacesExploreScreen({ placeCategory, initialCity, onBack }: Prop
   const openCityMap = () => {
     router.push({
       pathname: "/(tabs)/map",
-      params: { city: citySlug },
+      params: { city: citySlug, mapFrom: "explore", placeCategory },
     } as never);
   };
 

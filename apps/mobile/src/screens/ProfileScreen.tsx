@@ -271,7 +271,11 @@ export function ProfileScreen() {
     }
     router.push({
       pathname: "/(tabs)/map",
-      params: { savedTrip: trip.id, q: trip.cityName ?? trip.title },
+      params: {
+        savedTrip: trip.id,
+        q: trip.cityName ?? trip.title,
+        mapFrom: "profile",
+      },
     } as never);
   };
 

@@ -1,9 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   FlatList,
   Keyboard,
   Pressable,
@@ -33,6 +34,7 @@ import {
 } from "@/src/lib/aiRouteMap";
 import { getCityStaticData } from "@/src/data/cityStaticData";
 import { HOME_CITIES } from "@/src/constants/homeCities";
+import { navigateMapBack } from "@/src/lib/mapNavigation";
 import { theme } from "@/src/theme/tokens";
 import type { POI } from "@/src/types/poi";
 
@@ -103,15 +105,28 @@ function MapScreenContent() {
     error,
   } = useRoute();
 
-  const { q, savedTrip, loadAiRoute, lat, lng, name, city } = useLocalSearchParams<{
-    q?: string;
-    savedTrip?: string;
-    loadAiRoute?: string;
-    lat?: string;
-    lng?: string;
-    name?: string;
-    city?: string;
-  }>();
+  const { q, savedTrip, loadAiRoute, lat, lng, name, city, mapFrom, placeCategory, tripId } =
+    useLocalSearchParams<{
+      q?: string;
+      savedTrip?: string;
+      loadAiRoute?: string;
+      lat?: string;
+      lng?: string;
+      name?: string;
+      city?: string;
+      mapFrom?: string;
+      placeCategory?: string;
+      tripId?: string;
+    }>();
+
+  const handleMapBack = useCallback(() => {
+    navigateMapBack(router, {
+      mapFrom: paramStr(mapFrom),
+      city: paramStr(city),
+      placeCategory: paramStr(placeCategory),
+      tripId: paramStr(tripId),
+    });
+  }, [router, mapFrom, city, placeCategory, tripId]);
 
   const [ready, setReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -177,6 +192,14 @@ function MapScreenContent() {
       setSearchQuery(loc.label);
     }
   }, [lat, lng, name, city]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      handleMapBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleMapBack]);
 
   useEffect(() => {
     const tripId = paramStr(savedTrip);
@@ -393,7 +416,7 @@ function MapScreenContent() {
       />
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={handleMapBack} style={styles.backBtn}>
           <Text style={styles.backBtnText}>←</Text>
         </Pressable>
 
