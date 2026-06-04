@@ -5,8 +5,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
 import { Text } from "@/components/Themed";
+import {
+  getCityStaticData,
+  type StaticPOI,
+  type TransportCardInfo,
+} from "@/src/data/cityStaticData";
 import { apiBaseUrl } from "@/src/lib/authApi";
-import { presets } from "@/src/theme/presets";
 import { theme } from "@/src/theme/tokens";
 
 interface POI {
@@ -17,6 +21,7 @@ interface POI {
   lat: number;
   lng: number;
   openingHours?: string | null;
+  tip?: string;
 }
 
 interface CityEvent {
@@ -28,6 +33,18 @@ interface CityEvent {
   endDate: string;
 }
 
+interface StaticCardDisplay {
+  name: string;
+  where: string;
+  howToGet: string;
+  initialCost: string;
+}
+
+interface StaticExchangeDisplay {
+  title?: string;
+  tips?: string[];
+}
+
 const TABS = [
   { id: "sim", label: "SIM Kart", emoji: "📱", color: "#3b82f6", adaptCategory: "sim" },
   { id: "transport", label: "Ulaşım Kartı", emoji: "🚇", color: "#10b981", adaptCategory: "transport_card" },
@@ -36,9 +53,11 @@ const TABS = [
   { id: "events", label: "Bugünkü Etkinlikler", emoji: "🎭", color: "#e8c547", adaptCategory: null },
 ] as const;
 
+const ADAPT_CATEGORIES = ["sim", "transport_card", "exchange"] as const;
+
 type Props = {
   citySlug: string;
-  /** Stack’ten açıldığında geri düğmesi */
+  /** Stack'ten açıldığında geri düğmesi */
   onBack?: () => void;
 };
 
@@ -53,6 +72,53 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * c;
 }
 
+function staticPoiToPOI(p: StaticPOI): POI {
+  return {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    address: p.address,
+    lat: p.lat,
+    lng: p.lng,
+    openingHours: p.openingHours ?? null,
+    tip: p.tip,
+  };
+}
+
+function apiPoiToPOI(p: any): POI {
+  return {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    address: p.address ?? null,
+    lat: p.lat,
+    lng: p.lng,
+    openingHours: p.openingHours ?? null,
+  };
+}
+
+function transportCardToDisplay(tc: TransportCardInfo): StaticCardDisplay {
+  return {
+    name: tc.name,
+    where: tc.whereToBuy,
+    howToGet: tc.howToLoad,
+    initialCost: tc.cost,
+  };
+}
+
+function mergeApiAndStatic(apiPois: POI[], staticPois: StaticPOI[]): POI[] {
+  const merged: POI[] = [];
+  for (const cat of ADAPT_CATEGORIES) {
+    const apiForCat = apiPois.filter((p) => p.category === cat);
+    if (apiForCat.length > 0) {
+      merged.push(...apiForCat);
+    } else {
+      merged.push(...staticPois.filter((p) => p.category === cat).map(staticPoiToPOI));
+    }
+  }
+  return merged;
+}
+
 export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -63,6 +129,8 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
   const [cityEvents, setCityEvents] = useState<CityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [staticCard, setStaticCard] = useState<StaticCardDisplay | null>(null);
+  const [staticExchange, setStaticExchange] = useState<StaticExchangeDisplay | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -80,6 +148,11 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
+    setStaticCard(null);
+    setStaticExchange(null);
+
+    const sd = getCityStaticData(citySlug);
+
     Promise.all([
       fetch(`${apiBaseUrl()}/api/adaptation/${citySlug}`).then((r) => r.json()),
       fetch(`${apiBaseUrl()}/api/pois/city/${citySlug}?category=culture`).then((r) => r.json()),
@@ -90,18 +163,121 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
     ])
       .then(([adapt, culture, food, evts]) => {
         if (!mounted) return;
-        setPois((adapt?.data ?? []) as POI[]);
-        const cultureList = (culture?.data ?? []).slice(0, 3).map((p: any) => ({ ...p, category: "culture" }));
-        const foodList = (food?.data ?? []).slice(0, 2).map((p: any) => ({ ...p, category: "food" }));
-        setRoutePois([...(cultureList as POI[]), ...(foodList as POI[])]);
+
+        const apiPois = ((adapt?.data ?? []) as any[]).map(apiPoiToPOI);
+        const staticPois = sd?.pois ?? [];
+
+        let mergedPois: POI[];
+        if (apiPois.length > 0) {
+          mergedPois = mergeApiAndStatic(apiPois, staticPois);
+        } else if (sd) {
+          mergedPois = staticPois.map(staticPoiToPOI);
+        } else {
+          mergedPois = [];
+        }
+        setPois(mergedPois);
+
+        const cultureList = (culture?.data ?? []).slice(0, 3).map((p: any) => ({ ...apiPoiToPOI(p), category: "culture" }));
+        const foodList = (food?.data ?? []).slice(0, 2).map((p: any) => ({ ...apiPoiToPOI(p), category: "food" }));
+        const apiRoute = [...cultureList, ...foodList] as POI[];
+
+        if (apiRoute.length === 0 && sd?.route) {
+          setRoutePois(
+            sd.route.map((stop) => ({
+              id: `static-route-${stop.order}`,
+              name: stop.name,
+              category: stop.category,
+              address: stop.address,
+              lat: stop.lat,
+              lng: stop.lng,
+              openingHours: stop.tip,
+            })),
+          );
+        } else {
+          setRoutePois(apiRoute);
+        }
+
         const days = (evts?.days ?? []) as { data?: CityEvent[] }[];
-        setCityEvents(days.flatMap((d) => d.data ?? []) as CityEvent[]);
+        const apiEvents = days.flatMap((d) => d.data ?? []) as CityEvent[];
+
+        if (apiEvents.length === 0 && sd?.events) {
+          setCityEvents(
+            sd.events.map((ev) => ({
+              id: ev.id,
+              name: ev.name,
+              description: ev.tip ?? null,
+              location: ev.location ?? null,
+              startDate: ev.time ?? "",
+              endDate: "",
+            })),
+          );
+        } else {
+          setCityEvents(apiEvents);
+        }
+
+        if (sd?.transportCard) {
+          setStaticCard(transportCardToDisplay(sd.transportCard));
+        }
+
+        const hasExchangePoi = mergedPois.some((p) => p.category === "exchange");
+        if (!hasExchangePoi && sd) {
+          const exchangePois = sd.pois.filter((p) => p.category === "exchange");
+          if (exchangePois.length > 0) {
+            setStaticExchange({
+              title: "Döviz Bozdurma",
+              tips: exchangePois.map((p) => {
+                const parts = [p.name, p.address];
+                if (p.tip) parts.push(p.tip);
+                return parts.join(" — ");
+              }),
+            });
+          }
+        }
       })
       .catch(() => {
         if (!mounted) return;
-        setPois([]);
-        setRoutePois([]);
-        setCityEvents([]);
+        if (sd) {
+          setPois(sd.pois.map(staticPoiToPOI));
+          setRoutePois(
+            sd.route.map((stop) => ({
+              id: `static-route-${stop.order}`,
+              name: stop.name,
+              category: stop.category,
+              address: stop.address,
+              lat: stop.lat,
+              lng: stop.lng,
+              openingHours: stop.tip,
+            })),
+          );
+          setCityEvents(
+            sd.events.map((ev) => ({
+              id: ev.id,
+              name: ev.name,
+              description: ev.tip ?? null,
+              location: ev.location ?? null,
+              startDate: ev.time ?? "",
+              endDate: "",
+            })),
+          );
+          if (sd.transportCard) {
+            setStaticCard(transportCardToDisplay(sd.transportCard));
+          }
+          const exchangePois = sd.pois.filter((p) => p.category === "exchange");
+          if (exchangePois.length > 0) {
+            setStaticExchange({
+              title: "Döviz Bozdurma",
+              tips: exchangePois.map((p) => {
+                const parts = [p.name, p.address];
+                if (p.tip) parts.push(p.tip);
+                return parts.join(" — ");
+              }),
+            });
+          }
+        } else {
+          setPois([]);
+          setRoutePois([]);
+          setCityEvents([]);
+        }
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -200,6 +376,9 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
                     </Text>
                   </View>
                   <Text style={styles.poiMeta}>📍 {p.address ?? "Adres bilgisi yok"}</Text>
+                  {(p as POI & { tip?: string }).tip ? (
+                    <Text style={styles.poiMeta}>💡 {(p as POI & { tip?: string }).tip}</Text>
+                  ) : null}
                   <View style={styles.poiMetaRow}>
                     {p.distance !== null && p.distance !== undefined ? (
                       <Text style={styles.poiMeta}>
@@ -216,7 +395,41 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
                   </Pressable>
                 </View>
               ))}
-              {filtered.length === 0 ? <Text style={styles.emptyText}>Sonuç bulunamadı.</Text> : null}
+
+              {filtered.length === 0 && activeTab === "transport" && staticCard ? (
+                <View style={styles.staticCardBox}>
+                  <Text style={styles.staticCardName}>{staticCard.name}</Text>
+                  <Text style={styles.staticCardDesc}>{staticCard.where}</Text>
+                  <View style={styles.staticCardRow}>
+                    <Text style={styles.staticCardLabel}>Nasıl alınır:</Text>
+                    <Text style={styles.staticCardValue}>{staticCard.howToGet}</Text>
+                  </View>
+                  <View style={styles.staticCardRow}>
+                    <Text style={styles.staticCardLabel}>İlk maliyet:</Text>
+                    <Text style={styles.staticCardCost}>{staticCard.initialCost}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {filtered.length === 0 && activeTab === "exchange" && staticExchange ? (
+                <View style={styles.staticCardBox}>
+                  <Text style={styles.staticCardName}>{staticExchange.title ?? "Döviz Bozdurma"}</Text>
+                  {staticExchange.tips?.map((tip, i) => (
+                    <View key={i} style={styles.staticTipRow}>
+                      <Text style={styles.staticTipDot}>•</Text>
+                      <Text style={styles.staticTipText}>{tip}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {filtered.length === 0 &&
+              !(activeTab === "transport" && staticCard) &&
+              !(activeTab === "exchange" && staticExchange) ? (
+                <Text style={styles.emptyText}>
+                  {loading ? "Yükleniyor..." : "Sonuç bulunamadı."}
+                </Text>
+              ) : null}
             </View>
           </>
         ) : null}
@@ -228,7 +441,7 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
               Şehri tanımak için hazırlanmış temel rota — kültür noktaları ve yemek durakları.
             </Text>
             {routePois.length === 0 ? (
-              <Text style={styles.emptyText}>Rota verisi yükleniyor...</Text>
+              <Text style={styles.emptyText}>{loading ? "Rota verisi yükleniyor..." : "Rota bulunamadı."}</Text>
             ) : (
               routePois.map((p, i) => (
                 <View key={p.id} style={styles.poiCard}>
@@ -236,6 +449,7 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
                     {i + 1}. {p.name}
                   </Text>
                   {p.address ? <Text style={styles.poiMeta}>📍 {p.address}</Text> : null}
+                  {p.openingHours ? <Text style={styles.poiMeta}>💡 {p.openingHours}</Text> : null}
                   <Text style={styles.poiMeta}>{p.category === "food" ? "🍽️ Yemek" : "🏛️ Kültür"}</Text>
                 </View>
               ))
@@ -252,14 +466,15 @@ export function FirstDayGuideScreen({ citySlug, onBack }: Props) {
               <Text style={styles.emptyText}>Bugün için kayıtlı etkinlik bulunamadı.</Text>
             ) : (
               cityEvents.map((ev) => {
-                const start = new Date(ev.startDate);
+                const start = ev.startDate ? new Date(ev.startDate) : null;
+                const timeLabel = start && !isNaN(start.getTime())
+                  ? start.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
+                  : ev.startDate;
                 return (
                   <View key={ev.id} style={styles.poiCard}>
                     <Text style={styles.poiTitle}>{ev.name}</Text>
                     {ev.location ? <Text style={styles.poiMeta}>📍 {ev.location}</Text> : null}
-                    <Text style={styles.poiMeta}>
-                      🕐 {start.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
-                    </Text>
+                    {timeLabel ? <Text style={styles.poiMeta}>🕐 {timeLabel}</Text> : null}
                     {ev.description ? <Text style={styles.poiMeta}>{ev.description}</Text> : null}
                   </View>
                 );
@@ -345,10 +560,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     paddingVertical: theme.spacing.xs,
     alignItems: "center",
-  },
-  tabBtnActive: {
-    backgroundColor: theme.colors.textPrimary,
-    borderColor: theme.colors.textPrimary,
   },
   tabText: {
     fontSize: theme.typography.caption.fontSize,
@@ -442,5 +653,60 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontWeight: "600",
     paddingVertical: 14,
+  },
+  staticCardBox: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 10,
+    margin: 16,
+  },
+  staticCardName: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
+    fontFamily: theme.typography.fontFamilySerif,
+  },
+  staticCardDesc: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  staticCardRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "flex-start",
+  },
+  staticCardLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.textSecondary,
+    width: 90,
+  },
+  staticCardValue: {
+    flex: 1,
+    fontSize: 12,
+    color: theme.colors.textPrimary,
+  },
+  staticCardCost: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#e8c547",
+  },
+  staticTipRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  staticTipDot: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
+  staticTipText: {
+    flex: 1,
+    fontSize: 13,
+    color: theme.colors.textPrimary,
+    lineHeight: 18,
   },
 });

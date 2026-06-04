@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, type ReactNode } from "react";
+import { Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 
 import { Text } from "@/components/Themed";
 import { theme } from "@/src/theme/tokens";
@@ -19,6 +19,7 @@ interface CityMeta {
   region: string;
   emoji: string;
   bgColor: string;
+  gradientColors: readonly [string, string];
   tags: string[];
   highlights: Highlight[];
 }
@@ -41,6 +42,7 @@ const CITY_META: Record<string, CityMeta> = {
     region: "Avrupa",
     emoji: "🗼",
     bgColor: "#667eea",
+    gradientColors: ["#667eea", "#764ba2"] as const,
     tags: ["Metro Haritası", "120+ POI", "AI Rehber"],
     highlights: [
       { icon: "🗼", name: "Eyfel Kulesi", type: "Anıt", badge: "Ücretli", badgeColor: "#fef3c7" },
@@ -54,6 +56,7 @@ const CITY_META: Record<string, CityMeta> = {
     region: "Asya",
     emoji: "🏯",
     bgColor: "#e74c3c",
+    gradientColors: ["#f5576c", "#c0392b"] as const,
     tags: ["JR Pass", "200+ POI", "AI Rehber"],
     highlights: [
       { icon: "⛩️", name: "Senso-ji", type: "Tapınak", badge: "Ücretsiz", badgeColor: "#dcfce7" },
@@ -67,6 +70,7 @@ const CITY_META: Record<string, CityMeta> = {
     region: "Kuzey Amerika",
     emoji: "🗽",
     bgColor: "#2193b0",
+    gradientColors: ["#2193b0", "#6dd5ed"] as const,
     tags: ["Metro Haritası", "150+ POI", "AI Rehber"],
     highlights: [
       { icon: "🗽", name: "Özgürlük Heykeli", type: "Anıt", badge: "Ücretli", badgeColor: "#fef3c7" },
@@ -80,6 +84,7 @@ const CITY_META: Record<string, CityMeta> = {
     region: "Avrupa",
     emoji: "🎡",
     bgColor: "#536976",
+    gradientColors: ["#536976", "#292e49"] as const,
     tags: ["Tube Haritası", "130+ POI", "AI Rehber"],
     highlights: [
       { icon: "🕰️", name: "Big Ben", type: "Anıt", badge: "Ücretsiz", badgeColor: "#dcfce7" },
@@ -93,6 +98,7 @@ const CITY_META: Record<string, CityMeta> = {
     region: "Avrupa",
     emoji: "🏛️",
     bgColor: "#c79081",
+    gradientColors: ["#c79081", "#dfa579"] as const,
     tags: ["Metro A/B/C", "110+ POI", "AI Rehber"],
     highlights: [
       { icon: "🏟️", name: "Colosseum", type: "Tarih", badge: "Ücretli", badgeColor: "#fef3c7" },
@@ -106,6 +112,7 @@ const CITY_META: Record<string, CityMeta> = {
     region: "Avrupa",
     emoji: "🌊",
     bgColor: "#f7971e",
+    gradientColors: ["#f7971e", "#ffd200"] as const,
     tags: ["Metro L1–L5", "100+ POI", "AI Rehber"],
     highlights: [
       { icon: "⛪", name: "Sagrada Familia", type: "Mimari", badge: "Ücretli", badgeColor: "#fef3c7" },
@@ -119,6 +126,7 @@ const CITY_META: Record<string, CityMeta> = {
     region: "Orta Doğu",
     emoji: "🏙️",
     bgColor: "#d4a574",
+    gradientColors: ["#d4a574", "#a0705a"] as const,
     tags: ["Metro Red", "90+ POI", "AI Rehber"],
     highlights: [
       { icon: "🏗️", name: "Burj Khalifa", type: "Manzara", badge: "Ücretli", badgeColor: "#fef3c7" },
@@ -132,6 +140,7 @@ const CITY_META: Record<string, CityMeta> = {
     region: "Avrupa",
     emoji: "🚲",
     bgColor: "#f46b45",
+    gradientColors: ["#f46b45", "#eea849"] as const,
     tags: ["Tram & Metro", "95+ POI", "AI Rehber"],
     highlights: [
       { icon: "🎨", name: "Rijksmuseum", type: "Müze", badge: "Ücretli", badgeColor: "#fef3c7" },
@@ -145,6 +154,7 @@ const CITY_META: Record<string, CityMeta> = {
     region: "Okyanusya",
     emoji: "🦘",
     bgColor: "#11998e",
+    gradientColors: ["#11998e", "#38ef7d"] as const,
     tags: ["Opal Card", "85+ POI", "AI Rehber"],
     highlights: [
       { icon: "🎭", name: "Opera House", type: "Mimari", badge: "Ücretli", badgeColor: "#fef3c7" },
@@ -158,6 +168,7 @@ const CITY_META: Record<string, CityMeta> = {
     region: "Avrupa & Asya",
     emoji: "🕌",
     bgColor: "#4facfe",
+    gradientColors: ["#4facfe", "#00f2fe"] as const,
     tags: ["Metro & Tram", "140+ POI", "AI Rehber"],
     highlights: [
       { icon: "🕌", name: "Ayasofya", type: "Tarih", badge: "Ücretli", badgeColor: "#fef3c7" },
@@ -166,6 +177,44 @@ const CITY_META: Record<string, CityMeta> = {
     ],
   },
 };
+
+function HeroGradient({
+  colors,
+  style,
+  children,
+}: {
+  colors: readonly [string, string];
+  style: ViewStyle;
+  children: ReactNode;
+}) {
+  return (
+    <View style={[style, { backgroundColor: colors[1], overflow: "hidden" }]}>
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: "35%",
+          backgroundColor: colors[0],
+          opacity: 0.92,
+        }}
+      />
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          width: "55%",
+          height: "100%",
+          backgroundColor: colors[0],
+          opacity: 0.35,
+        }}
+      />
+      {children}
+    </View>
+  );
+}
 
 const FEATURES: Feature[] = [
   {
@@ -242,7 +291,7 @@ export default function CityHubScreen() {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <View style={[styles.hero, { backgroundColor: meta.bgColor }]}>
+      <HeroGradient colors={meta.gradientColors} style={styles.hero}>
         <Pressable
           onPress={() => router.back()}
           style={({ pressed }) => [styles.heroBack, pressed ? { opacity: 0.85 } : null]}
@@ -263,7 +312,7 @@ export default function CityHubScreen() {
             </View>
           ))}
         </View>
-      </View>
+      </HeroGradient>
 
       <View style={styles.content}>
         <Text style={styles.sectionLabel}>Ne yapmak istersin?</Text>
