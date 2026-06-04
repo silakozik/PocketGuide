@@ -31,6 +31,8 @@ import {
   loadAiRouteMapDraft,
   loadAiRouteMapPois,
 } from "@/src/lib/aiRouteMap";
+import { getCityStaticData } from "@/src/data/cityStaticData";
+import { HOME_CITIES } from "@/src/constants/homeCities";
 import { theme } from "@/src/theme/tokens";
 import type { POI } from "@/src/types/poi";
 
@@ -50,6 +52,42 @@ function paramStr(v: string | string[] | undefined): string {
   return typeof v === "string" ? v : Array.isArray(v) ? v[0] : "";
 }
 
+/** Web MapPage readMapLocationFromParams ile aynı mantık */
+function readMapLocationFromParams(params: {
+  lat?: string;
+  lng?: string;
+  name?: string;
+  city?: string;
+}): { center?: { lat: number; lng: number }; label?: string } {
+  const latS = paramStr(params.lat);
+  const lngS = paramStr(params.lng);
+  if (latS && lngS) {
+    const la = parseFloat(latS);
+    const ln = parseFloat(lngS);
+    if (!Number.isNaN(la) && !Number.isNaN(ln)) {
+      return {
+        center: { lat: la, lng: ln },
+        label: paramStr(params.name) || undefined,
+      };
+    }
+  }
+
+  const citySlug = paramStr(params.city);
+  if (citySlug) {
+    const data = getCityStaticData(citySlug);
+    if (data) {
+      const [lat, lng] = data.center;
+      return { center: { lat, lng }, label: data.nameTr };
+    }
+    const home = HOME_CITIES.find((c) => c.slug === citySlug);
+    if (home) {
+      return { center: undefined, label: home.name };
+    }
+  }
+
+  return {};
+}
+
 function MapScreenContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -65,13 +103,14 @@ function MapScreenContent() {
     error,
   } = useRoute();
 
-  const { q, savedTrip, loadAiRoute, lat, lng, name } = useLocalSearchParams<{
+  const { q, savedTrip, loadAiRoute, lat, lng, name, city } = useLocalSearchParams<{
     q?: string;
     savedTrip?: string;
     loadAiRoute?: string;
     lat?: string;
     lng?: string;
     name?: string;
+    city?: string;
   }>();
 
   const [ready, setReady] = useState(false);
@@ -129,18 +168,15 @@ function MapScreenContent() {
   }, [q]);
 
   useEffect(() => {
-    const latS = paramStr(lat);
-    const lngS = paramStr(lng);
-    const label = paramStr(name);
-    if (latS && lngS) {
-      const la = parseFloat(latS);
-      const ln = parseFloat(lngS);
-      if (!Number.isNaN(la) && !Number.isNaN(ln)) {
-        setMapCenter({ lat: la, lng: ln });
-        if (label) setSearchQuery(label);
-      }
+    const loc = readMapLocationFromParams({ lat, lng, name, city });
+    if (loc.center) {
+      setMapCenter(loc.center);
+      setSearchMarker(undefined);
     }
-  }, [lat, lng, name]);
+    if (loc.label) {
+      setSearchQuery(loc.label);
+    }
+  }, [lat, lng, name, city]);
 
   useEffect(() => {
     const tripId = paramStr(savedTrip);

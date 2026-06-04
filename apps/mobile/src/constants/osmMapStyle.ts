@@ -25,6 +25,6 @@ export const OSM_MAP_STYLE = {
   ],
 };
 
-export const MAP_INITIAL_LAT = 38.6748;
-export const MAP_INITIAL_LNG = 39.2225;
+export const MAP_INITIAL_LAT = 41.0082;
+export const MAP_INITIAL_LNG = 28.9784;
 export const MAP_INITIAL_ZOOM = 13;

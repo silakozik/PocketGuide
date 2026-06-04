@@ -280,7 +280,7 @@ export default function CityHubScreen() {
         break;
       case "map":
       case "assistant":
-        router.push("/map");
+        router.push({ pathname: "/(tabs)/map", params: { city: citySlug } } as never);
         break;
     }
   };

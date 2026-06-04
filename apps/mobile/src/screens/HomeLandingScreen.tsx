@@ -197,7 +197,7 @@ export function HomeLandingScreen({ embeddedInTabs = false }: HomeLandingScreenP
   const goMapWithCity = useCallback(
     async (slug: string) => {
       await AsyncStorage.setItem(LAST_CITY_STORAGE_KEY, slug);
-      router.push({ pathname: "/map", params: { city: slug } } as never);
+      router.push({ pathname: "/(tabs)/map", params: { city: slug } } as never);
     },
     [router],
   );
@@ -222,7 +222,7 @@ export function HomeLandingScreen({ embeddedInTabs = false }: HomeLandingScreenP
         return;
       }
       router.push({
-        pathname: "/map",
+        pathname: "/(tabs)/map",
         params: {
           lat: String(place.lat),
           lng: String(place.lng),
