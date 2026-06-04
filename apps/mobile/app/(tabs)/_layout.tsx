@@ -103,11 +103,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="first-day"
         options={{
-          title: t("mobile.firstDayGuide"),
-          tabBarLabel: t("nav.firstDayTab"),
+          title: "Rota",
+          tabBarLabel: "Rota",
           tabBarIcon: ({ color }) => (
             <SymbolView
-              name={{ ios: "sparkles", android: "star", web: "auto_awesome" }}
+              name={{ ios: "star.fill", android: "star", web: "star" }}
               tintColor={color}
               size={26}
             />
