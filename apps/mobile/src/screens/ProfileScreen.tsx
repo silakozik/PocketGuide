@@ -293,8 +293,12 @@ export function ProfileScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       >
         {/* Kapak */}
-        <View style={[styles.cover, { paddingTop: insets.top + 8 }]}>
-          <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
+        <View style={[styles.cover, { paddingTop: insets.top + 4 }]}>
+          <Pressable
+            style={[styles.backBtn, { top: insets.top + 6 }]}
+            onPress={() => router.back()}
+            hitSlop={12}
+          >
             <Text style={styles.backBtnText}>←</Text>
           </Pressable>
           <View style={styles.coverInner}>
@@ -682,25 +686,31 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.colors.background },
   cover: {
     backgroundColor: theme.colors.textPrimary,
-    paddingBottom: theme.spacing.lg,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingBottom: theme.spacing.sm,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   backBtn: {
-    marginLeft: theme.spacing.md,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    position: "absolute",
+    left: theme.spacing.md,
+    zIndex: 2,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
-  backBtnText: { color: "#fff", fontSize: 22, fontWeight: "600" },
-  coverInner: { alignItems: "center", paddingHorizontal: theme.spacing.md, marginTop: 8 },
+  backBtnText: { color: "#fff", fontSize: 18, fontWeight: "600" },
+  coverInner: {
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: 28,
+  },
   avatarWrap: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
@@ -709,7 +719,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.35)",
   },
   avatarImg: { width: "100%", height: "100%" },
-  avatarLetter: { fontSize: 36, fontWeight: "800", color: theme.colors.textPrimary },
+  avatarLetter: { fontSize: 28, fontWeight: "800", color: theme.colors.textPrimary },
   avatarOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
@@ -717,24 +727,24 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   avatarHover: { opacity: 0.85 },
-  avatarCam: { fontSize: 22 },
+  avatarCam: { fontSize: 18 },
   avatarErr: { color: "#ffb4b4", fontSize: 12, marginTop: 6 },
   displayName: {
     fontFamily: theme.typography.fontFamilySerif,
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: "700",
     color: "#fff",
-    marginTop: theme.spacing.md,
+    marginTop: theme.spacing.sm,
   },
-  email: { color: "rgba(255,255,255,0.75)", fontSize: 14, marginTop: 4 },
+  email: { color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 2 },
   ctaBtn: {
-    marginTop: theme.spacing.md,
+    marginTop: theme.spacing.sm,
     backgroundColor: theme.colors.accent,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
     borderRadius: theme.radius.pill,
   },
-  ctaBtnText: { fontWeight: "800", color: theme.colors.textPrimary, fontSize: 14 },
+  ctaBtnText: { fontWeight: "800", color: theme.colors.textPrimary, fontSize: 13 },
   tabRow: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
