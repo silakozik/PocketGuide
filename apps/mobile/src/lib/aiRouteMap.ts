@@ -126,6 +126,59 @@ export async function saveAiRouteMapPois(pois: POI[]): Promise<void> {
   await AsyncStorage.setItem(AI_ROUTE_MAP_POIS_KEY, JSON.stringify(pois));
 }
 
+export async function loadAiRouteMapDraft(): Promise<AiRouteMapDraft | null> {
+  try {
+    const raw = await AsyncStorage.getItem(AI_ROUTE_MAP_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as AiRouteMapDraft) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearAiRouteMapDraft(): Promise<void> {
+  await AsyncStorage.removeItem(AI_ROUTE_MAP_STORAGE_KEY);
+}
+
+export async function loadAiRouteMapPois(): Promise<POI[] | null> {
+  try {
+    const raw = await AsyncStorage.getItem(AI_ROUTE_MAP_POIS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as POI[];
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearAiRouteMapPois(): Promise<void> {
+  await AsyncStorage.removeItem(AI_ROUTE_MAP_POIS_KEY);
+}
+
+export async function geocodeDraftStopsToPois(
+  stops: AiRouteMapDraft["stops"],
+  city: string,
+  dayNumber: number,
+  cityNameEn?: string,
+): Promise<POI[]> {
+  const fakeDay: RouteDay = {
+    day: dayNumber,
+    title: "",
+    theme: "",
+    stops: stops.map((s, i) => ({
+      order: i + 1,
+      time: "",
+      name: s.name,
+      type: "",
+      description: "",
+      duration: "",
+      tip: "",
+      category: "other",
+      address: s.address,
+    })),
+  };
+  return geocodeDayStopsToPois(fakeDay, city, cityNameEn);
+}
+
 export async function openStopOnMap(
   router: Router,
   stop: RouteDayStop,

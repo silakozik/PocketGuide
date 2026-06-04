@@ -35,6 +35,25 @@ export async function getSavedTrip(id: string): Promise<SavedTrip> {
   return json.data;
 }
 
+export async function saveTrip(payload: {
+  title?: string;
+  cityName?: string;
+  stops: SavedTripStop[];
+  routeData?: unknown;
+  durationMinutes?: number;
+  distanceKm?: number;
+}): Promise<SavedTrip> {
+  const res = await apiFetch("/saved-trips", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 401) throw new Error("LOGIN_REQUIRED");
+  if (!res.ok) throw new Error(await parseApiError(res));
+  const json = (await res.json()) as { data: SavedTrip };
+  return json.data;
+}
+
 export async function deleteSavedTrip(id: string): Promise<void> {
   const res = await apiFetch(`/saved-trips/${id}`, { method: "DELETE" });
   if (!res.ok && res.status !== 204) {

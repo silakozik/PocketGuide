@@ -12,6 +12,7 @@ interface RouteContextProps extends RouteState {
   setActiveStep: (legIndex: number, stepIndex: number) => void;
   addToRouteDraft: (poi: POI) => void;
   removeFromRouteDraft: (poiId: string) => void;
+  setRouteDraft: (pois: POI[]) => void;
 }
 
 const RouteContext = createContext<RouteContextProps | undefined>(undefined);
@@ -76,6 +77,18 @@ export function RouteProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const setRouteDraft = (pois: POI[]) => {
+    setState((prev) => ({
+      ...prev,
+      draftPOIs: pois,
+      isActive: false,
+      routeData: null,
+      activeLegIndex: 0,
+      activeStepIndex: 0,
+      error: null,
+    }));
+  };
+
   const setActiveStep = (legIndex: number, stepIndex: number) => {
     setState((prev) => ({ ...prev, activeLegIndex: legIndex, activeStepIndex: stepIndex }));
   };
@@ -123,6 +136,7 @@ export function RouteProvider({ children }: { children: ReactNode }) {
         setActiveStep,
         addToRouteDraft,
         removeFromRouteDraft,
+        setRouteDraft,
       }}
     >
       {children}
