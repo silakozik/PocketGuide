@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
-import { Link, useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState, lazy, Suspense, type ComponentType } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -59,6 +59,7 @@ const PocketGuideMapLazy = lazy<ComponentType<MapLazyProps>>(() =>
 
 export default function PocketGuideMapScreen() {
   const router = useRouter();
+  const { q } = useLocalSearchParams<{ q?: string }>();
   const { t } = useTranslation();
   const [ready, setReady] = useState(false);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
@@ -86,6 +87,11 @@ export default function PocketGuideMapScreen() {
       mounted = false;
     };
   }, [router]);
+
+  useEffect(() => {
+    const initial = typeof q === "string" ? q : Array.isArray(q) ? q[0] : "";
+    if (initial) setSearchQuery(initial);
+  }, [q]);
 
   useEffect(() => {
     (async () => {

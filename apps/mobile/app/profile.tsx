@@ -1,9 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text as RNText,
   View as RNView,
@@ -14,8 +16,25 @@ import { useTranslation } from "react-i18next";
 import { Text, View } from "@/components/Themed";
 import { useAuth } from "@/src/context/AuthContext";
 import { setAppLanguage } from "@/src/i18n";
+import {
+  deleteSavedTrip,
+  getMySavedTrips,
+  type SavedTrip,
+} from "@/src/lib/savedTripsApi";
 import { presets } from "@/src/theme/presets";
 import { theme } from "@/src/theme/tokens";
+
+function formatTripDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -23,6 +42,9 @@ export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const { user, loading: authLoading, logout } = useAuth();
   const [ready, setReady] = useState(false);
+  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
+  const [tripsLoading, setTripsLoading] = useState(false);
+  const [tripsError, setTripsError] = useState<string | null>(null);
 
   const displayName = user?.userName ?? "Gezgin";
   const avatarLetter = displayName.charAt(0).toUpperCase();
@@ -31,6 +53,23 @@ export default function ProfileScreen() {
     navigation.setOptions({ title: t("nav.profile") });
   }, [navigation, t]);
 
+  const loadTrips = useCallback(async () => {
+    if (!user) return;
+    setTripsLoading(true);
+    setTripsError(null);
+    try {
+      const trips = await getMySavedTrips();
+      setSavedTrips(trips);
+    } catch (e) {
+      setSavedTrips([]);
+      setTripsError(
+        e instanceof Error ? e.message : "Seyahatler yüklenemedi",
+      );
+    } finally {
+      setTripsLoading(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -38,31 +77,63 @@ export default function ProfileScreen() {
       if (authLoading) return;
 
       if (!user) {
-        router.replace("/login" as any);
+        router.replace("/login" as never);
         return;
       }
 
       try {
         const hasOnboarded = await AsyncStorage.getItem("pg_has_onboarded");
         if (hasOnboarded !== "true") {
-          router.replace("/onboarding" as any);
+          router.replace("/onboarding" as never);
           return;
         }
       } catch {
         // allow
       }
 
-      if (mounted) setReady(true);
+      if (mounted) {
+        setReady(true);
+        await loadTrips();
+      }
     })();
 
     return () => {
       mounted = false;
     };
-  }, [router, user, authLoading]);
+  }, [router, user, authLoading, loadTrips]);
 
   const handleLogout = async () => {
     await logout();
-    router.replace("/login" as any);
+    router.replace("/login" as never);
+  };
+
+  const handleDeleteTrip = (id: string) => {
+    Alert.alert("Rotayı sil", "Bu kayıtlı rotayı silmek istediğine emin misin?", [
+      { text: "Vazgeç", style: "cancel" },
+      {
+        text: "Sil",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteSavedTrip(id);
+            setSavedTrips((prev) => prev.filter((x) => x.id !== id));
+          } catch (e) {
+            Alert.alert(
+              "Hata",
+              e instanceof Error ? e.message : "Silinemedi",
+            );
+          }
+        },
+      },
+    ]);
+  };
+
+  const openTripOnMap = (trip: SavedTrip) => {
+    const city = trip.cityName ?? trip.title;
+    router.push({
+      pathname: "/(tabs)/map",
+      params: { q: city },
+    } as never);
   };
 
   if (authLoading || !ready) {
@@ -74,7 +145,11 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <RNView style={styles.section}>
         <RNView style={styles.avatar}>
           <RNText style={styles.avatarText}>{avatarLetter}</RNText>
@@ -83,13 +158,92 @@ export default function ProfileScreen() {
         <RNText style={styles.sectionSub}>{user?.email}</RNText>
       </RNView>
 
-      <Pressable style={styles.primaryBtn} onPress={() => router.push("/transfer")}>
+      <RNView style={styles.tripsSection}>
+        <RNText style={styles.tripsHeading}>Kayıtlı rotalarım</RNText>
+        <RNText style={styles.tripsSub}>
+          Web’de kaydettiğin rotalar burada görünür — aynı hesap, aynı veri.
+        </RNText>
+
+        {tripsLoading ? (
+          <ActivityIndicator
+            style={styles.tripsLoader}
+            color={theme.colors.accent}
+          />
+        ) : tripsError ? (
+          <RNView style={styles.errorBox}>
+            <RNText style={styles.errorText}>{tripsError}</RNText>
+            <Pressable onPress={() => void loadTrips()}>
+              <RNText style={styles.retryText}>Tekrar dene</RNText>
+            </Pressable>
+          </RNView>
+        ) : savedTrips.length === 0 ? (
+          <RNView style={styles.emptyBox}>
+            <RNText style={styles.emptyText}>
+              Henüz kayıtlı rota yok. Web’de rota oluşturup kaydettiğinde burada
+              listelenir.
+            </RNText>
+            <Pressable
+              style={styles.emptyBtn}
+              onPress={() => router.push("/(tabs)/map" as never)}
+            >
+              <RNText style={styles.emptyBtnText}>Haritaya git</RNText>
+            </Pressable>
+          </RNView>
+        ) : (
+          savedTrips.map((trip) => (
+            <RNView key={trip.id} style={styles.tripCard}>
+              <RNText style={styles.tripCity}>
+                {trip.cityName || trip.title}
+              </RNText>
+              <RNText style={styles.tripMeta}>
+                📅 {formatTripDate(trip.createdAt)}
+              </RNText>
+              <RNText style={styles.tripMeta}>
+                {trip.stops.length} durak
+                {trip.durationMinutes != null
+                  ? ` · ${trip.durationMinutes} dk`
+                  : ""}
+                {trip.distanceKm != null
+                  ? ` · ${trip.distanceKm.toFixed(1)} km`
+                  : ""}
+              </RNText>
+              {trip.status ? (
+                <RNText style={styles.tripStatus}>
+                  {trip.status === "planned" ? "Planlandı" : trip.status}
+                </RNText>
+              ) : null}
+              <RNView style={styles.tripActions}>
+                <Pressable
+                  style={styles.tripBtn}
+                  onPress={() => openTripOnMap(trip)}
+                >
+                  <RNText style={styles.tripBtnText}>Haritada aç</RNText>
+                </Pressable>
+                <Pressable
+                  style={styles.tripBtnDanger}
+                  onPress={() => handleDeleteTrip(trip.id)}
+                >
+                  <RNText style={styles.tripBtnDangerText}>Sil</RNText>
+                </Pressable>
+              </RNView>
+            </RNView>
+          ))
+        )}
+      </RNView>
+
+      <Pressable
+        style={styles.primaryBtn}
+        onPress={() => router.push("/transfer" as never)}
+      >
         <Text style={styles.primaryBtnText}>{t("mobile.goTransfer")}</Text>
       </Pressable>
 
       <RNView style={styles.langRow}>
         <Pressable
-          style={[styles.langBtn, i18n.language === "tr" ? styles.langBtnActive : null]}
+          style={[
+            styles.langBtn,
+            i18n.language === "tr" ? styles.langBtnActive : null,
+          ]}
           onPress={() => setAppLanguage("tr")}
         >
           <RNText
@@ -102,7 +256,10 @@ export default function ProfileScreen() {
           </RNText>
         </Pressable>
         <Pressable
-          style={[styles.langBtn, i18n.language === "en" ? styles.langBtnActive : null]}
+          style={[
+            styles.langBtn,
+            i18n.language === "en" ? styles.langBtnActive : null,
+          ]}
           onPress={() => setAppLanguage("en")}
         >
           <RNText
@@ -119,7 +276,7 @@ export default function ProfileScreen() {
       <Pressable style={styles.logoutBtn} onPress={handleLogout}>
         <RNText style={styles.logoutText}>Çıkış yap</RNText>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -130,15 +287,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: theme.colors.background,
   },
-  container: {
+  scroll: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    alignItems: "center",
-    justifyContent: "center",
+  },
+  scrollContent: {
     padding: theme.spacing.md,
+    paddingBottom: theme.spacing.xl,
+    alignItems: "center",
   },
   section: {
-    marginTop: 16,
+    marginTop: 8,
     paddingHorizontal: 20,
     paddingVertical: 18,
     borderRadius: theme.radius.md,
@@ -146,7 +305,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
     ...theme.shadows.card,
-    width: "90%",
+    width: "100%",
     alignItems: "center",
   },
   avatar: {
@@ -180,10 +339,111 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "center",
   },
+  tripsSection: {
+    width: "100%",
+    marginTop: theme.spacing.lg,
+    gap: theme.spacing.sm,
+  },
+  tripsHeading: {
+    fontFamily: theme.typography.fontFamilySerif,
+    fontSize: 20,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+  },
+  tripsSub: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: theme.spacing.xs,
+  },
+  tripsLoader: {
+    marginVertical: theme.spacing.md,
+  },
+  errorBox: {
+    ...presets.card,
+    gap: theme.spacing.xs,
+  },
+  errorText: {
+    color: theme.colors.danger,
+    fontSize: 13,
+  },
+  retryText: {
+    color: theme.colors.accent,
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  emptyBox: {
+    ...presets.card,
+    gap: theme.spacing.sm,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  emptyBtn: {
+    alignSelf: "flex-start",
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: theme.radius.pill,
+  },
+  emptyBtnText: {
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+    fontSize: 13,
+  },
+  tripCard: {
+    ...presets.card,
+    gap: 4,
+    marginBottom: theme.spacing.xs,
+  },
+  tripCity: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
+  },
+  tripMeta: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  tripStatus: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.accent,
+  },
+  tripActions: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+  },
+  tripBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.textPrimary,
+  },
+  tripBtnText: {
+    color: theme.colors.surface,
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  tripBtnDanger: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: "rgba(180, 35, 24, 0.35)",
+  },
+  tripBtnDangerText: {
+    color: "#b42318",
+    fontWeight: "700",
+    fontSize: 13,
+  },
   primaryBtn: {
     ...presets.primaryButton,
-    marginTop: 18,
-    width: "90%",
+    marginTop: theme.spacing.lg,
+    width: "100%",
   },
   primaryBtnText: {
     ...presets.primaryButtonText,
