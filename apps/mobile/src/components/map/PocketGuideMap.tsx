@@ -1,163 +1,106 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+/** Web ile aynı OSM karoları — react-native-maps (MapLibre paketi gerekmez) */
 import MapView, { Marker, Polyline, UrlTile, PROVIDER_DEFAULT } from "react-native-maps";
-import * as Location from "expo-location";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-import { MOCK_POIS } from "@/src/data/mockPOIs";
+import {
+  MAP_INITIAL_LAT,
+  MAP_INITIAL_LNG,
+  OSM_TILE_URL,
+} from "@/src/constants/osmMapStyle";
 import type { POI } from "@/src/types/poi";
 import { useRoute } from "@/src/context/RouteContext";
 import { POIBottomSheet } from "@/src/components/map/POIBottomSheet";
 import { LayerToggle } from "@/src/components/map/LayerToggle";
-import type { POICategory } from "@/src/types/poi";
-
-type MapCategoryFilter = "all" | "culture" | "food" | "transit" | "accommodation";
-
-const categoryMap: Record<MapCategoryFilter, POICategory[] | "all"> = {
-  all: "all",
-  culture: ["museum", "event"],
-  food: ["restaurant"],
-  transit: ["transport"],
-  accommodation: ["hotel"],
-};
-
-// Kategori renkleri (pin rengi için)
-const CATEGORY_COLORS: Record<string, string> = {
-  museum: "#8b5cf6",
-  event: "#e8c547",
-  restaurant: "#10b981",
-  transport: "#3b82f6",
-  hotel: "#f59e0b",
-  default: "#0f1f3d",
-};
 
 type PocketGuideMapProps = {
-  categoryFilter?: MapCategoryFilter;
+  categoryFilter?: string;
   searchQuery?: string;
   savedPoiIds?: Set<string>;
   onToggleSave?: (poi: POI) => void;
   showPins?: boolean;
+  showLayerToggle?: boolean;
   forcedCenter?: { lat: number; lng: number };
+  searchMarker?: { lat: number; lng: number };
+  onMapCenterChange?: (lat: number, lng: number) => void;
 };
 
 export function PocketGuideMap({
-  categoryFilter = "all",
   searchQuery = "",
   savedPoiIds,
   onToggleSave,
-  showPins = true,
+  showPins = false,
+  showLayerToggle = false,
   forcedCenter,
+  searchMarker,
+  onMapCenterChange,
 }: PocketGuideMapProps) {
   const mapRef = useRef<MapView>(null);
 
-  const { routeData, isActive, activeLegIndex, activeStepIndex, draftPOIs, addToRouteDraft, removeFromRouteDraft } =
-    useRoute();
+  const {
+    routeData,
+    isActive,
+    activeLegIndex,
+    activeStepIndex,
+    draftPOIs,
+    addToRouteDraft,
+    removeFromRouteDraft,
+  } = useRoute();
 
   const [region, setRegion] = useState({
-    latitude: 41.0082,
-    longitude: 28.9784,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
+    latitude: MAP_INITIAL_LAT,
+    longitude: MAP_INITIAL_LNG,
+    latitudeDelta: 0.08,
+    longitudeDelta: 0.08,
   });
 
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
-  const [poiList, setPoiList] = useState<POI[] | undefined>(undefined);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [layers, setLayers] = useState({ pins: true, route: true, heatmap: false });
+  const [layers, setLayers] = useState({ pins: false, route: true, heatmap: false });
 
-  // Filtrelenmiş POI listesi
-  const filteredPOIs = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    const mapped = categoryMap[categoryFilter];
-    return MOCK_POIS.filter((poi) => {
-      if (mapped !== "all" && !mapped.includes(poi.category)) return false;
-      if (q && !poi.name.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [categoryFilter, searchQuery]);
-
-  // Rota koordinatları
   const routeCoords = useMemo(() => {
     if (!routeData?.geometry?.length) return [];
     return routeData.geometry.map(([latitude, longitude]) => ({ latitude, longitude }));
   }, [routeData]);
 
-  // GPS konum izni ve başlangıç konumu
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (!mounted || status !== "granted") return;
-      const pos = await Location.getCurrentPositionAsync({});
-      if (!mounted) return;
-      const newRegion = {
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      };
-      setRegion(newRegion);
-      mapRef.current?.animateToRegion(newRegion, 900);
-    })();
-    return () => {
-      mounted = false;
+  const flyTo = useCallback((lat: number, lng: number, delta = 0.01) => {
+    const next = {
+      latitude: lat,
+      longitude: lng,
+      latitudeDelta: delta,
+      longitudeDelta: delta,
     };
+    setRegion(next);
+    mapRef.current?.animateToRegion(next, 800);
   }, []);
 
-  // Dışarıdan gelen merkez değişikliği (MapPage'den)
   useEffect(() => {
     if (!forcedCenter) return;
-    const newRegion = {
-      latitude: forcedCenter.lat,
-      longitude: forcedCenter.lng,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    };
-    setRegion(newRegion);
-    mapRef.current?.animateToRegion(newRegion, 800);
-  }, [forcedCenter]);
+    flyTo(forcedCenter.lat, forcedCenter.lng);
+  }, [forcedCenter?.lat, forcedCenter?.lng, flyTo]);
 
-  // Aktif rota adımına göre haritayı kaydır
   useEffect(() => {
     if (!isActive || !routeData) return;
-    const activeLeg = routeData.legs[activeLegIndex];
-    const activeStep = activeLeg?.steps[activeStepIndex];
-    if (!activeStep?.way_points?.length) return;
-    const pointIndex = activeStep.way_points[0];
-    const point = routeData.geometry[pointIndex];
+    const step = routeData.legs[activeLegIndex]?.steps[activeStepIndex];
+    const idx = step?.way_points?.[0];
+    const point = idx != null ? routeData.geometry[idx] : null;
     if (!point) return;
-    const newRegion = {
-      latitude: point[0],
-      longitude: point[1],
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    };
-    mapRef.current?.animateToRegion(newRegion, 900);
-  }, [activeLegIndex, activeStepIndex, routeData, isActive]);
+    flyTo(point[0], point[1], 0.008);
+  }, [activeLegIndex, activeStepIndex, routeData, isActive, flyTo]);
 
-  const openSheet = useCallback((poi: POI, list?: POI[]) => {
-    setSelectedPOI(poi);
-    setPoiList(list);
-    setIsSheetOpen(true);
-  }, []);
+  useEffect(() => {
+    setLayers((prev) => ({ ...prev, route: isActive }));
+  }, [isActive]);
 
-  const closeSheet = useCallback(() => setIsSheetOpen(false), []);
-
-  const handleToggleDraft = useCallback(
-    (poi: POI) => {
-      if (draftPOIs.some((p) => p.id === poi.id)) {
-        removeFromRouteDraft(poi.id);
-      } else {
-        addToRouteDraft(poi);
-      }
+  const onRegionChange = useCallback(
+    (next: typeof region) => {
+      setRegion(next);
+      onMapCenterChange?.(next.latitude, next.longitude);
     },
-    [addToRouteDraft, draftPOIs, removeFromRouteDraft]
+    [onMapCenterChange],
   );
 
-  const isInDraft = useCallback((poi: POI) => draftPOIs.some((p) => p.id === poi.id), [draftPOIs]);
-  const isSaved = useCallback((poi: POI) => Boolean(savedPoiIds?.has(poi.id)), [savedPoiIds]);
-
-  const shouldShowPins = showPins && layers.pins;
-  const shouldShowRoute = layers.route && isActive && routeData && routeCoords.length > 0;
+  const shouldShowRoute = layers.route && isActive && routeCoords.length > 0;
 
   return (
     <View style={styles.container}>
@@ -166,21 +109,19 @@ export function PocketGuideMap({
         style={styles.map}
         provider={PROVIDER_DEFAULT}
         region={region}
-        onRegionChangeComplete={setRegion}
-        showsUserLocation={true}
+        onRegionChangeComplete={onRegionChange}
+        showsUserLocation
         showsMyLocationButton={false}
         showsCompass={false}
         toolbarEnabled={false}
       >
-        {/* OpenStreetMap tile layer */}
         <UrlTile
-          urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          urlTemplate={OSM_TILE_URL}
           maximumZ={19}
           flipY={false}
           tileSize={256}
         />
 
-        {/* Rota çizgisi */}
         {shouldShowRoute && (
           <Polyline
             coordinates={routeCoords}
@@ -190,36 +131,51 @@ export function PocketGuideMap({
           />
         )}
 
-        {/* POI marker'ları */}
-        {shouldShowPins &&
-          filteredPOIs.map((poi) => (
-            <Marker
-              key={poi.id}
-              coordinate={{
-                latitude: poi.coordinate.latitude,
-                longitude: poi.coordinate.longitude,
-              }}
-              pinColor={CATEGORY_COLORS[poi.category] ?? CATEGORY_COLORS.default}
-              onPress={() => openSheet(poi)}
-            />
-          ))}
+        {searchMarker ? (
+          <Marker
+            coordinate={{ latitude: searchMarker.lat, longitude: searchMarker.lng }}
+            pinColor="#E11D48"
+          />
+        ) : null}
+
+        {draftPOIs.map((poi, index) => (
+          <Marker
+            key={`draft-${poi.id}`}
+            coordinate={{
+              latitude: poi.coordinate.latitude,
+              longitude: poi.coordinate.longitude,
+            }}
+            onPress={() => {
+              setSelectedPOI(poi);
+              setIsSheetOpen(true);
+            }}
+          >
+            <View style={styles.draftMarker}>
+              <Text style={styles.draftMarkerText}>{index + 1}</Text>
+            </View>
+          </Marker>
+        ))}
       </MapView>
 
-      <View pointerEvents="box-none" style={styles.overlay}>
-        <LayerToggle layers={layers} onChange={setLayers} />
-      </View>
+      {showLayerToggle ? (
+        <View pointerEvents="box-none" style={styles.overlay}>
+          <LayerToggle layers={layers} onChange={setLayers} />
+        </View>
+      ) : null}
 
-      {isSheetOpen && selectedPOI && (
+      {isSheetOpen && selectedPOI ? (
         <POIBottomSheet
           poi={selectedPOI}
-          poiList={poiList}
-          onClose={closeSheet}
-          isInDraft={isInDraft}
-          isSaved={isSaved}
-          onToggleDraft={handleToggleDraft}
+          onClose={() => setIsSheetOpen(false)}
+          isInDraft={(p) => draftPOIs.some((d) => d.id === p.id)}
+          onToggleDraft={(p) => {
+            if (draftPOIs.some((d) => d.id === p.id)) removeFromRouteDraft(p.id);
+            else addToRouteDraft(p);
+          }}
+          isSaved={(p) => Boolean(savedPoiIds?.has(p.id))}
           onToggleSave={onToggleSave}
         />
-      )}
+      ) : null}
     </View>
   );
 }
@@ -235,6 +191,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 60,
   },
+  draftMarker: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#0F1F3D",
+    borderWidth: 2,
+    borderColor: "#E0B84D",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  draftMarkerText: { color: "#fff", fontSize: 12, fontWeight: "800" },
 });
 
 export default PocketGuideMap;

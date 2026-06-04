@@ -1,4 +1,4 @@
-/** Web geocode.ts — Expo ortamı için uyarlanmış */
+/** OpenStreetMap Nominatim + isteğe bağlı Mapbox Geocoding (web ile aynı) */
 
 export interface GeocodeResult {
   lat: number;
@@ -7,7 +7,7 @@ export interface GeocodeResult {
   placeId?: string;
 }
 
-interface NominatimPlace {
+export interface NominatimPlace {
   place_id: number;
   display_name: string;
   lat: string;
@@ -76,14 +76,18 @@ async function geocodeWithNominatim(query: string): Promise<GeocodeResult | null
 async function geocodePlaceWithMapbox(
   query: string,
   token: string,
+  countryCode?: string,
 ): Promise<GeocodeResult | null> {
   const url = new URL(
     `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`,
   );
   url.searchParams.set("access_token", token);
   url.searchParams.set("limit", "1");
-  url.searchParams.set("types", "place,locality");
+  url.searchParams.set("types", "poi,address,place,locality");
   url.searchParams.set("language", "tr");
+  if (countryCode) {
+    url.searchParams.set("country", countryCode);
+  }
 
   try {
     const res = await fetch(url.toString());
@@ -124,6 +128,7 @@ export async function searchPlaces(
   url.searchParams.set("format", "json");
   url.searchParams.set("limit", String(options?.limit ?? 5));
   url.searchParams.set("accept-language", "tr");
+  url.searchParams.set("addressdetails", "1");
   if (options?.countrycodes) {
     url.searchParams.set("countrycodes", options.countrycodes);
   }
@@ -135,6 +140,7 @@ export async function searchPlaces(
   }
 }
 
+/** Tek mekan / adres — harita pin için */
 export async function geocodeVenue(
   query: string,
   options?: GeocodeVenueOptions,
@@ -144,7 +150,7 @@ export async function geocodeVenue(
 
   const mapboxToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
   if (mapboxToken) {
-    const fromMapbox = await geocodePlaceWithMapbox(q, mapboxToken);
+    const fromMapbox = await geocodePlaceWithMapbox(q, mapboxToken, options?.countrycodes);
     if (fromMapbox) return fromMapbox;
   }
 

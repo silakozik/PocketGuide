@@ -1,15 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-  lazy,
-  Suspense,
-  type ComponentType,
-} from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -24,13 +16,14 @@ import {
 import * as Location from "expo-location";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { PocketGuideMap } from "@/src/components/map/PocketGuideMap";
 import { AIAssistant } from "@/src/components/AIAssistant";
 import { getSavedTrip, saveTrip, type SavedTripStop } from "@/src/lib/savedTripsApi";
 import { DirectionsPanel } from "@/src/components/navigation/DirectionsPanel";
 import { RouteControls } from "@/src/components/navigation/RouteControls";
 import { RouteProvider, useRoute } from "@/src/context/RouteContext";
 import { useAuth } from "@/src/context/AuthContext";
-import { geocodeVenue } from "@/src/lib/geocode";
+import { geocodeVenue, searchPlaces, type NominatimPlace } from "@/src/lib/geocode";
 import {
   clearAiRouteMapDraft,
   clearAiRouteMapPois,
@@ -41,24 +34,7 @@ import {
 import { theme } from "@/src/theme/tokens";
 import type { POI } from "@/src/types/poi";
 
-async function searchPlaces(query: string): Promise<NominatimResult[]> {
-  if (!query.trim() || query.length < 2) return [];
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&accept-language=tr`;
-    const res = await fetch(url, { headers: { "User-Agent": "PocketGuide/1.0" } });
-    return res.ok ? ((await res.json()) as NominatimResult[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-type NominatimResult = {
-  place_id: number;
-  display_name: string;
-  lat: string;
-  lon: string;
-  type: string;
-};
+type NominatimResult = NominatimPlace;
 
 type RouteStop = {
   id: string;
@@ -69,40 +45,6 @@ type RouteStop = {
 };
 
 type ActiveSheet = "route" | "nearby" | "firstday";
-
-type MapLazyProps = {
-  categoryFilter?: string;
-  searchQuery?: string;
-  savedPoiIds?: Set<string>;
-  onToggleSave?: (poi: POI) => void;
-  showPins?: boolean;
-  forcedCenter?: { lat: number; lng: number };
-};
-
-function MapModuleFallback(_props: MapLazyProps) {
-  return (
-    <View style={styles.mapFallback}>
-      <Text style={styles.mapFallbackTitle}>Harita yüklenemedi</Text>
-      <Text style={styles.mapFallbackBody}>
-        Geliştirme sürümü ile derleyin ve EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN tanımlayın.
-      </Text>
-    </View>
-  );
-}
-
-function resolvePocketGuideMapExport(m: {
-  default?: unknown;
-  PocketGuideMap?: unknown;
-}): ComponentType<MapLazyProps> {
-  const C = m.default ?? m.PocketGuideMap;
-  return typeof C === "function" ? (C as ComponentType<MapLazyProps>) : MapModuleFallback;
-}
-
-const PocketGuideMapLazy = lazy<ComponentType<MapLazyProps>>(() =>
-  import("@/src/components/map/PocketGuideMap")
-    .then((m) => ({ default: resolvePocketGuideMapExport(m) }))
-    .catch(() => ({ default: MapModuleFallback })),
-);
 
 function paramStr(v: string | string[] | undefined): string {
   return typeof v === "string" ? v : Array.isArray(v) ? v[0] : "";
@@ -138,6 +80,7 @@ function MapScreenContent() {
   const [showResults, setShowResults] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
+  const [searchMarker, setSearchMarker] = useState<{ lat: number; lng: number } | undefined>();
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>("route");
   const [savingTrip, setSavingTrip] = useState(false);
   const [saveTripMsg, setSaveTripMsg] = useState<string | null>(null);
@@ -327,7 +270,10 @@ function MapScreenContent() {
   }, [searchQuery]);
 
   const handleSelectResult = (result: NominatimResult) => {
-    setMapCenter({ lat: parseFloat(result.lat), lng: parseFloat(result.lon) });
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    setMapCenter({ lat, lng });
+    setSearchMarker({ lat, lng });
     setSearchQuery(result.display_name.split(",")[0]);
     setShowResults(false);
     Keyboard.dismiss();
@@ -361,6 +307,7 @@ function MapScreenContent() {
     if (status !== "granted") return;
     const pos = await Location.getCurrentPositionAsync({});
     setMapCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+    setSearchMarker(undefined);
   };
 
   const handleSaveToTrips = async () => {
@@ -397,14 +344,15 @@ function MapScreenContent() {
 
   return (
     <View style={styles.container}>
-      <Suspense fallback={<View style={styles.container} />}>
-        <PocketGuideMapLazy
-          categoryFilter="all"
-          searchQuery=""
-          showPins={false}
-          forcedCenter={mapCenter}
-        />
-      </Suspense>
+      <PocketGuideMap
+        categoryFilter="all"
+        searchQuery=""
+        showPins={false}
+        showLayerToggle={false}
+        forcedCenter={mapCenter}
+        searchMarker={searchMarker}
+        onMapCenterChange={(lat, lng) => setMapCenter({ lat, lng })}
+      />
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -612,20 +560,6 @@ export default function PocketGuideMapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-
-  mapFallback: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: theme.colors.background,
-  },
-  mapFallbackTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: theme.colors.textPrimary,
-    marginBottom: 10,
-  },
-  mapFallbackBody: { fontSize: 14, lineHeight: 22, color: theme.colors.textSecondary },
 
   topBar: {
     position: "absolute",
