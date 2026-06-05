@@ -49,6 +49,7 @@ export interface RoutePlannerOptions {
   cityNameEn: string;
   days: number;
   themes: RouteTheme[];
+  userInterests?: string[];
   groqApiKey: string;
   dangerouslyAllowBrowser?: boolean;
 }
@@ -67,8 +68,16 @@ const THEME_LABELS: Record<RouteTheme, string> = {
 function buildRoutePlannerPrompt(options: RoutePlannerOptions): string {
   const themeLabels = options.themes.map((t) => THEME_LABELS[t]).join(", ");
   const themesJson = JSON.stringify(options.themes);
+
+  const interestsText =
+    options.userInterests && options.userInterests.length > 0
+      ? `\nUser's personal interests: ${options.userInterests.join(", ")}. 
+       Subtly incorporate these into activity and dining choices.`
+      : "";
+
   return `
 You are an expert travel planner. Create a detailed ${options.days}-day travel itinerary for ${options.cityNameEn} (${options.city}) combining these travel themes: ${themeLabels}.
+${interestsText}
 
 RULES:
 - Balance ALL selected themes across the full trip; each day should emphasize at least one of them.
@@ -81,6 +90,7 @@ RULES:
 - Include 1 meal stop per day minimum.
 - Descriptions must be in TURKISH.
 - Tips must be in TURKISH.
+- If user has personal interests, suggest specific restaurants/galleries/venues matching them.
 
 OUTPUT: Return ONLY a valid JSON object with this exact structure, no markdown, no prose:
 {

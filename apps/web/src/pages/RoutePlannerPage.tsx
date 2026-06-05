@@ -7,6 +7,7 @@ import { generateRoute } from "@pocketguide/core";
 import type { GeneratedRoute, RouteTheme } from "@pocketguide/core";
 import { saveTrip } from "../lib/savedTripsApi";
 import { useAuth } from "../context/AuthContext";
+import { INTERESTS } from "./OnboardingPage";
 
 const CITIES = [
   { nameTr: "İstanbul", nameEn: "Istanbul", slug: "istanbul", emoji: "🕌" },
@@ -21,18 +22,40 @@ const CITIES = [
   { nameTr: "New York", nameEn: "New York", slug: "new-york", emoji: "🗽" },
 ];
 
-const THEMES: { id: RouteTheme; label: string; emoji: string; desc: string }[] = [
-  { id: "culture", label: "Kültür & Tarih", emoji: "🏛️", desc: "Müzeler, tarihi yapılar" },
-  { id: "food", label: "Yeme & İçme", emoji: "🍽️", desc: "Restoranlar, pazarlar" },
-  { id: "nature", label: "Doğa", emoji: "🌿", desc: "Parklar, yürüyüş" },
-  { id: "adventure", label: "Macera", emoji: "🧗", desc: "Aktif & heyecanlı" },
-  { id: "shopping", label: "Alışveriş", emoji: "🛍️", desc: "Çarşılar, AVM'ler" },
-  { id: "relaxation", label: "Dinlenme", emoji: "🧘", desc: "Spa, yavaş tempo" },
-  { id: "family", label: "Aile", emoji: "👨‍👩‍👧", desc: "Çocuk dostu" },
-  { id: "budget", label: "Bütçe Dostu", emoji: "💰", desc: "Ucuz & değerli" },
-];
-
 const DAYS_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
+
+const INTERESTS_TO_THEMES: Record<string, RouteTheme> = {
+  art: "culture",
+  gastronomy: "food",
+  history: "culture",
+  nature: "nature",
+  nightlife: "relaxation",
+  shopping: "shopping",
+  architecture: "culture",
+  music_events: "culture",
+  adventure: "adventure",
+  relaxation: "relaxation",
+  family: "family",
+  budget: "budget",
+};
+
+const getInitialInterests = (): string[] => {
+  try {
+    const raw = localStorage.getItem("pg_user_interests");
+    if (!raw) return [];
+    const interests = JSON.parse(raw);
+    return Array.isArray(interests) ? (interests as string[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const themesFromInterests = (interests: string[]): RouteTheme[] => {
+  const themes = [
+    ...new Set(interests.map((i) => INTERESTS_TO_THEMES[i]).filter(Boolean)),
+  ] as RouteTheme[];
+  return themes.length > 0 ? themes : ["culture"];
+};
 
 function routeToStops(route: GeneratedRoute) {
   return route.plan.flatMap((day) =>
@@ -52,16 +75,13 @@ export default function RoutePlannerPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedCity, setSelectedCity] = useState<(typeof CITIES)[0] | null>(null);
   const [selectedDays, setSelectedDays] = useState(3);
-  const [selectedThemes, setSelectedThemes] = useState<RouteTheme[]>(["culture"]);
+  const [selectedInterests, setSelectedInterests] =
+    useState<string[]>(getInitialInterests);
 
-  const toggleTheme = (id: RouteTheme) => {
-    setSelectedThemes((prev) => {
-      if (prev.includes(id)) {
-        if (prev.length === 1) return prev;
-        return prev.filter((t) => t !== id);
-      }
-      return [...prev, id];
-    });
+  const toggleInterest = (id: string) => {
+    setSelectedInterests((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
   };
 
   const [loading, setLoading] = useState(false);
@@ -73,9 +93,10 @@ export default function RoutePlannerPage() {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY?.trim();
 
   const handleGenerate = async () => {
-    if (!selectedCity || !apiKey || selectedThemes.length === 0) {
+    if (!selectedCity || !apiKey || selectedInterests.length === 0) {
       if (!apiKey) setError("Groq API anahtarı bulunamadı (VITE_GROQ_API_KEY).");
-      else if (selectedThemes.length === 0) setError("En az bir seyahat teması seçmelisin.");
+      else if (selectedInterests.length === 0)
+        setError("En az bir ilgi alanı seçmelisin.");
       return;
     }
     setLoading(true);
@@ -86,7 +107,8 @@ export default function RoutePlannerPage() {
         city: selectedCity.nameTr,
         cityNameEn: selectedCity.nameEn,
         days: selectedDays,
-        themes: selectedThemes,
+        themes: themesFromInterests(selectedInterests),
+        userInterests: selectedInterests,
         groqApiKey: apiKey,
         dangerouslyAllowBrowser: true,
       });
@@ -223,19 +245,24 @@ export default function RoutePlannerPage() {
               </div>
 
               <div className="rp-field">
-                <label className="rp-label">Seyahat temaları</label>
-                <p className="rp-theme-hint">Birden fazla tema seçebilirsin (en az 1)</p>
+                <label className="rp-label">İlgi alanların</label>
+                {getInitialInterests().length > 0 && (
+                  <p className="rp-personalized-hint">
+                    ✨ Profilindeki ilgi alanların otomatik seçildi — istersen
+                    değiştirebilirsin.
+                  </p>
+                )}
+                <p className="rp-theme-hint">Birden fazla seçebilirsin (en az 1)</p>
                 <div className="rp-theme-grid">
-                  {THEMES.map((theme) => (
+                  {INTERESTS.map((interest) => (
                     <button
-                      key={theme.id}
+                      key={interest.id}
                       type="button"
-                      className={`rp-theme-card ${selectedThemes.includes(theme.id) ? "selected" : ""}`}
-                      onClick={() => toggleTheme(theme.id)}
+                      className={`rp-theme-card ${selectedInterests.includes(interest.id) ? "selected" : ""}`}
+                      onClick={() => toggleInterest(interest.id)}
                     >
-                      <span className="rp-theme-emoji">{theme.emoji}</span>
-                      <span className="rp-theme-label">{theme.label}</span>
-                      <span className="rp-theme-desc">{theme.desc}</span>
+                      <span className="rp-theme-emoji">{interest.icon}</span>
+                      <span className="rp-theme-label">{interest.label}</span>
                     </button>
                   ))}
                 </div>
@@ -248,7 +275,7 @@ export default function RoutePlannerPage() {
                   type="button"
                   className="rp-btn-primary"
                   onClick={handleGenerate}
-                  disabled={loading || selectedThemes.length === 0}
+                  disabled={loading || selectedInterests.length === 0}
                 >
                   {loading ? (
                     <>

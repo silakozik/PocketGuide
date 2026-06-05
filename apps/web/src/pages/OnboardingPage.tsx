@@ -11,6 +11,10 @@ export const INTERESTS = [
   { id: "shopping", label: "Alışveriş", icon: "🛍️", accent: "#ec4899" },
   { id: "architecture", label: "Mimari", icon: "🏢", accent: "#0ea5e9" },
   { id: "music_events", label: "Müzik & Etkinlik", icon: "🎵", accent: "#e11d48" },
+  { id: "adventure", label: "Macera", icon: "🧗", accent: "#f59e0b" },
+  { id: "relaxation", label: "Dinlenme", icon: "🧘", accent: "#06b6d4" },
+  { id: "family", label: "Aile", icon: "👨‍👩‍👧", accent: "#84cc16" },
+  { id: "budget", label: "Bütçe Dostu", icon: "💰", accent: "#10b981" },
 ] as const;
 
 export default function OnboardingPage() {

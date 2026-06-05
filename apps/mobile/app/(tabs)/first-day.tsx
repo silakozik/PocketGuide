@@ -43,6 +43,28 @@ const THEMES: { id: RouteTheme; label: string; emoji: string; desc: string }[] =
 
 const DAYS_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 
+const INTERESTS_TO_THEMES: Record<string, RouteTheme> = {
+  art: "culture",
+  gastronomy: "food",
+  history: "culture",
+  nature: "nature",
+  nightlife: "relaxation",
+  shopping: "shopping",
+  architecture: "culture",
+  music_events: "culture",
+  adventure: "adventure",
+  relaxation: "relaxation",
+  family: "family",
+  budget: "budget",
+};
+
+function themesFromInterests(interests: string[]): RouteTheme[] {
+  const themes = [
+    ...new Set(interests.map((i) => INTERESTS_TO_THEMES[i]).filter(Boolean)),
+  ] as RouteTheme[];
+  return themes.length > 0 ? themes : ["culture"];
+}
+
 function routeToStops(route: GeneratedRoute) {
   return route.plan.flatMap((day) =>
     day.stops.map((stop) => ({
@@ -75,6 +97,7 @@ export default function RoutePlannerTabScreen() {
   const [selectedCity, setSelectedCity] = useState<(typeof CITIES)[0] | null>(null);
   const [selectedDays, setSelectedDays] = useState(3);
   const [selectedThemes, setSelectedThemes] = useState<RouteTheme[]>(["culture"]);
+  const [userInterests, setUserInterests] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   const toggleTheme = (id: RouteTheme) => {
@@ -103,6 +126,16 @@ export default function RoutePlannerTabScreen() {
       } catch {
         // allow
       }
+      try {
+        const raw = await AsyncStorage.getItem("pg_user_interests");
+        const interests: string[] = raw ? JSON.parse(raw) : [];
+        if (mounted && interests.length > 0) {
+          setUserInterests(interests);
+          setSelectedThemes(themesFromInterests(interests));
+        }
+      } catch {
+        // keep default themes
+      }
       if (mounted) setReady(true);
     })();
     return () => {
@@ -130,6 +163,7 @@ export default function RoutePlannerTabScreen() {
         cityNameEn: selectedCity.nameEn,
         days: selectedDays,
         themes: selectedThemes,
+        userInterests,
         groqApiKey: apiKey,
         dangerouslyAllowBrowser: true,
       });
