@@ -9,6 +9,7 @@ import { hydrateLanguage } from '@/src/i18n';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { AuthProvider } from '@/src/context/AuthContext';
+import { RouteProvider } from '@/src/context/RouteContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -52,21 +53,23 @@ function RootLayoutNav() {
 
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="register" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="landing" options={{ headerShown: false }} />
-          <Stack.Screen name="profile" options={{ headerShown: false }} />
-          <Stack.Screen name="plan/saved/[tripId]" options={{ headerShown: false }} />
-        <Stack.Screen name="[citySlug]/index" options={{ headerShown: false }} />
-        <Stack.Screen name="[citySlug]/first-day" options={{ headerShown: false }} />
-        <Stack.Screen name="explore/[placeCategory]" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        </Stack>
-      </ThemeProvider>
+      <RouteProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="register" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+            <Stack.Screen name="landing" options={{ headerShown: false }} />
+            <Stack.Screen name="profile" options={{ headerShown: false }} />
+            <Stack.Screen name="plan/saved/[tripId]" options={{ headerShown: false }} />
+            <Stack.Screen name="[citySlug]/index" options={{ headerShown: false }} />
+            <Stack.Screen name="[citySlug]/first-day" options={{ headerShown: false }} />
+            <Stack.Screen name="explore/[placeCategory]" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          </Stack>
+        </ThemeProvider>
+      </RouteProvider>
     </AuthProvider>
   );
 }

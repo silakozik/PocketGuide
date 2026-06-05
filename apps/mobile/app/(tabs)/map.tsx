@@ -22,7 +22,7 @@ import { AIAssistant, type AIAssistantPin } from "@/src/components/AIAssistant";
 import { getSavedTrip, saveTrip, type SavedTripStop } from "@/src/lib/savedTripsApi";
 import { DirectionsPanel } from "@/src/components/navigation/DirectionsPanel";
 import { RouteControls } from "@/src/components/navigation/RouteControls";
-import { RouteProvider, useRoute } from "@/src/context/RouteContext";
+import { useRoute } from "@/src/context/RouteContext";
 import { useAuth } from "@/src/context/AuthContext";
 import { geocodeVenue, searchPlaces, type NominatimPlace } from "@/src/lib/geocode";
 import {
@@ -101,6 +101,7 @@ function MapScreenContent() {
     setRouteDraft,
     startRoute,
     isFetching,
+    isActive,
     routeData,
     error,
   } = useRoute();
@@ -479,6 +480,7 @@ function MapScreenContent() {
         </Pressable>
       </View>
 
+      {!isActive && (
       <View style={[styles.bottomSheet, { paddingBottom: tabBarPad }]}>
         <View style={styles.sheetHandle} />
 
@@ -602,6 +604,7 @@ function MapScreenContent() {
           </Pressable>
         )}
       </View>
+      )}
 
       <DirectionsPanel />
       <RouteControls />
@@ -620,11 +623,7 @@ function MapScreenContent() {
 }
 
 export default function PocketGuideMapScreen() {
-  return (
-    <RouteProvider>
-      <MapScreenContent />
-    </RouteProvider>
-  );
+  return <MapScreenContent />;
 }
 
 const styles = StyleSheet.create({

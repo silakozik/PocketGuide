@@ -30,6 +30,8 @@ const buildMapHtml = (lat: number, lng: number) => `
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
+    var routeLine = null;
+
     document.addEventListener('message', function(e) {
       var data = JSON.parse(e.data);
       if (data.type === 'flyTo') {
@@ -47,6 +49,16 @@ const buildMapHtml = (lat: number, lng: number) => `
         map.eachLayer(function(layer) {
           if (layer instanceof L.Marker) map.removeLayer(layer);
         });
+      }
+      if (data.type === 'drawRoute') {
+        if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+        if (data.coords && data.coords.length) {
+          routeLine = L.polyline(data.coords, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(map);
+          try { map.fitBounds(routeLine.getBounds(), { padding: [60, 60] }); } catch (err) {}
+        }
+      }
+      if (data.type === 'clearRoute') {
+        if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
       }
     });
     window.addEventListener('message', function(e) {
@@ -146,6 +158,15 @@ export function PocketGuideMap({
     if (!mapReady) return;
     syncMarkers();
   }, [syncMarkers, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    if (isActive && routeData?.geometry?.length) {
+      postToMap({ type: "drawRoute", coords: routeData.geometry });
+    } else {
+      postToMap({ type: "clearRoute" });
+    }
+  }, [mapReady, isActive, routeData, postToMap]);
 
   useEffect(() => {
     if (!mapReady || !isActive || !routeData) return;
