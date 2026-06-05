@@ -14,6 +14,7 @@ import { RoutePlanDisplay } from "@/src/components/route/RoutePlanDisplay";
 import { useAuth } from "@/src/context/AuthContext";
 import { saveTrip } from "@/src/lib/savedTripsApi";
 import { theme } from "@/src/theme/tokens";
+import { PROFILE_INTERESTS } from "@/src/constants/interests";
 import { generateRoute } from "@pocketguide/core";
 import type { GeneratedRoute, RouteTheme } from "@pocketguide/core";
 
@@ -28,17 +29,6 @@ const CITIES = [
   { nameTr: "Amsterdam", nameEn: "Amsterdam", slug: "amsterdam", emoji: "🚲" },
   { nameTr: "Sydney", nameEn: "Sydney", slug: "sydney", emoji: "🦘" },
   { nameTr: "New York", nameEn: "New York", slug: "new-york", emoji: "🗽" },
-];
-
-const THEMES: { id: RouteTheme; label: string; emoji: string; desc: string }[] = [
-  { id: "culture", label: "Kültür & Tarih", emoji: "🏛️", desc: "Müzeler, tarihi yapılar" },
-  { id: "food", label: "Yeme & İçme", emoji: "🍽️", desc: "Restoranlar, pazarlar" },
-  { id: "nature", label: "Doğa", emoji: "🌿", desc: "Parklar, yürüyüş" },
-  { id: "adventure", label: "Macera", emoji: "🧗", desc: "Aktif & heyecanlı" },
-  { id: "shopping", label: "Alışveriş", emoji: "🛍️", desc: "Çarşılar, AVM'ler" },
-  { id: "relaxation", label: "Dinlenme", emoji: "🧘", desc: "Spa, yavaş tempo" },
-  { id: "family", label: "Aile", emoji: "👨‍👩‍👧", desc: "Çocuk dostu" },
-  { id: "budget", label: "Bütçe Dostu", emoji: "💰", desc: "Ucuz & değerli" },
 ];
 
 const DAYS_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
@@ -96,18 +86,13 @@ export default function RoutePlannerTabScreen() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedCity, setSelectedCity] = useState<(typeof CITIES)[0] | null>(null);
   const [selectedDays, setSelectedDays] = useState(3);
-  const [selectedThemes, setSelectedThemes] = useState<RouteTheme[]>(["culture"]);
-  const [userInterests, setUserInterests] = useState<string[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const toggleTheme = (id: RouteTheme) => {
-    setSelectedThemes((prev) => {
-      if (prev.includes(id)) {
-        if (prev.length === 1) return prev;
-        return prev.filter((t) => t !== id);
-      }
-      return [...prev, id];
-    });
+  const toggleInterest = (id: string) => {
+    setSelectedInterests((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
   };
   const [error, setError] = useState<string | null>(null);
   const [route, setRoute] = useState<GeneratedRoute | null>(null);
@@ -130,11 +115,10 @@ export default function RoutePlannerTabScreen() {
         const raw = await AsyncStorage.getItem("pg_user_interests");
         const interests: string[] = raw ? JSON.parse(raw) : [];
         if (mounted && interests.length > 0) {
-          setUserInterests(interests);
-          setSelectedThemes(themesFromInterests(interests));
+          setSelectedInterests(interests);
         }
       } catch {
-        // keep default themes
+        // keep empty selection
       }
       if (mounted) setReady(true);
     })();
@@ -150,8 +134,8 @@ export default function RoutePlannerTabScreen() {
       setError("API key bulunamadı. .env dosyasını kontrol edin.");
       return;
     }
-    if (selectedThemes.length === 0) {
-      setError("En az bir seyahat teması seçmelisin.");
+    if (selectedInterests.length === 0) {
+      setError("En az bir ilgi alanı seçmelisin.");
       return;
     }
     setLoading(true);
@@ -162,8 +146,8 @@ export default function RoutePlannerTabScreen() {
         city: selectedCity.nameTr,
         cityNameEn: selectedCity.nameEn,
         days: selectedDays,
-        themes: selectedThemes,
-        userInterests,
+        themes: themesFromInterests(selectedInterests),
+        userInterests: selectedInterests,
         groqApiKey: apiKey,
         dangerouslyAllowBrowser: true,
       });
@@ -323,27 +307,28 @@ export default function RoutePlannerTabScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Seyahat temaları</Text>
-            <Text style={styles.themeHint}>Birden fazla tema seçebilirsin (en az 1)</Text>
+            <Text style={styles.fieldLabel}>İlgi alanların</Text>
+            {selectedInterests.length > 0 ? (
+              <Text style={styles.personalizedHint}>
+                ✨ Profilindeki ilgi alanların otomatik seçildi — istersen
+                değiştirebilirsin.
+              </Text>
+            ) : null}
+            <Text style={styles.themeHint}>Birden fazla seçebilirsin (en az 1)</Text>
             <View style={styles.themeGrid}>
-              {THEMES.map((t) => {
-                const selected = selectedThemes.includes(t.id);
+              {PROFILE_INTERESTS.map((interest) => {
+                const selected = selectedInterests.includes(interest.id);
                 return (
                   <Pressable
-                    key={t.id}
-                    onPress={() => toggleTheme(t.id)}
+                    key={interest.id}
+                    onPress={() => toggleInterest(interest.id)}
                     style={[styles.themeCard, selected && styles.themeCardSelected]}
                   >
-                    <Text style={styles.themeEmoji}>{t.emoji}</Text>
+                    <Text style={styles.themeEmoji}>{interest.icon}</Text>
                     <Text
                       style={[styles.themeLabel, selected && styles.themeLabelSelected]}
                     >
-                      {t.label}
-                    </Text>
-                    <Text
-                      style={[styles.themeDesc, selected && styles.themeDescSelected]}
-                    >
-                      {t.desc}
+                      {interest.label}
                     </Text>
                   </Pressable>
                 );
@@ -361,9 +346,9 @@ export default function RoutePlannerTabScreen() {
             onPress={handleGenerate}
             style={[
               styles.primaryBtn,
-              (loading || selectedThemes.length === 0) && styles.primaryBtnDisabled,
+              (loading || selectedInterests.length === 0) && styles.primaryBtnDisabled,
             ]}
-            disabled={loading || selectedThemes.length === 0}
+            disabled={loading || selectedInterests.length === 0}
           >
             {loading ? (
               <View style={styles.loadingRow}>
@@ -511,6 +496,17 @@ const styles = StyleSheet.create({
   field: { gap: 8 },
   fieldLabel: { fontSize: 13, fontWeight: "700", color: theme.colors.textPrimary },
   themeHint: { fontSize: 11, color: theme.colors.textMuted, marginTop: -4 },
+  personalizedHint: {
+    fontSize: 12,
+    color: "#6b7a99",
+    backgroundColor: "#f0f4ff",
+    borderWidth: 1,
+    borderColor: "#c7d2fe",
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontStyle: "italic",
+  },
   daysRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   dayBtn: {
     width: 40,
