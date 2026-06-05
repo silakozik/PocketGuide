@@ -70,6 +70,22 @@ async function likePhoto(id: string) {
   } catch {}
 }
 
+function dedupeById<T extends { id?: string | null }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const item of items) {
+    const id = item?.id;
+    if (!id) {
+      out.push(item);
+      continue;
+    }
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(item);
+  }
+  return out;
+}
+
 export default function SearchTabScreen() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -128,12 +144,12 @@ export default function SearchTabScreen() {
       try {
         const offset = reset ? 0 : discoverOffset;
         const res = await getDiscover(userInterests, cityFilter, offset);
-        const photos = res.data ?? [];
+        const photos = dedupeById(res.data ?? []);
         if (reset) {
           setDiscoverPhotos(photos);
           setDiscoverOffset(20);
         } else {
-          setDiscoverPhotos((prev) => [...prev, ...photos]);
+          setDiscoverPhotos((prev) => dedupeById([...prev, ...photos]));
           setDiscoverOffset((prev) => prev + 20);
         }
         setHasMore(photos.length === 20);
@@ -372,7 +388,7 @@ export default function SearchTabScreen() {
           ) : (
             <FlatList
               data={discoverPhotos}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item, index) => item?.id ?? `discover-${index}`}
               numColumns={2}
               columnWrapperStyle={styles.photoGrid}
               showsVerticalScrollIndicator={false}
